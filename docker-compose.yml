@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  perfex:
+    image: pcrm 
+    depends_on:
+      - mysql
+    ports:
+      - "8888:80"
+    volumes:
+      - perfex_data:/var/www/html/
+  mysql:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_ALLOW_EMPTY_PASSWORD=${MYSQL_ALLOW_EMPTY_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  perfex_data: 
+    driver: local
+  mysql_data: 
+    driver: local
