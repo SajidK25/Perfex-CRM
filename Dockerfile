@@ -2,8 +2,8 @@ FROM php:7.2-apache
 
 EXPOSE 80
 
-RUN apt-get update -y
-RUN apt-get install -y libpng-dev libc-client-dev libkrb5-dev --no-install-recommends
+RUN apt-get update -y && \
+    apt-get install -y libpng-dev libc-client-dev libkrb5-dev --no-install-recommends
 
 RUN docker-php-ext-configure imap --with-kerberos --with-imap-ssl
 
