@@ -1,6 +1,6 @@
-### Perfex-CRM into docker
+## Perfex-CRM into docker
 
-## How to delpoy
+### How to delpoy
 
 ```
 docker build -t pcrm .
