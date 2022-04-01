@@ -19,19 +19,21 @@ namespace Symfony\Component\HttpFoundation\Session\Storage\Handler;
 class StrictSessionHandler extends AbstractSessionHandler
 {
     private $handler;
+    private $doDestroy;
 
     public function __construct(\SessionHandlerInterface $handler)
     {
         if ($handler instanceof \SessionUpdateTimestampHandlerInterface) {
-            throw new \LogicException(sprintf('"%s" is already an instance of "SessionUpdateTimestampHandlerInterface", you cannot wrap it with "%s".', get_class($handler), self::class));
+            throw new \LogicException(sprintf('"%s" is already an instance of "SessionUpdateTimestampHandlerInterface", you cannot wrap it with "%s".', get_debug_type($handler), self::class));
         }
 
         $this->handler = $handler;
     }
 
     /**
-     * {@inheritdoc}
+     * @return bool
      */
+    #[\ReturnTypeWillChange]
     public function open($savePath, $sessionName)
     {
         parent::open($savePath, $sessionName);
@@ -42,14 +44,15 @@ class StrictSessionHandler extends AbstractSessionHandler
     /**
      * {@inheritdoc}
      */
-    protected function doRead($sessionId)
+    protected function doRead(string $sessionId)
     {
         return $this->handler->read($sessionId);
     }
 
     /**
-     * {@inheritdoc}
+     * @return bool
      */
+    #[\ReturnTypeWillChange]
     public function updateTimestamp($sessionId, $data)
     {
         return $this->write($sessionId, $data);
@@ -58,30 +61,46 @@ class StrictSessionHandler extends AbstractSessionHandler
     /**
      * {@inheritdoc}
      */
-    protected function doWrite($sessionId, $data)
+    protected function doWrite(string $sessionId, string $data)
     {
         return $this->handler->write($sessionId, $data);
     }
 
     /**
-     * {@inheritdoc}
+     * @return bool
      */
-    protected function doDestroy($sessionId)
+    #[\ReturnTypeWillChange]
+    public function destroy($sessionId)
     {
-        return $this->handler->destroy($sessionId);
+        $this->doDestroy = true;
+        $destroyed = parent::destroy($sessionId);
+
+        return $this->doDestroy ? $this->doDestroy($sessionId) : $destroyed;
     }
 
     /**
      * {@inheritdoc}
      */
+    protected function doDestroy(string $sessionId)
+    {
+        $this->doDestroy = false;
+
+        return $this->handler->destroy($sessionId);
+    }
+
+    /**
+     * @return bool
+     */
+    #[\ReturnTypeWillChange]
     public function close()
     {
         return $this->handler->close();
     }
 
     /**
-     * {@inheritdoc}
+     * @return int|false
      */
+    #[\ReturnTypeWillChange]
     public function gc($maxlifetime)
     {
         return $this->handler->gc($maxlifetime);

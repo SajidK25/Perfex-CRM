@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!-- Project Tasks -->
 <?php
     if($project->settings->hide_tasks_on_main_tasks_table == '1') {

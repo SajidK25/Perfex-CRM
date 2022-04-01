@@ -18,7 +18,7 @@ class Migration_Version_101 extends CI_Migration
                 )
             );
 
-        $this->dbforge->add_column('tblclients', $fields);
+        $this->dbforge->add_column('clients', $fields);
 
         // Payment modes
         $fields = array(
@@ -32,7 +32,7 @@ class Migration_Version_101 extends CI_Migration
                 )
             );
 
-        $this->dbforge->add_column('tblinvoicepaymentsmodes', $fields);
+        $this->dbforge->add_column('invoicepaymentsmodes', $fields);
 
         // Modify payment mode to integer so we can add strings
         $this->db->query('ALTER TABLE `tblinvoicepaymentrecords` CHANGE `paymentmode` `paymentmode` VARCHAR(40) NULL DEFAULT NULL');
@@ -43,7 +43,7 @@ class Migration_Version_101 extends CI_Migration
                 'default' => NULL
                 )
             );
-        $this->dbforge->add_column('tblinvoicepaymentrecords', $fields);
+        $this->dbforge->add_column('invoicepaymentrecords', $fields);
 
         // Set field addedfrom so can be null;
         $this->db->query('ALTER TABLE `tblinvoicepaymentrecords` CHANGE `addedfrom` `addedfrom` INT(11) NULL DEFAULT NULL');
@@ -75,7 +75,7 @@ class Migration_Version_101 extends CI_Migration
                 )
             );
 
-        $this->dbforge->add_column('tblinvoices', $fields);
+        $this->dbforge->add_column('invoices', $fields);
 
         // Add new table tblstafftasksattachments
         $this->db->query('CREATE TABLE IF NOT EXISTS `tblstafftasksattachments` (
@@ -96,7 +96,7 @@ class Migration_Version_101 extends CI_Migration
 
         // Create the tasks attachments folder
         if(!is_dir(TASKS_ATTACHMENTS_FOLDER)){
-            mkdir(TASKS_ATTACHMENTS_FOLDER);
+            mkdir(TASKS_ATTACHMENTS_FOLDER, 0755);
             fopen(TASKS_ATTACHMENTS_FOLDER . '.htaccess', 'w');
             $fp = fopen(TASKS_ATTACHMENTS_FOLDER.'.htaccess','a+');
             if($fp)

@@ -11,7 +11,7 @@ class Migration_Version_121 extends CI_Migration
     public function up()
     {
         $this->db->where('name','paymentmethod_stripe_api_publishable_key');
-        $pb_stripe_api = $this->db->get('tbloptions')->row()->value;
+        $pb_stripe_api = $this->db->get(db_prefix().'options')->row()->value;
 
         if($pb_stripe_api != ''){
             if($this->session->userdata('update_encryption_key') != ''){

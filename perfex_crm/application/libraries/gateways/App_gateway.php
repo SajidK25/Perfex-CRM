@@ -1,28 +1,42 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
 
 class App_gateway
 {
     /**
+     * Whether the gateway is registered
+     * Used when class is initialized more times to prevent registering again and again
+     * E.q. When passed via register_payment_gateway(new Example());
+     *
+     * @since 2.3.4
+     * @var boolean
+     */
+    protected static $registered = [];
+
+    /**
      * Hold Codeigniter instance
      * @var object
      */
     protected $ci;
+
     /**
      * Stores the gateway id
      * @var alphanumeric
      */
     protected $id = '';
+
     /**
      * Gateway name
      * @var mixed
      */
     protected $name = '';
+
     /**
      * All gateway settings
      * @var array
      */
-    protected $settings = array();
+    protected $settings = [];
 
     /**
      * Must be called from the main gateway class that extends this class
@@ -31,21 +45,41 @@ class App_gateway
      */
     public function __construct()
     {
-        $this->ci =& get_instance();
+        $this->ci = & get_instance();
+
+        // App_gateway is not only autoloaded, has subclass
+        if (method_exists($this, 'process_payment')) {
+            hooks()->add_action('before_get_payment_gateways', [$this, 'tryToAutoRegisterPaymentGateway'], 11, 1);
+        }
+    }
+
+    /**
+     * Try to autoload the gateway
+     * This function only works for autoloaded libraries,
+     * NOTE: This does not work with modules, with modules, you must register via register_payment_gateway($gateway, $module_name);
+     *
+     * @since  2.3.4
+     * @internal
+     * @return null
+     */
+    public function tryToAutoRegisterPaymentGateway()
+    {
+        if (!in_array(static::fqcn(), static::$registered)) {
+            register_payment_gateway($this, null);
+        }
     }
 
     public function initMode($modes)
     {
-
         /**
          * Autoload the options defined below
          * Options are used over the system while working and it's necessary to be autoloaded for performance.
          * @var array
          */
 
-        $autoload = array(
-            'label', 'default_selected', 'active'
-        );
+        $autoload = [
+            'label', 'default_selected', 'active',
+        ];
 
         /**
          * Try to add the options if the gateway is first time added or is options page in admin area
@@ -55,21 +89,28 @@ class App_gateway
         if (!$this->isInitialized() || $this->isOptionsPage()) {
             foreach ($this->settings as $option) {
                 $val = isset($option['default_value']) ? $option['default_value'] : '';
-                add_option('paymentmethod_'. $this->getId() . '_' . $option['name'], $val, (in_array($option['name'], $autoload) ? 1 : 0));
+                add_option('paymentmethod_' . $this->getId() . '_' . $option['name'], $val, (in_array($option['name'], $autoload) ? 1 : 0));
             }
-            add_option('paymentmethod_'. $this->getId() . '_initialized', 1);
+            add_option('paymentmethod_' . $this->getId() . '_initialized', 1);
+        }
+
+        if (in_array(static::fqcn(), self::$registered)) {
+            return $modes;
         }
 
         /**
          * Inject the mode with other modes with action hook
          */
-        $modes[] = array(
-            'id' => $this->getId(),
-            'name' => $this->getSetting('label'),
-            'description' => '',
-            'selected_by_default'=>$this->getSetting('default_selected'),
-            'active' => $this->getSetting('active')
-        );
+        $modes[] = [
+            'id'                  => $this->getId(),
+            'name'                => $this->getSetting('label'),
+            'description'         => '',
+            'selected_by_default' => $this->getSetting('default_selected'),
+            'active'              => $this->getSetting('active'),
+            'instance'            => $this,
+        ];
+
+        self::$registered[] = static::fqcn();
 
         return $modes;
     }
@@ -122,28 +163,28 @@ class App_gateway
          */
         array_unshift(
             $settings,
-            array(
-                'name'=>'active',
-                'type'=>'yes_no',
-                'default_value'=>0,
-                'label'=>'settings_paymentmethod_active',
-                ),
-            array(
-                'name'=>'label',
-                'default_value'=>$this->getName(),
-                'label'=>'settings_paymentmethod_mode_label',
-                )
+            [
+                'name'          => 'active',
+                'type'          => 'yes_no',
+                'default_value' => 0,
+                'label'         => 'settings_paymentmethod_active',
+                ],
+            [
+                'name'          => 'label',
+                'default_value' => $this->getName(),
+                'label'         => 'settings_paymentmethod_mode_label',
+                ]
         );
 
         /**
          * Add on bottom default selected on invoice setting
          */
-        $settings[] = array(
-            'name' => 'default_selected',
-            'type' => 'yes_no',
+        $settings[] = [
+            'name'          => 'default_selected',
+            'type'          => 'yes_no',
             'default_value' => 1,
-            'label' => 'settings_paymentmethod_default_selected_on_invoice'
-            );
+            'label'         => 'settings_paymentmethod_default_selected_on_invoice',
+            ];
 
         $this->settings = $settings;
     }
@@ -158,10 +199,12 @@ class App_gateway
      * paymentmethod - Optional
      * note - Optional
      */
-    public function addPayment($data){
-      $data['paymentmode']   = $this->getId();
-      $this->ci->load->model('payments_model');
-      return $this->ci->payments_model->add($data);
+    public function addPayment($data)
+    {
+        $data['paymentmode'] = $this->getId();
+        $this->ci->load->model('payments_model');
+
+        return $this->ci->payments_model->add($data);
     }
 
     /**
@@ -188,7 +231,7 @@ class App_gateway
      */
     public function getSetting($name)
     {
-        return trim(get_option('paymentmethod_'. $this->getId() . '_' .$name));
+        return trim(get_option('paymentmethod_' . $this->getId() . '_' . $name));
     }
 
     /**
@@ -215,7 +258,16 @@ class App_gateway
      */
     private function isOptionsPage()
     {
-        return $this->ci->input->get('group') == 'online_payment_modes' && $this->ci->uri->segment(2) == 'settings';
+        return $this->ci->input->get('group') == 'payment_gateways' && $this->ci->uri->segment(2) == 'settings';
+    }
+
+    /**
+     * Get Fully Qualified Class Name
+     * @return string
+     */
+    public static function fqcn()
+    {
+        return static::class;
     }
 
     /**

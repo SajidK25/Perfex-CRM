@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
 	<div class="content">
@@ -12,7 +13,7 @@
 						<hr class="hr-panel-heading" />
 						<?php if(count($priorities) > 0){ ?>
 
-						<table class="table dt-table scroll-responsive">
+						<table class="table dt-table">
 							<thead>
 								<th><?php echo _l('id'); ?></th>
 								<th><?php echo _l('ticket_priority_dt_name'); ?></th>
@@ -70,7 +71,7 @@
 <?php init_tail(); ?>
 <script>
 	$(function(){
-		_validate_form($('form'),{name:'required'},manage_ticket_priorities);
+		appValidateForm($('form'),{name:'required'},manage_ticket_priorities);
 		$('#priority').on('hidden.bs.modal', function(event) {
 			$('#additional').html('');
 			$('#priority input[name="name"]').val('');

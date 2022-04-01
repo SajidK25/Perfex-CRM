@@ -1,6 +1,14 @@
 <?php
 namespace Braintree;
 
+/**
+ * @property-read string $customerDeviceId
+ * @property-read string $customerLocationZip
+ * @property-read string $customerTenure
+ * @property-read string $decision
+ * @property-read boolean $deviceDataCaptured
+ * @property-read string $id
+ */
 class RiskData extends Base
 {
     public static function factory($attributes)
@@ -27,4 +35,3 @@ class RiskData extends Base
     }
 
 }
-class_alias('Braintree\RiskData', 'Braintree_RiskData');

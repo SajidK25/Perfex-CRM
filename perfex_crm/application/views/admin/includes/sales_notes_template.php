@@ -1,4 +1,4 @@
-<?php
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $len = count($notes);
 $i = 0;
 ?>
@@ -18,7 +18,7 @@ $i = 0;
         <?php } ?>
         <h5 class="media-heading bold"><a href="<?php echo admin_url('profile/'.$note["addedfrom"]); ?>"><?php echo get_staff_full_name($note['addedfrom']); ?></a></h5>
         <div data-note-description="<?php echo $note['id']; ?>">
-            <?php echo $note['description']; ?>
+           <?php echo check_for_links($note['description']); ?>
         </div>
         <div data-note-edit-textarea="<?php echo $note['id']; ?>" class="hide mtop15">
             <?php echo render_textarea('note','',$note['description']); ?>

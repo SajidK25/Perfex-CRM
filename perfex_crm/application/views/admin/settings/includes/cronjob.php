@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <p class="well">
   <span class="bold text-info">CRON COMMAND: wget -q -O- <?php echo site_url('cron/index'.(defined('APP_CRON_KEY') ? '/'.APP_CRON_KEY : '')); ?></span><br />
   <?php if(is_admin()){ ?>
@@ -26,25 +27,49 @@
   <li role="presentation">
     <a href="#tickets" aria-controls="tickets" role="tab" data-toggle="tab"><?php echo _l('tickets'); ?></a>
   </li>
-  <li role="presentation">
-    <a href="#surveys" aria-controls="surveys" role="tab" data-toggle="tab"><?php echo _l('settings_cron_surveys'); ?></a>
-  </li>
+
+  <?php hooks()->do_action('after_cron_settings_last_tab'); ?>
+
 </ul>
 
 <div class="tab-content">
   <div role="tabpanel" class="tab-pane active" id="set_invoice">
-    <?php if(!is_invoices_overdue_reminders_enabled()){ ?>
-    <div class="alert alert-warning">
-      The system was not able to find sources to send overdue notices, if you want overdue notices to be sent, make sure that in <a href="<?php echo admin_url('emails'); ?>">email templates</a> the overdue notice email for invoices is enabled or at least you have configured <a href="<?php echo admin_url('settings?group=sms'); ?>">SMS</a> overdue notice.
-    </div>
-    <?php } ?>
+
     <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('inv_hour_of_day_perform_auto_operations_help'); ?>"></i>
     <?php echo render_input('settings[invoice_auto_operations_hour]','hour_of_day_perform_auto_operations',get_option('invoice_auto_operations_hour'),'number',array('data-toggle'=>'tooltip','data-title'=>_l('hour_of_day_perform_auto_operations_format'),'max'=>23)); ?>
     <hr />
-
-    <?php echo render_input('settings[automatically_send_invoice_overdue_reminder_after]','automatically_send_invoice_overdue_reminder_after',get_option('automatically_send_invoice_overdue_reminder_after'),'number'); ?>
-    <hr />
-    <?php echo render_input('settings[automatically_resend_invoice_overdue_reminder_after]','automatically_resend_invoice_overdue_reminder_after',get_option('automatically_resend_invoice_overdue_reminder_after'),'number'); ?>
+    <div class="row">
+      <div class="col-md-12">
+        <?php if(!is_invoices_overdue_reminders_enabled()){ ?>
+        <div class="alert alert-warning">
+          The system was not able to find sources to send overdue notices, if you want overdue notices to be sent, make sure that in <a href="<?php echo admin_url('emails'); ?>">email templates</a> the <b>Invoice Overdue Notice</b> template for invoices is enabled or at least you have configured <a href="<?php echo admin_url('settings?group=sms'); ?>">SMS</a> overdue notice. If you don't need to send overdue notices for invoices, simply ignore this message.
+        </div>
+        <?php } ?>
+        <h4 class="no-mbot font-medium"><?php echo _l('overdue_notices'); ?></h4>
+        <p><?php echo _l('invoice_overdue_notices_info'); ?></p>
+      </div>
+      <div class="col-md-6">
+          <?php echo render_input('settings[automatically_send_invoice_overdue_reminder_after]','automatically_send_invoice_overdue_reminder_after',get_option('automatically_send_invoice_overdue_reminder_after'),'number'); ?>
+      </div>
+      <div class="col-md-6">
+           <?php echo render_input('settings[automatically_resend_invoice_overdue_reminder_after]','automatically_resend_invoice_overdue_reminder_after',get_option('automatically_resend_invoice_overdue_reminder_after'),'number'); ?>
+      </div>
+      <div class="col-md-12">
+        <?php if(!is_invoices_due_reminders_enabled()){ ?>
+        <div class="alert alert-warning">
+          The system was not able to find sources to send invoices becoming due notices, if you want due notices to be sent, make sure that in <a href="<?php echo admin_url('emails'); ?>">email templates</a> the <b>Invoice Due Notice</b> template for invoices is enabled or at least you have configured <a href="<?php echo admin_url('settings?group=sms'); ?>">SMS</a> due notice. If you don't need to send due notices for invoices, simply ignore this message.
+        </div>
+        <?php } ?>
+        <h4 class="no-mbot font-medium"><?php echo _l('due_reminders'); ?></h4>
+        <p><?php echo _l('due_reminders_for_invoices_info'); ?></p>
+      </div>
+      <div class="col-md-6">
+          <?php echo render_input('settings[invoice_due_notice_before]','invoice_due_notice_before',get_option('invoice_due_notice_before'),'number'); ?>
+      </div>
+      <div class="col-md-6">
+           <?php echo render_input('settings[invoice_due_notice_resend_after]','automatically_resend_invoice_overdue_reminder_after',get_option('invoice_due_notice_resend_after'),'number'); ?>
+      </div>
+    </div>
     <hr />
     <h4 class="mbot20 font-medium"><?php echo _l('invoices_list_recurring'); ?></h4>
     <div class="radio radio-info">
@@ -64,9 +89,36 @@
 
   </div>
   <div role="tabpanel" class="tab-pane" id="tasks">
+  <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('hour_of_day_perform_tasks_reminder_notification_help'); ?>"></i>
+    <?php echo render_input('settings[tasks_reminder_notification_hour]','hour_of_day_perform_auto_operations',get_option('tasks_reminder_notification_hour'),'number',array('data-toggle'=>'tooltip','data-title'=>_l('hour_of_day_perform_auto_operations_format'),'max'=>23)); ?>
+    <hr />
    <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('tasks_reminder_notification_before_help'); ?>"></i>
    <?php echo render_input('settings[tasks_reminder_notification_before]','tasks_reminder_notification_before',get_option('tasks_reminder_notification_before'),'number'); ?>
- </div>
+
+   <?php echo render_input('settings[automatically_stop_task_timer_after_hours]','automatically_stop_task_timer_after_hours',get_option('automatically_stop_task_timer_after_hours'),'number'); ?>
+      <hr />
+      <?php
+      render_yes_no_option('reminder_for_completed_but_not_billed_tasks', 'send_reminder_for_completed_but_not_billed_tasks');
+      ?>
+      <div class="staff_notify_completed_but_not_billed_tasks_fields <?php echo get_option('reminder_for_completed_but_not_billed_tasks') == '1' ? '' : 'hide'; ?>">
+        <?php
+        $selected = get_staff_user_id();
+        if (!empty(get_option('staff_notify_completed_but_not_billed_tasks'))) {
+          $selected = json_decode(get_option('staff_notify_completed_but_not_billed_tasks'));
+        }
+        echo render_select('settings[staff_notify_completed_but_not_billed_tasks][]', $staff, ['staffid', ['firstname', 'lastname']], 'staff_to_notify_completed_but_not_billed_tasks', $selected, ['multiple' => true], [], '', '', false);
+
+        $weekdays = [];
+        foreach (array_combine(get_weekdays_original(), get_weekdays()) as $key => $day) {
+          $weekdays[] = ['id' => $key, 'day' => $day];
+        }
+        $selected = json_decode(get_option('reminder_for_completed_but_not_billed_tasks_days'));
+        if (empty($selected)) {
+          $selected = ['Monday'];
+        }
+        echo render_select('settings[reminder_for_completed_but_not_billed_tasks_days][]', $weekdays, ['id', ['day']], 'reminder_for_completed_but_not_billed_tasks_days', $selected, ['multiple' => true, 'data'], [], '', '', false); ?>
+      </div>
+  </div>
  <div role="tabpanel" class="tab-pane" id="contracts">
       <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('hour_of_day_perform_auto_operations_format'); ?>"></i>
    <?php echo render_input('settings[contracts_auto_operations_hour]','hour_of_day_perform_auto_operations',get_option('contracts_auto_operations_hour'),'number',array('max'=>23)); ?>
@@ -102,13 +154,11 @@
 
  <?php echo render_input('settings[send_proposal_expiry_reminder_before]','send_expiry_reminder_before',get_option('send_proposal_expiry_reminder_before'),'number'); ?>
 </div>
-<div role="tabpanel" class="tab-pane" id="surveys">
- <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('settings_survey_send_emails_per_cron_run_tooltip'); ?>"></i>
-  <?php echo render_input('settings[survey_send_emails_per_cron_run]','settings_survey_send_emails_per_cron_run',get_option('survey_send_emails_per_cron_run'),'number'); ?>
-</div>
 
 <div role="tablpanel" class="tab-pane" id="expenses">
  <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('hour_of_day_perform_auto_operations_format'); ?>"></i>
    <?php echo render_input('settings[expenses_auto_operations_hour]','hour_of_day_perform_auto_operations',get_option('expenses_auto_operations_hour'),'number',array('max'=>23)); ?>
 </div>
+
+<?php hooks()->do_action('after_cron_settings_last_tab_content'); ?>
 </div>

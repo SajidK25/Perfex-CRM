@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <h4 class="customer-profile-group-heading"><?php echo _l('vault'); ?></h4>
 <button class="btn btn-info mbot25" data-toggle="modal" data-target="#entryModal"><i class="fa fa-lock" aria-hidden="true"></i> <?php echo _l('new_vault_entry'); ?></button>
 <?php if(count($vault_entries) == 0){ ?>
@@ -109,13 +110,13 @@
 </div>
 <!-- /.modal -->
 <?php $this->load->view('admin/clients/vault_confirm_password'); ?>
-<?php add_action('after_js_scripts_render','vault_form_validate');
+<?php hooks()->add_action('app_admin_footer','vault_form_validate');
 function vault_form_validate(){ ?>
 <script>
    var $entryModal = $('#entryModal');
    $(function(){
 
-        _validate_form($entryModal.find('form'),{
+        appValidateForm($entryModal.find('form'),{
            server_address:'required',
            username:'required',
            password:'required',

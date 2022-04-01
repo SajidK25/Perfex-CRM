@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
     <div class="content">
@@ -14,7 +15,7 @@
                         $disable_type_edit = '';
                         if(isset($project)){
                             if($project->billing_type != 1){
-                                if(total_rows('tblstafftasks',array('rel_id'=>$project->id,'rel_type'=>'project','billable'=>1,'billed'=>1)) > 0){
+                                if(total_rows(db_prefix().'tasks',array('rel_id'=>$project->id,'rel_type'=>'project','billable'=>1,'billed'=>1)) > 0){
                                     $disable_type_edit = 'disabled';
                                 }
                             }
@@ -25,11 +26,11 @@
                         <div class="form-group select-placeholder">
                             <label for="clientid" class="control-label"><?php echo _l('project_customer'); ?></label>
                             <select id="clientid" name="clientid" data-live-search="true" data-width="100%" class="ajax-search" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
-                               <?php $selected = (isset($project) ? $project->clientid : '');
-                               if($selected == ''){
-                                   $selected = (isset($customer_id) ? $customer_id: '');
-                               }
-                               if($selected != ''){
+                             <?php $selected = (isset($project) ? $project->clientid : '');
+                             if($selected == ''){
+                                 $selected = (isset($customer_id) ? $customer_id: '');
+                             }
+                             if($selected != ''){
                                 $rel_data = get_relation_data('customer',$selected);
                                 $rel_val = get_relation_values($rel_data,'customer');
                                 echo '<option value="'.$rel_val['id'].'" selected>'.$rel_val['name'].'</option>';
@@ -77,34 +78,37 @@
                                 <div class="clearfix"></div>
                                 <select name="status" id="status" class="selectpicker" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                                     <?php foreach($statuses as $status){ ?>
-                                    <option value="<?php echo $status['id']; ?>" <?php if(!isset($project) && $status['id'] == 2 || (isset($project) && $project->status == $status['id'])){echo 'selected';} ?>><?php echo $status['name']; ?></option>
+                                        <option value="<?php echo $status['id']; ?>" <?php if(!isset($project) && $status['id'] == 2 || (isset($project) && $project->status == $status['id'])){echo 'selected';} ?>><?php echo $status['name']; ?></option>
                                     <?php } ?>
                                 </select>
                             </div>
                         </div>
                     </div>
-                    <?php if(total_rows('tblemailtemplates',array('slug'=>'project-finished-to-customer','active'=>0)) == 0){ ?>
-                    <div class="form-group project_marked_as_finished hide">
-                        <div class="checkbox checkbox-primary">
-                            <input type="checkbox" name="project_marked_as_finished_email_to_contacts" id="project_marked_as_finished_email_to_contacts">
-                            <label for="project_marked_as_finished_email_to_contacts"><?php echo _l('project_marked_as_finished_to_contacts'); ?></label>
+                    <?php if(isset($project) && project_has_recurring_tasks($project->id)) { ?>
+                        <div class="alert alert-warning recurring-tasks-notice hide"></div>
+                    <?php } ?>
+                    <?php if(is_email_template_active('project-finished-to-customer')){ ?>
+                        <div class="form-group project_marked_as_finished hide">
+                            <div class="checkbox checkbox-primary">
+                                <input type="checkbox" name="project_marked_as_finished_email_to_contacts" id="project_marked_as_finished_email_to_contacts">
+                                <label for="project_marked_as_finished_email_to_contacts"><?php echo _l('project_marked_as_finished_to_contacts'); ?></label>
+                            </div>
                         </div>
-                    </div>
                     <?php } ?>
                     <?php if(isset($project)){ ?>
-                    <div class="form-group mark_all_tasks_as_completed hide">
-                        <div class="checkbox checkbox-primary">
-                            <input type="checkbox" name="mark_all_tasks_as_completed" id="mark_all_tasks_as_completed">
-                            <label for="mark_all_tasks_as_completed"><?php echo _l('project_mark_all_tasks_as_completed'); ?></label>
+                        <div class="form-group mark_all_tasks_as_completed hide">
+                            <div class="checkbox checkbox-primary">
+                                <input type="checkbox" name="mark_all_tasks_as_completed" id="mark_all_tasks_as_completed">
+                                <label for="mark_all_tasks_as_completed"><?php echo _l('project_mark_all_tasks_as_completed'); ?></label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="notify_project_members_status_change hide">
-                        <div class="checkbox checkbox-primary">
-                            <input type="checkbox" name="notify_project_members_status_change" id="notify_project_members_status_change">
-                            <label for="notify_project_members_status_change"><?php echo _l('notify_project_members_status_change'); ?></label>
+                        <div class="notify_project_members_status_change hide">
+                            <div class="checkbox checkbox-primary">
+                                <input type="checkbox" name="notify_project_members_status_change" id="notify_project_members_status_change">
+                                <label for="notify_project_members_status_change"><?php echo _l('notify_project_members_status_change'); ?></label>
+                            </div>
+                            <hr />
                         </div>
-                        <hr />
-                    </div>
                     <?php } ?>
                     <?php
                     $input_field_hide_class_total_cost = '';
@@ -145,9 +149,9 @@
                             <?php echo render_input('estimated_hours','estimated_hours',isset($project) ? $project->estimated_hours : '','number'); ?>
                         </div>
                         <div class="col-md-6">
-                           <?php
-                           $selected = array();
-                           if(isset($project_members)){
+                         <?php
+                         $selected = array();
+                         if(isset($project_members)){
                             foreach($project_members as $member){
                                 array_push($selected,$member['staff_id']);
                             }
@@ -180,38 +184,98 @@
                 <p class="bold"><?php echo _l('project_description'); ?></p>
                 <?php $contents = ''; if(isset($project)){$contents = $project->description;} ?>
                 <?php echo render_textarea('description','',$contents,array(),array(),'','tinymce'); ?>
-                <?php if(total_rows('tblemailtemplates',array('slug'=>'assigned-to-project','active'=>0)) == 0){ ?>
-                <div class="checkbox checkbox-primary">
-                   <input type="checkbox" name="send_created_email" id="send_created_email">
-                   <label for="send_created_email"><?php echo _l('project_send_created_email'); ?></label>
-               </div>
-               <?php } ?>
-               <div class="btn-bottom-toolbar text-right">
-                   <button type="submit" data-form="#project_form" class="btn btn-info" autocomplete="off" data-loading-text="<?php echo _l('wait_text'); ?>"><?php echo _l('submit'); ?></button>
-               </div>
-           </div>
-       </div>
-   </div>
-   <div class="col-md-5">
+
+                <?php if (isset($estimate)) {?>
+                <hr class="hr-panel-heading" />
+                <h5 class="font-medium"><?php echo _l('estimate_items_convert_to_tasks') ?></h5>
+                <input type="hidden" name="estimate_id" value="<?php echo $estimate->id ?>">
+                <div class="row">
+                    <?php foreach($estimate->items as $item) { ?>
+                    <div class="col-md-8 border-right">
+                        <div class="checkbox mbot15">
+                            <input type="checkbox" name="items[]" value="<?php echo $item['id'] ?>" checked id="item-<?php echo $item['id'] ?>">
+                            <label for="item-<?php echo $item['id'] ?>">
+                                <h5 class="no-mbot no-mtop text-uppercase"><?php echo $item['description'] ?></h5>
+                                <span class="text-muted"><?php echo $item['long_description'] ?></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div data-toggle="tooltip" title="<?php echo _l('task_single_assignees_select_title'); ?>">
+                            <?php echo render_select('items_assignee[]',$staff,array('staffid',array('firstname','lastname')),'', get_staff_user_id(),array('data-actions-box'=>true),array(),'','clean-select',false); ?>
+                        </div>
+                    </div>
+                    <?php } ?>
+                </div>
+                <?php } ?>
+                <hr class="hr-panel-heading" />
+
+                <?php if(is_email_template_active('assigned-to-project')){ ?>
+                    <div class="checkbox checkbox-primary">
+                     <input type="checkbox" name="send_created_email" id="send_created_email">
+                     <label for="send_created_email"><?php echo _l('project_send_created_email'); ?></label>
+                 </div>
+             <?php } ?>
+             <div class="btn-bottom-toolbar text-right">
+                 <button type="submit" data-form="#project_form" class="btn btn-info" autocomplete="off" data-loading-text="<?php echo _l('wait_text'); ?>"><?php echo _l('submit'); ?></button>
+             </div>
+         </div>
+     </div>
+ </div>
+ <div class="col-md-5">
     <div class="panel_s">
         <div class="panel-body" id="project-settings-area">
-         <h4 class="no-margin">
-             <?php echo _l('project_settings'); ?>
-         </h4>
-         <hr class="hr-panel-heading" />
-         <?php foreach($settings as $setting){ ?>
+           <h4 class="no-margin">
+               <?php echo _l('project_settings'); ?>
+           </h4>
+           <hr class="hr-panel-heading" />
+           <div class="form-group select-placeholder">
+                <label for="contact_notification" class="control-label">
+                    <span class="text-danger">*</span>
+                    <?php echo _l('projects_send_contact_notification'); ?>
+                </label>
+                <select name="contact_notification" id="contact_notification" class="form-control selectpicker"
+                        data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>" required>
+                    <?php
+                    $options = [
+                        ['id'=> 1 , 'name' => _l('project_send_all_contacts_with_notifications_enabled')],
+                        ['id'=> 2 , 'name' => _l('project_send_specific_contacts_with_notification')],
+                        ['id'=> 0 , 'name' => _l('project_do_not_send_contacts_notifications')]
+                    ];
+                    foreach ($options as $option) { ?>
+                        <option value="<?php echo $option['id']; ?>" <?php if ((isset($project) && $project->contact_notification == $option['id'])) {
+                            echo ' selected';
+                        } ?>><?php echo $option['name']; ?></option>
+                    <?php } ?>
+                </select>
+            </div>
+            <!-- hide class -->
+            <div class="form-group select-placeholder <?php echo (isset($project) && $project->contact_notification == 2) ? '' : 'hide' ?>" id="notify_contacts_wrapper">
+                <label for="notify_contacts" class="control-label"><span class="text-danger">*</span> <?php echo _l('project_contacts_to_notify') ?></label>
+                <select name="notify_contacts[]" data-id="notify_contacts" id="notify_contacts" class="ajax-search" data-width="100%" data-live-search="true"
+                data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>" multiple>
+                    <?php
+                    $notify_contact_ids = isset($project) ? unserialize($project->notify_contacts) : [];
+                    foreach ($notify_contact_ids as $contact_id) {
+                        $rel_data = get_relation_data('contact',$contact_id);
+                        $rel_val = get_relation_values($rel_data,'contact');
+                        echo '<option value="'.$rel_val['id'].'" selected>'.$rel_val['name'].'</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+           <?php foreach($settings as $setting){
 
-            <?php
             $checked = ' checked';
             if(isset($project)){
                 if($project->settings->{$setting} == 0){
                     $checked = '';
                 }
             } else {
-                foreach($last_project_settings as $_l_setting) {
-                    if($setting == $_l_setting['name']){
+                foreach($last_project_settings as $last_setting) {
+                    if($setting == $last_setting['name']){
                         // hide_tasks_on_main_tasks_table is not applied on most used settings to prevent confusions
-                        if($_l_setting['value'] == 0 || $_l_setting['name'] == 'hide_tasks_on_main_tasks_table'){
+                        if($last_setting['value'] == 0 || $last_setting['name'] == 'hide_tasks_on_main_tasks_table'){
                             $checked = '';
                         }
                     }
@@ -221,71 +285,79 @@
                 }
             } ?>
             <?php if($setting != 'available_features'){ ?>
-            <div class="checkbox">
-            <input type="checkbox" name="settings[<?php echo $setting; ?>]" <?php echo $checked; ?> id="<?php echo $setting; ?>">
-            <label for="<?php echo $setting; ?>">
-                <?php if($setting == 'hide_tasks_on_main_tasks_table'){ ?>
-                <?php echo _l('hide_tasks_on_main_tasks_table'); ?>
-                <?php } else{ ?>
-                <?php echo _l('project_allow_client_to',_l('project_setting_'.$setting)); ?>
-                <?php } ?>
-            </label>
-        </div>
-        <?php } else { ?>
-        <div class="form-group mtop15 select-placeholder">
-            <label for="available_features"><?php echo _l('visible_tabs'); ?></label>
-            <select name="settings[<?php echo $setting; ?>][]" id="<?php echo $setting; ?>" multiple="true" class="selectpicker" id="available_features" data-width="100%" data-actions-box="true">
-            <?php $tabs = get_project_tabs_admin(null); ?>
-            <?php foreach($tabs as $tab) {
-                $selected = '';
-             ?>
-            <?php if(isset($tab['dropdown'])){ ?>
-            <optgroup label="<?php echo $tab['lang']; ?>">
-                <?php foreach($tab['dropdown'] as $tab_dropdown) {
-                    $selected = '';
-                    if(isset($project) && $project->settings->available_features[$tab_dropdown['name']] == 1) {
-                        $selected = ' selected';
+                <div class="checkbox">
+                    <input type="checkbox" name="settings[<?php echo $setting; ?>]" <?php echo $checked; ?> id="<?php echo $setting; ?>">
+                    <label for="<?php echo $setting; ?>">
+                        <?php if($setting == 'hide_tasks_on_main_tasks_table'){ ?>
+                            <?php echo _l('hide_tasks_on_main_tasks_table'); ?>
+                        <?php } else{ ?>
+                            <?php echo _l('project_allow_client_to',_l('project_setting_'.$setting)); ?>
+                        <?php } ?>
+                    </label>
+                </div>
+            <?php } else { ?>
+                <div class="form-group mtop15 select-placeholder project-available-features">
+                    <label for="available_features"><?php echo _l('visible_tabs'); ?></label>
+                    <select name="settings[<?php echo $setting; ?>][]" id="<?php echo $setting; ?>" multiple="true" class="selectpicker" id="available_features" data-width="100%" data-actions-box="true" data-hide-disabled="true">
+                        <?php foreach(get_project_tabs_admin() as $tab) {
+                            $selected = '';
+                            if(isset($tab['collapse'])){ ?>
+                                <optgroup label="<?php echo $tab['name']; ?>">
+                                    <?php foreach($tab['children'] as $tab_dropdown) {
+                                        $selected = '';
+                                        if(isset($project) && (
+                                            (isset($project->settings->available_features[$tab_dropdown['slug']])
+                                                && $project->settings->available_features[$tab_dropdown['slug']] == 1)
+                                            || !isset($project->settings->available_features[$tab_dropdown['slug']]))) {
+                                            $selected = ' selected';
+                                    } else if(!isset($project) && count($last_project_settings) > 0) {
+                                        foreach($last_project_settings as $last_project_setting) {
+                                            if($last_project_setting['name'] == $setting) {
+                                                if(isset($last_project_setting['value'][$tab_dropdown['slug']])
+                                                    && $last_project_setting['value'][$tab_dropdown['slug']] == 1) {
+                                                    $selected = ' selected';
+                                            }
+                                        }
+                                    }
+                                } else if(!isset($project)) {
+                                    $selected = ' selected';
+                                }
+                                ?>
+                                <option value="<?php echo $tab_dropdown['slug']; ?>"<?php echo $selected; ?><?php if(isset($tab_dropdown['linked_to_customer_option']) && is_array($tab_dropdown['linked_to_customer_option']) && count($tab_dropdown['linked_to_customer_option']) > 0){ ?> data-linked-customer-option="<?php echo implode(',',$tab_dropdown['linked_to_customer_option']); ?>"<?php } ?>><?php echo $tab_dropdown['name']; ?></option>
+                            <?php } ?>
+                        </optgroup>
+                    <?php } else {
+                        if(isset($project) && (
+                            (isset($project->settings->available_features[$tab['slug']])
+                             && $project->settings->available_features[$tab['slug']] == 1)
+                            || !isset($project->settings->available_features[$tab['slug']]))) {
+                            $selected = ' selected';
                     } else if(!isset($project) && count($last_project_settings) > 0) {
                         foreach($last_project_settings as $last_project_setting) {
                             if($last_project_setting['name'] == $setting) {
-                                if($last_project_setting['value'][$tab_dropdown['name']] == 1) {
+                                if(isset($last_project_setting['value'][$tab['slug']])
+                                    && $last_project_setting['value'][$tab['slug']] == 1) {
                                     $selected = ' selected';
-                                }
                             }
                         }
-                    } else if(!isset($project)) {
-                        $selected = ' selected';
                     }
-                 ?>
-                <option value="<?php echo $tab_dropdown['name']; ?>"<?php echo $selected; ?><?php if(isset($tab_dropdown['linked_to_customer_option']) && is_array($tab_dropdown['linked_to_customer_option']) && count($tab_dropdown['linked_to_customer_option']) > 0){ ?> data-linked-customer-option="<?php echo implode(',',$tab_dropdown['linked_to_customer_option']); ?>"<?php } ?>><?php echo $tab_dropdown['lang']; ?></option>
-                <?php } ?>
-            </optgroup>
-            <?php } else {
-                if(isset($project) && $project->settings->available_features[$tab['name']] == 1) {
+                } else if(!isset($project)) {
                     $selected = ' selected';
-                } else if(!isset($project) && count($last_project_settings) > 0) {
-                        foreach($last_project_settings as $last_project_setting) {
-                            if($last_project_setting['name'] == $setting) {
-                                if($last_project_setting['value'][$tab['name']] == 1) {
-                                    $selected = ' selected';
-                                }
-                            }
-                        }
-                    } else if(!isset($project)) {
-                        $selected = ' selected';
-                    }
+                }
                 ?>
-            <option value="<?php echo $tab['name']; ?>"<?php if($tab['name'] =='project_overview'){echo ' disabled selected';} ?>
-                <?php echo $selected; ?><?php if(isset($tab['linked_to_customer_option']) && is_array($tab['linked_to_customer_option']) && count($tab['linked_to_customer_option']) > 0){ ?> data-linked-customer-option="<?php echo implode(',',$tab['linked_to_customer_option']); ?>"<?php } ?>><?php echo $tab['lang']; ?>
+                <option value="<?php echo $tab['slug']; ?>"<?php if($tab['slug'] =='project_overview'){echo ' disabled selected';} ?>
+                <?php echo $selected; ?>
+                <?php if(isset($tab['linked_to_customer_option']) && is_array($tab['linked_to_customer_option']) && count($tab['linked_to_customer_option']) > 0){ ?> data-linked-customer-option="<?php echo implode(',',$tab['linked_to_customer_option']); ?>"<?php } ?>>
+                <?php echo $tab['name']; ?>
             </option>
-            <?php } ?>
-            <?php } ?>
-        </select>
-        </div>
         <?php } ?>
-        <hr class="no-margin" />
-        <?php } ?>
-    </div>
+    <?php } ?>
+</select>
+</div>
+<?php } ?>
+<hr class="no-margin" />
+<?php } ?>
+</div>
 </div>
 </div>
 <?php echo form_close(); ?>
@@ -297,113 +369,182 @@
 <script>
     <?php if(isset($project)){ ?>
         var original_project_status = '<?php echo $project->status; ?>';
-        <?php } ?>
+    <?php } ?>
+
         $(function(){
 
-            $('select[name="billing_type"]').on('change',function(){
-                var type = $(this).val();
-                if(type == 1){
-                    $('#project_cost').removeClass('hide');
-                    $('#project_rate_per_hour').addClass('hide');
-                } else if(type == 2){
-                    $('#project_cost').addClass('hide');
-                    $('#project_rate_per_hour').removeClass('hide');
-                } else {
-                    $('#project_cost').addClass('hide');
-                    $('#project_rate_per_hour').addClass('hide');
+            $contacts_select = $('#notify_contacts'),
+            $contacts_wrapper = $('#notify_contacts_wrapper'),
+            $clientSelect = $('#clientid'),
+            $contact_notification_select = $('#contact_notification');
+
+            init_ajax_search('contacts', $contacts_select, {
+                rel_id: $contacts_select.val(),
+                type: 'contacts',
+                extra: {
+                    client_id: function () {return $clientSelect.val();}
                 }
             });
 
-            _validate_form($('form'),{name:'required',clientid:'required',start_date:'required',billing_type:'required'});
+            if ($clientSelect.val() == '') {
+                $contacts_select.prop('disabled', true);
+                $contacts_select.selectpicker('refresh');
+            } else {
+                $contacts_select.siblings().find('input[type="search"]').val(' ').trigger('keyup');
+            }
 
-            $('select[name="status"]').on('change',function(){
-                var status = $(this).val();
-                var mark_all_tasks_completed = $('.mark_all_tasks_as_completed');
-                var notify_project_members_status_change = $('.notify_project_members_status_change');
-                mark_all_tasks_completed.removeClass('hide');
-                if(typeof(original_project_status) != 'undefined'){
-                    if(original_project_status != status){
-                        mark_all_tasks_completed.removeClass('hide');
-                        mark_all_tasks_completed.find('input').prop('checked',true);
-                        notify_project_members_status_change.removeClass('hide');
-                    } else {
-                        mark_all_tasks_completed.addClass('hide');
-                        mark_all_tasks_completed.find('input').prop('checked',false);
-                        notify_project_members_status_change.addClass('hide');
+            $clientSelect.on('changed.bs.select', function () {
+                if ($clientSelect.selectpicker('val') == '') {
+                    $contacts_select.prop('disabled', true);
+                } else {
+                    $contacts_select.siblings().find('input[type="search"]').val(' ').trigger('keyup');
+                    $contacts_select.prop('disabled', false);
+                }
+                deselect_ajax_search($contacts_select[0]);
+                $contacts_select.find('option').remove();
+                $contacts_select.selectpicker('refresh');
+            });
+
+            $contact_notification_select.on('changed.bs.select', function () {
+                if ($contact_notification_select.selectpicker('val') == 2) {
+                    $contacts_select.siblings().find('input[type="search"]').val(' ').trigger('keyup');
+                    $contacts_wrapper.removeClass('hide');
+                } else {
+                    $contacts_wrapper.addClass('hide');
+                    deselect_ajax_search($contacts_select[0]);
+                }
+            });
+
+        $('select[name="billing_type"]').on('change',function(){
+            var type = $(this).val();
+            if(type == 1){
+                $('#project_cost').removeClass('hide');
+                $('#project_rate_per_hour').addClass('hide');
+            } else if(type == 2){
+                $('#project_cost').addClass('hide');
+                $('#project_rate_per_hour').removeClass('hide');
+            } else {
+                $('#project_cost').addClass('hide');
+                $('#project_rate_per_hour').addClass('hide');
+            }
+        });
+
+        appValidateForm($('form'), {
+            name: 'required',
+            clientid: 'required',
+            start_date: 'required',
+            billing_type: 'required',
+            'notify_contacts[]': {
+                required: {
+                    depends: function() {
+                        return !$contacts_wrapper.hasClass('hide');
                     }
                 }
-                if(status == 4){
-                    $('.project_marked_as_finished').removeClass('hide');
+            },
+        });
+
+        $('select[name="status"]').on('change',function(){
+            var status = $(this).val();
+            var mark_all_tasks_completed = $('.mark_all_tasks_as_completed');
+            var notify_project_members_status_change = $('.notify_project_members_status_change');
+            mark_all_tasks_completed.removeClass('hide');
+            if(typeof(original_project_status) != 'undefined'){
+                if(original_project_status != status){
+
+                    mark_all_tasks_completed.removeClass('hide');
+                    notify_project_members_status_change.removeClass('hide');
+
+                    if(status == 4 || status == 5 || status == 3) {
+                        $('.recurring-tasks-notice').removeClass('hide');
+                        var notice = "<?php echo _l('project_changing_status_recurring_tasks_notice'); ?>";
+                        notice = notice.replace('{0}', $(this).find('option[value="'+status+'"]').text().trim());
+                        $('.recurring-tasks-notice').html(notice);
+                        $('.recurring-tasks-notice').append('<input type="hidden" name="cancel_recurring_tasks" value="true">');
+                        mark_all_tasks_completed.find('input').prop('checked',true);
+                    } else {
+                        $('.recurring-tasks-notice').html('').addClass('hide');
+                        mark_all_tasks_completed.find('input').prop('checked',false);
+                    }
                 } else {
-                    $('.project_marked_as_finished').addClass('hide');
-                    $('.project_marked_as_finished').prop('checked',false);
+                    mark_all_tasks_completed.addClass('hide');
+                    mark_all_tasks_completed.find('input').prop('checked',false);
+                    notify_project_members_status_change.addClass('hide');
+                    $('.recurring-tasks-notice').html('').addClass('hide');
                 }
-            });
+            }
 
-            $('form').on('submit',function(){
-                $('select[name="billing_type"]').prop('disabled',false);
-                $('#available_features,#available_features option').prop('disabled',false);
-                $('input[name="project_rate_per_hour"]').prop('disabled',false);
-            });
+            if(status == 4){
+                $('.project_marked_as_finished').removeClass('hide');
+            } else {
+                $('.project_marked_as_finished').addClass('hide');
+                $('.project_marked_as_finished').prop('checked',false);
+            }
+        });
 
-            var progress_input = $('input[name="progress"]');
-            var progress_from_tasks = $('#progress_from_tasks');
-            var progress = progress_input.val();
+        $('form').on('submit',function(){
+            $('select[name="billing_type"]').prop('disabled',false);
+            $('#available_features,#available_features option').prop('disabled',false);
+            $('input[name="project_rate_per_hour"]').prop('disabled',false);
+        });
 
-            $('.project_progress_slider').slider({
-                min:0,
-                max:100,
-                value:progress,
-                disabled:progress_from_tasks.prop('checked'),
-                slide: function( event, ui ) {
-                    progress_input.val( ui.value );
-                    $('.label_progress').html(ui.value+'%');
-                }
-            });
+        var progress_input = $('input[name="progress"]');
+        var progress_from_tasks = $('#progress_from_tasks');
+        var progress = progress_input.val();
 
-            progress_from_tasks.on('change',function(){
-                var _checked = $(this).prop('checked');
-                $('.project_progress_slider').slider({disabled:_checked});
-            });
+        $('.project_progress_slider').slider({
+            min:0,
+            max:100,
+            value:progress,
+            disabled:progress_from_tasks.prop('checked'),
+            slide: function( event, ui ) {
+                progress_input.val( ui.value );
+                $('.label_progress').html(ui.value+'%');
+            }
+        });
 
-            $('#project-settings-area input').on('change',function(){
-                if($(this).attr('id') == 'view_tasks' && $(this).prop('checked') == false){
-                    $('#create_tasks').prop('checked',false).prop('disabled',true);
-                    $('#edit_tasks').prop('checked',false).prop('disabled',true);
-                    $('#view_task_comments').prop('checked',false).prop('disabled',true);
-                    $('#comment_on_tasks').prop('checked',false).prop('disabled',true);
-                    $('#view_task_attachments').prop('checked',false).prop('disabled',true);
-                    $('#view_task_checklist_items').prop('checked',false).prop('disabled',true);
-                    $('#upload_on_tasks').prop('checked',false).prop('disabled',true);
-                    $('#view_task_total_logged_time').prop('checked',false).prop('disabled',true);
-                } else if($(this).attr('id') == 'view_tasks' && $(this).prop('checked') == true){
-                    $('#create_tasks').prop('disabled',false);
-                    $('#edit_tasks').prop('disabled',false);
-                    $('#view_task_comments').prop('disabled',false);
-                    $('#comment_on_tasks').prop('disabled',false);
-                    $('#view_task_attachments').prop('disabled',false);
-                    $('#view_task_checklist_items').prop('disabled',false);
-                    $('#upload_on_tasks').prop('disabled',false);
-                    $('#view_task_total_logged_time').prop('disabled',false);
-                }
-            });
+        progress_from_tasks.on('change',function(){
+            var _checked = $(this).prop('checked');
+            $('.project_progress_slider').slider({disabled:_checked});
+        });
+
+        $('#project-settings-area input').on('change',function(){
+            if($(this).attr('id') == 'view_tasks' && $(this).prop('checked') == false){
+                $('#create_tasks').prop('checked',false).prop('disabled',true);
+                $('#edit_tasks').prop('checked',false).prop('disabled',true);
+                $('#view_task_comments').prop('checked',false).prop('disabled',true);
+                $('#comment_on_tasks').prop('checked',false).prop('disabled',true);
+                $('#view_task_attachments').prop('checked',false).prop('disabled',true);
+                $('#view_task_checklist_items').prop('checked',false).prop('disabled',true);
+                $('#upload_on_tasks').prop('checked',false).prop('disabled',true);
+                $('#view_task_total_logged_time').prop('checked',false).prop('disabled',true);
+            } else if($(this).attr('id') == 'view_tasks' && $(this).prop('checked') == true){
+                $('#create_tasks').prop('disabled',false);
+                $('#edit_tasks').prop('disabled',false);
+                $('#view_task_comments').prop('disabled',false);
+                $('#comment_on_tasks').prop('disabled',false);
+                $('#view_task_attachments').prop('disabled',false);
+                $('#view_task_checklist_items').prop('disabled',false);
+                $('#upload_on_tasks').prop('disabled',false);
+                $('#view_task_total_logged_time').prop('disabled',false);
+            }
+        });
 
             // Auto adjust customer permissions based on selected project visible tabs
             // Eq Project creator disable TASKS tab, then this function will auto turn off customer project option Allow customer to view tasks
 
             $('#available_features').on('change',function(){
                 $("#available_features option").each(function(){
-                   if($(this).data('linked-customer-option') && !$(this).is(':selected')) {
-                        var opts = $(this).data('linked-customer-option').split(',');
-                        for(var i = 0; i<opts.length;i++) {
-                            var project_option = $('#'+opts[i]);
-                            project_option.prop('checked',false);
-                            if(opts[i] == 'view_tasks') {
-                                project_option.trigger('change');
-                            }
+                 if($(this).data('linked-customer-option') && !$(this).is(':selected')) {
+                    var opts = $(this).data('linked-customer-option').split(',');
+                    for(var i = 0; i<opts.length;i++) {
+                        var project_option = $('#'+opts[i]);
+                        project_option.prop('checked',false);
+                        if(opts[i] == 'view_tasks') {
+                            project_option.trigger('change');
                         }
-                   }
-               });
+                    }
+                }
+            });
             });
             $("#view_tasks").trigger('change');
             <?php if(!isset($project)) { ?>

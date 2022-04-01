@@ -35,18 +35,18 @@ class Migration_Version_180 extends CI_Migration
         $this->db->query("ALTER TABLE `tblexpenses` ADD INDEX(`currency`);");
 
         $this->db->where('name','next_estimate_number');
-        $this->db->update('tbloptions',array('autoload'=>0));
+        $this->db->update(db_prefix().'options',array('autoload'=>0));
 
         $this->db->where('name','next_invoice_number');
-        $this->db->update('tbloptions',array('autoload'=>0));
+        $this->db->update(db_prefix().'options',array('autoload'=>0));
 
         $this->db->like('name','paymentmethod_','after');
-        $this->db->update('tbloptions',array('autoload'=>0));
+        $this->db->update(db_prefix().'options',array('autoload'=>0));
 
         $this->db->query("ALTER TABLE `tblcustomfields` ADD `show_on_ticket_form` BOOLEAN NOT NULL DEFAULT FALSE AFTER `show_on_pdf`;");
 
         $this->db->where('fieldto','tickets');
-        $this->db->update('tblcustomfields',array('show_on_ticket_form'=>1));
+        $this->db->update(db_prefix().'customfields',array('show_on_ticket_form'=>1));
 
         $this->db->query("INSERT INTO `tblemailtemplates` (`type`, `slug`, `language`, `name`, `subject`, `message`, `fromname`, `fromemail`, `plaintext`, `active`, `order`) VALUES
 ('client', 'client-statement', 'english', 'Statement - Account Summary', 'Account Statement from {statement_from} to {statement_to}', 'Dear {contact_firstname} {contact_lastname}, <br /><br />Its been a great experience working with you.<br /><br />Attached with this email is a list of all transactions for the period between {statement_from} to {statement_to}<br /><br />For your information your account balance due is total:&nbsp;{statement_balance_due}<br /><br />Please contact us if you need more information.<br /> <br />Kind regards,<br /> <br />{email_signature}', '{companyname} | CRM', '', 0, 1, 0);");

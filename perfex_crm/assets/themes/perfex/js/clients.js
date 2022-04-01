@@ -1,3 +1,19 @@
+$.fn.dataTable.ext.type.order['task-status-pre'] = function(d) {
+    switch (d) {
+        case '2':
+            return 1;
+        case '4':
+            return 2;
+        case '3':
+            return 3;
+        case '1':
+            return 4;
+        case '5':
+            return 6;
+    }
+    return 5;
+};
+
 var project_id = $('input[name="project_id"]').val();
 var discussion_user_profile_image_url = $('input[name="discussion_user_profile_image_url"]').val();
 var discussion_id = $('input[name="discussion_id"]').val();
@@ -6,38 +22,47 @@ Dropzone.options.projectFilesUpload = false;
 Dropzone.options.taskFileUpload = false;
 Dropzone.options.filesUpload = false;
 
+if (app.options.enable_google_picker == '1') {
+    $.fn.googleDrivePicker.defaults.clientId = app.options.google_client_id;
+    $.fn.googleDrivePicker.defaults.developerKey = app.options.google_api;
+}
+
 var salesChart;
+
 $(function() {
+
+    // Set moment locale
+    moment.locale(app.locale);
+    // Set timezone locale
+    moment().tz(app.options.timezone).format();
 
     fix_phases_height();
 
     initDataTable();
-    // Set moment locale
-    moment.locale(locale);
-    // Set timezone locale
-    moment().tz(timezone).format();
-
-    var file_id = get_url_param('file_id');
-    if (file_id) {
-        view_project_file(file_id, project_id);
-    }
-
-    $("a[href='#top']").on("click", function(e) {
-        e.preventDefault();
-        $("html,body").animate({ scrollTop: 0 }, 1000);
-        e.preventDefault();
-    });
-
-    $("a[href='#bot']").on("click", function(e) {
-        e.preventDefault();
-        $("html,body").animate({ scrollTop: $(document).height() }, 1000);
-        e.preventDefault();
-    });
 
     client_home_chart();
+
     $('select[name="currency"],select[name="payments_years"]').on('change', function() {
         client_home_chart();
     });
+
+    $('#open-new-ticket-form').appFormValidator();
+
+    $('#ticket-reply').appFormValidator();
+
+    $('#task-form').appFormValidator();
+
+    $('#discussion_form').appFormValidator({
+        rules: {
+            subject: 'required',
+        }
+    });
+
+    var file_id = get_url_param('file_id');
+
+    if (file_id) {
+        view_project_file(file_id, project_id);
+    }
 
     if (typeof(discussion_id != 'undefined')) {
         discussion_comments('#discussion-comments', discussion_id, 'regular');
@@ -51,118 +76,85 @@ $(function() {
         if ($('#dropbox-chooser-task').length > 0) {
             document.getElementById("dropbox-chooser-task").appendChild(Dropbox.createChooseButton({
                 success: function(files) {
-                    $.post(site_url + 'clients/project/' + project_id, {
-                        files: files,
-                        task_id: $('input[name="task_id"]').val(),
-                        external: 'dropbox',
-                        action: 'add_task_external_file'
-                    }).done(function() {
-                        window.location.reload();
-                    });
+                    taskExternalFileUpload(files, 'dropbox');
                 },
                 linkType: "preview",
-                extensions: allowed_files.split(','),
+                extensions: app.options.allowed_files.split(','),
             }));
         }
 
         if ($('#files-upload').length > 0) {
             document.getElementById("dropbox-chooser-files").appendChild(Dropbox.createChooseButton({
                 success: function(files) {
-                    $.post(site_url + 'clients/upload_files', {
-                        files: files,
-                        external: 'dropbox',
-                    }).done(function() {
-                        window.location.reload();
-                    });
+                    customerExternalFileUpload(files, 'dropbox');
                 },
                 linkType: "preview",
-                extensions: allowed_files.split(','),
+                extensions: app.options.allowed_files.split(','),
             }));
         }
 
         if (typeof(Dropbox) != 'undefined' && $('#dropbox-chooser-project-files').length > 0) {
             document.getElementById("dropbox-chooser-project-files").appendChild(Dropbox.createChooseButton({
                 success: function(files) {
-                    $.post(site_url + 'clients/project/' + project_id, {
-                        files: files,
-                        external: 'dropbox',
-                        action: 'project_file_dropbox',
-                    }).done(function() {
-                        var location = window.location.href;
-                        window.location.href = location.split('?')[0] + '?group=project_files';
-                    });
+                    projectExternalFileUpload(files, 'dropbox');
                 },
                 linkType: "preview",
-                extensions: allowed_files.split(','),
+                extensions: app.options.allowed_files.split(','),
             }));
         }
     }
 
-    if ($('#files-upload').length > 0) {
-        new Dropzone('#files-upload', {
-            paramName: "file",
-            dictFileTooBig: file_exceeds_maxfile_size_in_form,
-            dictDefaultMessage: drop_files_here_to_upload,
-            dictFallbackMessage: browser_not_support_drag_and_drop,
-            maxFilesize: (max_php_ini_upload_size_bytes / (1024 * 1024)).toFixed(0),
-            accept: function(file, done) {
-                done();
-            },
-            success: function(file, response) {
-                if (this.getUploadingFiles().length === 0 && this.getQueuedFiles().length === 0) {
-                    window.location.reload();
-                }
-            },
-            acceptedFiles: allowed_files,
-            error: function(file, response) {
-                alert_float('danger', response);
-            }
-        });
-    }
-
-
     if ($('#calendar').length) {
         var settings = {
-            themeSystem: 'bootstrap3',
-            header: {
+            headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'month,agendaWeek,agendaDay'
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
             editable: false,
-            eventLimit: parseInt(calendar_events_limit) + 1,
+            dayMaxEventRows: parseInt(app.options.calendar_events_limit) + 1,
             views: {
                 day: {
-                    eventLimit: false
+                    dayMaxEventRows: false
                 }
             },
-            defaultView: default_view_calendar,
-            eventLimitClick: function(cellInfo, jsEvent) {
-                $('#calendar').fullCalendar('gotoDate', cellInfo.date);
-                $('#calendar').fullCalendar('changeView', 'basicDay');
+            initialView: app.options.default_view_calendar,
+            moreLinkClick: function (info) {
+                calendar.gotoDate( info.date )
+                calendar.changeView('dayGridDay');
+
+                setTimeout(function(){
+                    $('.fc-popover-close').click();
+                }, 250)
             },
             loading: function(isLoading, view) {
-                isLoading && $('#calendar .fc-header-toolbar .btn-default').addClass('btn-info').removeClass('btn-default').css('display', 'block');
                 !isLoading ? $('.dt-loader').addClass('hide') : $('.dt-loader').removeClass('hide');
             },
-            isRTL: (isRTL == 'true' ? true : false),
+            direction: (isRTL == 'true' ? 'rtl' : 'ltr'),
             eventStartEditable: false,
-            firstDay: parseInt(calendar_first_day),
-            eventSources: [{
-                url: site_url + 'clients/get_calendar_data',
-                type: 'GET',
-                error: function() {
-                    console.error('There was error fetching calendar data')
-                },
-            }, ],
-            eventRender: function(event, element) {
-                element.attr('title', event._tooltip);
-                element.attr('onclick', event.onclick);
-                element.attr('data-toggle', 'tooltip');
+            firstDay: parseInt(app.options.calendar_first_day),
+            events: function(info, successCallback, failureCallback) {
+                return $.getJSON(site_url + 'clients/get_calendar_data', {
+                    start: info.startStr,
+                    end: info.endStr,
+                }).then(function(data){
+                    successCallback(data.map(function(e){
+                        return $.extend( {}, e, {
+                            start: e.start || e.date,
+                            end: e.end || e.date
+                        });
+                    }));
+                });
+            },
+            eventDidMount: function (data) {
+                var $el = $(data.el);
+                $el.attr('title', data.event.extendedProps._tooltip);
+                $el.attr('onclick', data.event.extendedProps.onclick);
+                $el.attr('data-toggle', 'tooltip');
             },
         }
-        // Init calendar
-        $('#calendar').fullCalendar(settings);
+       var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), settings);
+       calendar.render();
     }
 
     var tab_group = get_url_param('group');
@@ -190,7 +182,6 @@ $(function() {
         $('.ticket-status,.ticket-status-inline').toggleClass('hide');
     });
 
-
     $('#ticket_status_single').on('change', function() {
         data = {};
         data.status_id = $(this).val();
@@ -199,7 +190,6 @@ $(function() {
             window.location.reload();
         });
     });
-
 
     if (typeof(contracts_by_type) != 'undefined') {
         new Chart($('#contracts-by-type-chart'), {
@@ -219,97 +209,28 @@ $(function() {
             }
         });
     }
+
+    if ($('#files-upload').length > 0) {
+        createDropzone('#files-upload');
+    }
+
     if ($('#task-file-upload').length > 0) {
-        new Dropzone('#task-file-upload', {
-            uploadMultiple: true,
-            parallelUploads: 20,
-            maxFiles: 20,
-            paramName: 'file',
-            dictFileTooBig: file_exceeds_maxfile_size_in_form,
-            dictDefaultMessage: drop_files_here_to_upload,
-            maxFilesize: (max_php_ini_upload_size_bytes / (1024 * 1024)).toFixed(0),
-            dictFallbackMessage: browser_not_support_drag_and_drop,
-            accept: function(file, done) {
-                done();
-            },
+        createDropzone('#task-file-upload', {
             sending: function(file, xhr, formData) {
                 formData.append("action", 'upload_task_file');
                 formData.append("task_id", $('input[name="task_id"]').val());
             },
-            success: function(file, response) {
-                if (this.getUploadingFiles().length === 0 && this.getQueuedFiles().length === 0) {
-                    window.location.reload();
-                }
-            },
-            acceptedFiles: allowed_files,
-            error: function(file, response) {
-                alert_float('danger', response);
-            }
         });
     }
 
     if ($('#project-files-upload').length > 0) {
-        new Dropzone('#project-files-upload', {
-            paramName: "file",
-            uploadMultiple: true,
-            parallelUploads: 20,
-            maxFiles: 20,
-            dictFileTooBig: file_exceeds_maxfile_size_in_form,
-            dictDefaultMessage: drop_files_here_to_upload,
-            dictFallbackMessage: browser_not_support_drag_and_drop,
-            maxFilesize: (max_php_ini_upload_size_bytes / (1024 * 1024)).toFixed(0),
-            accept: function(file, done) {
-                done();
-            },
+        createDropzone('#project-files-upload', {
             sending: function(file, xhr, formData) {
                 formData.append("action", 'upload_file');
             },
-            success: function(file, response) {
-                if (this.getUploadingFiles().length === 0 && this.getQueuedFiles().length === 0) {
-                    window.location.reload();
-                }
-            },
-            acceptedFiles: allowed_files,
-            error: function(file, response) {
-                alert_float('danger', response);
-            }
         });
     }
 
-    $('#open-new-ticket-form').validate();
-    $('#ticket-reply').validate();
-    $('#task-form').validate();
-
-    var ticketAttachmentKey = 1;
-    $('.add_more_attachments').on('click', function() {
-        if ($(this).hasClass('disabled')) {
-            return false;
-        }
-
-        var total_attachments = $('.attachments input[name*="attachments"]').length;
-        if ($(this).data('ticket') && total_attachments >= maximum_allowed_ticket_attachments) {
-            return false;
-        }
-
-        var newattachment = $('.attachments').find('.attachment').eq(0).clone().appendTo('.attachments');
-        newattachment.find('input').val('').attr('name', 'attachments[' + ticketAttachmentKey + ']');
-        newattachment.find('input').removeAttr('aria-describedby');
-        newattachment.find('input').removeAttr('aria-invalid');
-        newattachment.find('span[id*="error"]').remove();
-        newattachment.find('i').removeClass('fa-plus').addClass('fa-minus');
-        newattachment.find('button').removeClass('add_more_attachments').addClass('remove_attachment').removeClass('btn-success').addClass('btn-danger');
-        ticketAttachmentKey++;
-    });
-
-    $('body').on('click', '.remove_attachment', function() {
-        $(this).parents('.attachment').remove();
-    });
-
-    $('.single-ticket-add-reply').on('click', function(e) {
-        e.preventDefault()
-        var reply_area = $('.single-ticket-reply-area');
-        reply_area.slideToggle();
-    });
     // User cant add more money then the invoice total remaining
     $('body.viewinvoice input[name="amount"]').on('keyup', function() {
         var original_total = $(this).data('total');
@@ -328,12 +249,6 @@ $(function() {
         }
     });
 
-    $('#discussion_form').validate({
-        rules: {
-            subject: 'required',
-        }
-    });
-
 
     $('#discussion').on('hidden.bs.modal', function(event) {
         $('#discussion input[name="subject"]').val('');
@@ -343,21 +258,6 @@ $(function() {
     });
 
 });
-
-// Generate float alert
-function alert_float(type, message) {
-
-    var aId, el;
-    aId = $('body').find('float-alert').length;
-    aId++;
-    aId = 'alert_float_' + aId;
-    el = $('<div id="' + aId + '" class="float-alert animated fadeInRight col-xs-11 col-sm-4 alert alert-' + type + '"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button><span>' + message + '</span></div>');
-    $('body').append(el);
-
-    setTimeout(function() {
-        $('#' + aId).remove();
-    }, 3000);
-}
 
 function new_discussion() {
     $('#discussion').modal('show');
@@ -412,81 +312,17 @@ function save_edited_comment(id) {
     });
 }
 
-function DataTablesOfflineLazyLoadImages(nRow, aData, iDisplayIndex) {
-    var img = $('img.img-table-loading', nRow);
-    img.attr('src', img.data('orig'));
-    img.prev('div').addClass('hide');
-    return nRow;
-}
-
 function initDataTable() {
-
-    var length_options = [10, 25, 50, 100];
-    var length_options_names = [10, 25, 50, 100];
-
-    tables_pagination_limit = parseFloat(tables_pagination_limit);
-
-    if ($.inArray(tables_pagination_limit, length_options) == -1) {
-        length_options.push(tables_pagination_limit)
-        length_options_names.push(tables_pagination_limit)
-    }
-
-    length_options.sort(function(a, b) {
-        return a - b;
-    });
-
-    length_options_names.sort(function(a, b) {
-        return a - b;
-    });
-
-    length_options.push(-1);
-    length_options_names.push(dt_length_menu_all);
-
-    var options, order_col, order_type;
-    var _options = {
-        "language": dt_lang,
-        'paginate': true,
-        "pageLength": tables_pagination_limit,
-        "lengthMenu": [length_options, length_options_names],
-        "fnRowCallback": DataTablesOfflineLazyLoadImages,
-        "order": [0, 'DESC'],
-        "fnDrawCallback": function(oSettings) {
-            if (oSettings.aoData.length == 0 || oSettings.aiDisplay.length == 0) {
-                $(oSettings.nTableWrapper).addClass('app_dt_empty');
-            } else {
-                $(oSettings.nTableWrapper).removeClass('app_dt_empty');
-            }
-        },
-        "initComplete": function(settings, json) {
-            this.wrap('<div class="table-responsive"></div>');
-        }
-    };
-    var tables = $('.dt-table');
-    $.each(tables, function() {
-        options = _options;
-        order_col = $(this).attr('data-order-col');
-        order_type = $(this).attr('data-order-type');
-        if (order_col && order_type) {
-            options.order = [
-                [order_col, order_type]
-            ]
-        }
-        $(this).DataTable(options);
-    });
+    appDataTableInline();
 }
 
-function get_url_param(param) {
-    var vars = {};
-    window.location.href.replace(location.hash, '').replace(
-        /[?&]+([^=&]+)=?([^&]*)?/gi, // regexp
-        function(m, key, value) { // callback
-            vars[key] = value !== undefined ? value : '';
-        }
-    );
-    if (param) {
-        return vars[param] ? vars[param] : null;
+function dt_custom_view(table, column, val) {
+    var tableApi = $(table).DataTable();
+    if (Array.isArray(val)) {
+        tableApi.column(column).search(val.join('|'), true, false).draw();
+    } else {
+        tableApi.column(column).search(val).draw();
     }
-    return vars;
 }
 
 function fix_phases_height() {
@@ -496,11 +332,8 @@ function fix_phases_height() {
     var maxPhaseHeight = Math.max.apply(null, $("div.tasks-phases .panel-body").map(function() {
         return $(this).outerHeight();
     }).get());
-    $('div.tasks-phases .panel-body').css('min-height', maxPhaseHeight + 'px');
-}
 
-function color(r, g, b) {
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
+    $('div.tasks-phases .panel-body').css('min-height', maxPhaseHeight + 'px');
 }
 
 function taskTable() {
@@ -508,39 +341,10 @@ function taskTable() {
     $('.tasks-phases').toggleClass('hide');
 }
 
-function dt_custom_view(table, column, val) {
-    var tableApi = $(table).DataTable();
-    tableApi.column(column).search(val).draw();
-}
-
 function discussion_comments(selector, discussion_id, discussion_type) {
-    $(selector).comments({
-        roundProfilePictures: true,
-        textareaRows: 4,
-        textareaRowsOnFocus: 6,
-        enableDeleting: true,
-        profilePictureURL: discussion_user_profile_image_url,
-        enableUpvoting: false,
-        enableAttachments: true,
-        popularText: '',
-        enableDeletingCommentWithReplies: true,
-        textareaPlaceholderText: discussions_lang.discussion_add_comment,
-        newestText: discussions_lang.discussion_newest,
-        oldestText: discussions_lang.discussion_oldest,
-        attachmentsText: discussions_lang.discussion_attachments,
-        sendText: discussions_lang.discussion_send,
-        replyText: discussions_lang.discussion_reply,
-        editText: discussions_lang.discussion_edit,
-        editedText: discussions_lang.discussion_edited,
-        youText: discussions_lang.discussion_you,
-        saveText: discussions_lang.discussion_save,
-        deleteText: discussions_lang.discussion_delete,
-        viewAllRepliesText: discussions_lang.discussion_view_all_replies + ' (__replyCount__)',
-        hideRepliesText: discussions_lang.discussion_hide_replies,
-        noCommentsText: discussions_lang.discussion_no_comments,
-        noAttachmentsText: discussions_lang.discussion_no_attachments,
-        attachmentDropText: discussions_lang.discussion_attachments_drop,
+    var defaults = _get_jquery_comments_default_config(app.lang.discussions_lang);
 
+    var options = {
         getComments: function(success, error) {
             $.post(site_url + 'clients/project/' + project_id, {
                 action: 'discussion_comments',
@@ -591,9 +395,6 @@ function discussion_comments(selector, discussion_id, discussion_type) {
                 }
             });
         },
-        timeFormatter: function(time) {
-            return moment(time).fromNow();
-        },
         uploadAttachments: function(commentArray, success, error) {
             var responses = 0;
             var successfulUploads = [];
@@ -613,8 +414,8 @@ function discussion_comments(selector, discussion_id, discussion_type) {
                 }
             }
             $(commentArray).each(function(index, commentJSON) {
-                if (commentJSON.file.size && commentJSON.file.size > max_php_ini_upload_size_bytes) {
-                    alert_float('danger', file_exceeds_max_filesize);
+                if (commentJSON.file.size && commentJSON.file.size > app.max_php_ini_upload_size_bytes) {
+                    alert_float('danger', app.lang.file_exceeds_max_filesize);
                     serverResponded();
                 } else {
                     // Create form data
@@ -652,7 +453,11 @@ function discussion_comments(selector, discussion_id, discussion_type) {
                 }
             });
         }
-    });
+    };
+
+    var settings = $.extend({}, defaults, options);
+
+    $(selector).comments(settings);
 }
 
 function view_project_file(id, project_id) {
@@ -674,14 +479,6 @@ function update_file_data(id) {
     data.description = $('body textarea[name="file_description"]').val();
     data.action = 'update_file_data';
     $.post(site_url + 'clients/project/' + project_id, data);
-}
-// Function to close modal manually... needed in some modals where the data is flexible.
-function close_modal_manually(modal) {
-    $(modal).fadeOut('slow', function() {
-        $(modal).remove();
-        $('.modal-backdrop').remove();
-        $('body').removeClass('modal-open');
-    });
 }
 
 function render_customer_statement() {
@@ -738,4 +535,54 @@ function client_home_chart() {
             options: { responsive: true, maintainAspectRatio: false }
         });
     });
+}
+
+function projectFileGoogleDriveSave(pickData) {
+    projectExternalFileUpload(pickData, 'gdrive');
+}
+
+function customerFileGoogleDriveSave(pickData) {
+    customerExternalFileUpload(pickData, 'gdrive');
+}
+
+function taskFileGoogleDriveSave(pickData) {
+    taskExternalFileUpload(pickData, 'gdrive');
+}
+
+function projectExternalFileUpload(files, externalType) {
+    $.post(site_url + 'clients/project/' + project_id, {
+        files: files,
+        external: externalType,
+        action: 'project_external_file',
+    }).done(function() {
+        var location = window.location.href;
+        window.location.href = location.split('?')[0] + '?group=project_files';
+    });
+}
+
+function taskExternalFileUpload(files, externalType) {
+    $.post(site_url + 'clients/project/' + project_id, {
+        files: files,
+        task_id: $('input[name="task_id"]').val(),
+        external: externalType,
+        action: 'add_task_external_file'
+    }).done(function() {
+        window.location.reload();
+    });
+}
+
+function customerExternalFileUpload(files, externalType) {
+    $.post(site_url + 'clients/upload_files', {
+        files: files,
+        external: externalType,
+    }).done(function() {
+        window.location.reload();
+    });
+}
+
+function task_attachments_toggle() {
+    var $taskWrapper = $('#task');
+    var $attachmentsWrapper = $taskWrapper.find('.task_attachments_wrapper');
+    $attachmentsWrapper.find('.task-attachments-more').toggleClass('hide');
+    $attachmentsWrapper.find('.task-attachments-less').toggleClass('hide');
 }

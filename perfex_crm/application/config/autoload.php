@@ -1,4 +1,5 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /*
@@ -39,7 +40,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 |  $autoload['packages'] = array(APPPATH.'third_party', '/usr/local/shared');
 |
 */
-$autoload['packages'] = array();
+$autoload['packages'] = [];
 
 /*
 | -------------------------------------------------------------------
@@ -58,19 +59,27 @@ $autoload['packages'] = array();
 |
 |   $autoload['libraries'] = array('user_agent' => 'ua');
 */
-$autoload['libraries'] = array( 'database', 'user_agent', 'image_lib', 'encryption', 'object_cache', 'email', 'app', 'gateways/app_gateway', 'sms' );
+$autoload['libraries'] = [
+    'database',
+    'user_agent',
+    'image_lib',
+    'encryption',
+    'app',
+    'gateways/app_gateway',
+    'email', // As last because it's using get_option via $this->app library
+];
 
 $CI = &get_instance();
 
 $CI->load->helper('files');
-$gateways = list_files(APPPATH.'/libraries/gateways');
+$gateways = list_files(APPPATH . '/libraries/gateways');
 
 foreach ($gateways as $gateway) {
-    $pathinfo =  pathinfo($gateway);
+    $pathinfo = pathinfo($gateway);
     // Check if file is .php and do not starts with .dot
     // Offen happens Mac os user to have underscore prefixed files while unzipping the zip file.
     if ($pathinfo['extension'] == 'php' && 0 !== strpos($gateway, '.') && $pathinfo['filename'] != 'App_gateway') {
-        array_push($autoload['libraries'], 'gateways/'.strtolower($pathinfo['filename']));
+        array_push($autoload['libraries'], 'gateways/' . strtolower($pathinfo['filename']));
     }
 }
 /*
@@ -86,7 +95,7 @@ foreach ($gateways as $gateway) {
 |
 |   $autoload['drivers'] = array('cache');
 */
-$autoload['drivers'] = array('session');
+$autoload['drivers'] = ['session'];
 
 /*
 | -------------------------------------------------------------------
@@ -96,27 +105,46 @@ $autoload['drivers'] = array('session');
 |
 |   $autoload['helper'] = array('url', 'file');
 */
-$autoload['helper'] = array(
+
+/*
+* @deprecated version 2.3.0
+ */
+include_once(APPPATH . 'third_party/action_hooks.php');
+
+$autoload['helper'] = [
+        'language',
         'url',
         'file',
         'form',
-        'action_hooks',
+        'settings',
+        'modules',
+        'core_hooks',
+        'admin',
+        'assets',
+        'user_meta',
+        'emails_tracking',
+        'staff',
+        'countries',
+        'payment_gateways',
         'general',
         'misc',
         'func',
+        'gdpr',
         'datatables',
         'custom_fields',
-        'defaults',
-        'merge_fields',
-        'app_html',
+        'menu',
+        'template',
         'email_templates',
         'invoices',
+        'subscriptions',
         'estimates',
+        'contracts',
         'credit_notes',
         'proposals',
         'projects',
         'tasks',
         'fields',
+        'leads',
         'tickets',
         'relation',
         'tags',
@@ -126,20 +154,16 @@ $autoload['helper'] = array(
         'upload',
         'sales',
         'themes',
-        'theme_style',
         'pre_query_data_formatters',
         'widgets',
         'sms',
         'deprecated',
-    );
+    ];
 
-if (file_exists(APPPATH.'helpers/system_messages_helper.php')) {
-    array_push($autoload['helper'], 'system_messages');
-}
-
-if (file_exists(APPPATH.'helpers/my_functions_helper.php')) {
+if (file_exists(APPPATH . 'helpers/my_functions_helper.php')) {
     array_push($autoload['helper'], 'my_functions');
 }
+
 /*
 | -------------------------------------------------------------------
 |  Auto-load Config files
@@ -152,7 +176,7 @@ if (file_exists(APPPATH.'helpers/my_functions_helper.php')) {
 | config files.  Otherwise, leave it blank.
 |
 */
-$autoload['config'] = array();
+$autoload['config'] = [];
 
 /*
 | -------------------------------------------------------------------
@@ -166,7 +190,7 @@ $autoload['config'] = array();
 | "codeigniter_lang.php" would be referenced as array('codeigniter');
 |
 */
-$autoload['language'] = array('english');
+$autoload['language'] = ['english'];
 
 /*
 | -------------------------------------------------------------------
@@ -181,8 +205,13 @@ $autoload['language'] = array('english');
 |
 |   $autoload['model'] = array('first_model' => 'first');
 */
-$autoload['model'] = array( 'misc_model' , 'roles_model' , 'clients_model' , 'tasks_model' );
+$autoload['model'] = [
+    'misc_model',
+    'roles_model',
+    'clients_model',
+    'tasks_model',
+];
 
-if(file_exists(APPPATH.'config/my_autoload.php')){
-    include_once(APPPATH.'config/my_autoload.php');
+if (file_exists(APPPATH . 'config/my_autoload.php')) {
+    include_once(APPPATH . 'config/my_autoload.php');
 }

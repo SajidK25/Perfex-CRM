@@ -1,7 +1,8 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Settings extends Admin_controller
+class Settings extends AdminController
 {
     public function __construct()
     {
@@ -16,34 +17,38 @@ class Settings extends Admin_controller
         if (!has_permission('settings', '', 'view')) {
             access_denied('settings');
         }
+
+        $tab = $this->input->get('group');
+
         if ($this->input->post()) {
             if (!has_permission('settings', '', 'edit')) {
                 access_denied('settings');
             }
-            $logo_uploaded    = (handle_company_logo_upload() ? true : false);
-            $favicon_uploaded = (handle_favicon_upload() ? true : false);
+            $logo_uploaded     = (handle_company_logo_upload() ? true : false);
+            $favicon_uploaded  = (handle_favicon_upload() ? true : false);
             $signatureUploaded = (handle_company_signature_upload() ? true : false);
 
             $post_data = $this->input->post();
-            $tmpData = $this->input->post(null,false);
+            $tmpData   = $this->input->post(null, false);
 
-            if(isset($post_data['settings']['email_header'])) {
+            if (isset($post_data['settings']['email_header'])) {
                 $post_data['settings']['email_header'] = $tmpData['settings']['email_header'];
             }
 
-            if(isset($post_data['settings']['email_footer'])) {
+            if (isset($post_data['settings']['email_footer'])) {
                 $post_data['settings']['email_footer'] = $tmpData['settings']['email_footer'];
             }
 
-            if(isset($post_data['settings']['email_signature'])) {
+            if (isset($post_data['settings']['email_signature'])) {
                 $post_data['settings']['email_signature'] = $tmpData['settings']['email_signature'];
             }
 
-            if(isset($post_data['settings']['smtp_password'])) {
+            if (isset($post_data['settings']['smtp_password'])) {
                 $post_data['settings']['smtp_password'] = $tmpData['settings']['smtp_password'];
             }
 
-            $success   = $this->settings_model->update($post_data);
+            $success = $this->settings_model->update($post_data);
+
             if ($success > 0) {
                 set_alert('success', _l('settings_updated'));
             }
@@ -53,12 +58,16 @@ class Settings extends Admin_controller
             }
 
             // Do hard refresh on general for the logo
-            if ($this->input->get('group') == 'general') {
-                redirect(admin_url('settings?group=' . $this->input->get('group')), 'refresh');
-            } else if($signatureUploaded) {
+            if ($tab == 'general') {
+                redirect(admin_url('settings?group=' . $tab), 'refresh');
+            } elseif ($signatureUploaded) {
                 redirect(admin_url('settings?group=pdf&tab=signature'));
             } else {
-                redirect(admin_url('settings?group=' . $this->input->get('group')));
+                $redUrl = admin_url('settings?group=' . $tab);
+                if ($this->input->get('active_tab')) {
+                    $redUrl .= '&tab=' . $this->input->get('active_tab');
+                }
+                redirect($redUrl);
             }
         }
 
@@ -66,6 +75,7 @@ class Settings extends Admin_controller
         $this->load->model('tickets_model');
         $this->load->model('leads_model');
         $this->load->model('currencies_model');
+        $this->load->model('staff_model');
         $data['taxes']                                   = $this->taxes_model->get();
         $data['ticket_priorities']                       = $this->tickets_model->get_priority();
         $data['ticket_priorities']['callback_translate'] = 'ticket_priority_translate';
@@ -73,29 +83,42 @@ class Settings extends Admin_controller
         $data['leads_sources']                           = $this->leads_model->get_source();
         $data['leads_statuses']                          = $this->leads_model->get_status();
         $data['title']                                   = _l('options');
-        if (!$this->input->get('group') || ($this->input->get('group') == 'update' && !is_admin())) {
-            $view = 'general';
-        } else {
-            $view = $this->input->get('group');
+        $data['staff']                                   = $this->staff_model->get('', ['active' => 1]);
+
+        $data['admin_tabs'] = ['update', 'info'];
+
+        if (!$tab || (in_array($tab, $data['admin_tabs']) && !is_admin())) {
+            $tab = 'general';
         }
 
-        $view = do_action('settings_group_view_name',$view);
+        $data['tabs'] = $this->app_tabs->get_settings_tabs();
+        if (!in_array($tab, $data['admin_tabs'])) {
+            $data['tab'] = $this->app_tabs->filter_tab($data['tabs'], $tab);
+        } else {
+            // Core tabs are not registered
+            $data['tab']['slug'] = $tab;
+            $data['tab']['view'] = 'admin/settings/includes/' . $tab;
+        }
 
-        if ($view == 'update') {
+        if (!$data['tab']) {
+            show_404();
+        }
+
+        if ($data['tab']['slug'] == 'update') {
             if (!extension_loaded('curl')) {
                 $data['update_errors'][] = 'CURL Extension not enabled';
                 $data['latest_version']  = 0;
-                $data['update_info']     = json_decode("");
+                $data['update_info']     = json_decode('');
             } else {
                 $data['update_info'] = $this->app->get_update_info();
                 if (strpos($data['update_info'], 'Curl Error -') !== false) {
                     $data['update_errors'][] = $data['update_info'];
                     $data['latest_version']  = 0;
-                    $data['update_info']     = json_decode("");
+                    $data['update_info']     = json_decode('');
                 } else {
                     $data['update_info']    = json_decode($data['update_info']);
                     $data['latest_version'] = $data['update_info']->latest_version;
-                    $data['update_errors']  = array();
+                    $data['update_errors']  = [];
                 }
             }
 
@@ -103,21 +126,18 @@ class Settings extends Admin_controller
                 $data['update_errors'][] = 'ZIP Extension not enabled';
             }
 
-            $data['current_version'] = $this->app->get_current_db_version();
+            $data['current_version'] = $this->current_db_version;
         }
 
         $data['contacts_permissions'] = get_contact_permissions();
-        $this->load->library('pdf');
-        $data['payment_gateways'] = $this->payment_modes_model->get_online_payment_modes(true);
-        $data['view_name']            = $view;
-        $groups_path = do_action('settings_groups_path','admin/settings/includes');
-        $data['group_view']       = $this->load->view($groups_path . '/' . $view, $data, true);
+        $data['payment_gateways']     = $this->payment_modes_model->get_payment_gateways(true);
+
         $this->load->view('admin/settings/all', $data);
     }
 
-    public function delete_tag($id){
-
-        if(!$id){
+    public function delete_tag($id)
+    {
+        if (!$id) {
             redirect(admin_url('settings?group=tags'));
         }
 
@@ -125,10 +145,10 @@ class Settings extends Admin_controller
             access_denied('settings');
         }
 
-        $this->db->where('id',$id);
-        $this->db->delete('tbltags');
-        $this->db->where('tag_id',$id);
-        $this->db->delete('tbltags_in');
+        $this->db->where('id', $id);
+        $this->db->delete(db_prefix() . 'tags');
+        $this->db->where('tag_id', $id);
+        $this->db->delete(db_prefix() . 'taggables');
 
         redirect(admin_url('settings?group=tags'));
     }
@@ -150,22 +170,31 @@ class Settings extends Admin_controller
     }
 
     /* Remove company logo from settings / ajax */
-    public function remove_company_logo()
+    public function remove_company_logo($type = '')
     {
-        do_action('before_remove_company_logo');
+        hooks()->do_action('before_remove_company_logo');
+
         if (!has_permission('settings', '', 'delete')) {
             access_denied('settings');
         }
-        if (file_exists(get_upload_path_by_type('company') . '/' . get_option('company_logo'))) {
-            unlink(get_upload_path_by_type('company') . '/' . get_option('company_logo'));
+
+        $logoName = get_option('company_logo');
+        if ($type == 'dark') {
+            $logoName = get_option('company_logo_dark');
         }
-        update_option('company_logo', '');
+
+        $path = get_upload_path_by_type('company') . '/' . $logoName;
+        if (file_exists($path)) {
+            unlink($path);
+        }
+
+        update_option('company_logo' . ($type == 'dark' ? '_dark' : ''), '');
         redirect($_SERVER['HTTP_REFERER']);
     }
 
-    public function remove_favicon()
+    public function remove_fv()
     {
-        do_action('before_remove_favicon');
+        hooks()->do_action('before_remove_favicon');
         if (!has_permission('settings', '', 'delete')) {
             access_denied('settings');
         }
@@ -176,13 +205,14 @@ class Settings extends Admin_controller
         redirect($_SERVER['HTTP_REFERER']);
     }
 
-    public function delete_option($id)
+    public function delete_option($name)
     {
         if (!has_permission('settings', '', 'delete')) {
             access_denied('settings');
         }
-        echo json_encode(array(
-            'success' => delete_option($id)
-        ));
+
+        echo json_encode([
+            'success' => delete_option($name),
+        ]);
     }
 }

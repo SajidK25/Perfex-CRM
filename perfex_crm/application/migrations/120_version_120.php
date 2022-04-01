@@ -11,7 +11,7 @@ class Migration_Version_120 extends CI_Migration
     public function up()
     {
         if(!is_dir(ESTIMATE_ATTACHMENTS_FOLDER)){
-            mkdir(ESTIMATE_ATTACHMENTS_FOLDER);
+            mkdir(ESTIMATE_ATTACHMENTS_FOLDER, 0755);
             fopen(ESTIMATE_ATTACHMENTS_FOLDER . '.htaccess', 'w');
             $fp = fopen(ESTIMATE_ATTACHMENTS_FOLDER.'.htaccess','a+');
             if($fp)
@@ -21,7 +21,7 @@ class Migration_Version_120 extends CI_Migration
             }
         }
         if(!is_dir(PROPOSAL_ATTACHMENTS_FOLDER)){
-            mkdir(PROPOSAL_ATTACHMENTS_FOLDER);
+            mkdir(PROPOSAL_ATTACHMENTS_FOLDER, 0755);
             fopen(PROPOSAL_ATTACHMENTS_FOLDER . '.htaccess', 'w');
             $fp = fopen(PROPOSAL_ATTACHMENTS_FOLDER.'.htaccess','a+');
             if($fp)
@@ -83,10 +83,10 @@ class Migration_Version_120 extends CI_Migration
         $this->db->query("ALTER TABLE `tblinvoiceattachments` CHANGE `invoiceid` `rel_id` INT(11) NOT NULL;");
         $this->db->query("ALTER TABLE `tblinvoiceattachments` ADD `rel_type` VARCHAR(15) NOT NULL AFTER `rel_id`;");
 
-        $attachments = $this->db->get('tblinvoiceattachments')->result_array();
+        $attachments = $this->db->get(db_prefix().'invoiceattachments')->result_array();
         foreach($attachments as $attachment){
             $this->db->where('id',$attachment['id']);
-            $this->db->update('tblinvoiceattachments',array('rel_type'=>'invoice','attachment_key'=>md5(date('Y-m-d H:i:s').$attachment['rel_id'])));
+            $this->db->update(db_prefix().'invoiceattachments',array('rel_type'=>'invoice','attachment_key'=>md5(date('Y-m-d H:i:s').$attachment['rel_id'])));
         }
         $this->db->query("ALTER TABLE `tblinvoiceattachments` ADD `visible_to_customer` INT NOT NULL DEFAULT '0' AFTER `attachment_key`;");
 

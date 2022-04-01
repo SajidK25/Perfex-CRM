@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="convert_lead_to_client_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
    <div class="modal-dialog modal-lg" role="document">
       <?php echo form_open('admin/leads/convert_to_customer',array('id'=>'lead_to_client_form')); ?>
@@ -44,8 +45,8 @@
            <?php
            $not_mergable_customer_fields  = array('userid','datecreated','leadid','default_language','default_currency','active');
            $not_mergable_contact_fields  = array('id','userid','datecreated','is_primary','password','new_pass_key','new_pass_key_requested','last_ip','last_login','last_password_change','active','profile_image','direction');
-           $customer_fields = $this->db->list_fields('tblclients');
-           $contact_fields = $this->db->list_fields('tblcontacts');
+           $customer_fields = $this->db->list_fields(db_prefix().'clients');
+           $contact_fields = $this->db->list_fields(db_prefix().'contacts');
            $custom_fields = get_custom_fields('leads');
            $found_custom_fields = false;
            foreach ($custom_fields as $field) {
@@ -146,7 +147,7 @@
          </span>
       </div>
    </div>
-   <?php if(total_rows('tblemailtemplates',array('slug'=>'contact-set-password','active'=>0)) == 0){ ?>
+   <?php if(is_email_template_active('contact-set-password')){ ?>
    <div class="checkbox checkbox-primary">
       <input type="checkbox" name="send_set_password_email" id="send_set_password_email">
       <label for="send_set_password_email">
@@ -154,16 +155,22 @@
       </label>
    </div>
    <?php } ?>
-   <?php if(total_rows('tblemailtemplates',array('slug'=>'new-client-created','active'=>0)) == 0){ ?>
+   <?php if(is_email_template_active('new-client-created')){ ?>
    <div class="checkbox checkbox-primary">
       <input type="checkbox" name="donotsendwelcomeemail" id="donotsendwelcomeemail">
       <label for="donotsendwelcomeemail"><?php echo _l('client_do_not_send_welcome_email'); ?></label>
    </div>
    <?php } ?>
-   <?php if(total_rows('tblnotes',array('rel_type'=>'lead','rel_id'=>$lead->id)) > 0){ ?>
+   <?php if(total_rows(db_prefix().'notes',array('rel_type'=>'lead','rel_id'=>$lead->id)) > 0){ ?>
    <div class="checkbox checkbox-primary">
       <input type="checkbox" name="transfer_notes" id="transfer_notes">
       <label for="transfer_notes"><?php echo _l('transfer_lead_notes_to_customer'); ?></label>
+   </div>
+   <?php } ?>
+   <?php if(is_gdpr() && get_option('gdpr_enable_consent_for_contacts') == '1' && count($purposes) > 0) { ?>
+    <div class="checkbox checkbox-primary">
+      <input type="checkbox" name="transfer_consent" id="transfer_consent">
+      <label for="transfer_consent"><?php echo _l('transfer_consent'); ?></label>
    </div>
    <?php } ?>
 </div>

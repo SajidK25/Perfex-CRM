@@ -2,115 +2,115 @@
 $error = false;
 if (!is_writable('../uploads/estimates')){
     $error = true;
-    $requirement_estimates = "<span class='label label-danger'>No (Make uploads/estimates writable) - Permissions 755</span>";
+    $requirement_estimates = "<span class='label label-danger'>No (Make uploads/estimates writable) - Permissions 0755</span>";
 } else {
     $requirement_estimates = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/proposals')){
     $error = true;
-    $requirement_proposals = "<span class='label label-danger'>No (Make uploads/proposals writable) - Permissions 755</span>";
+    $requirement_proposals = "<span class='label label-danger'>No (Make uploads/proposals writable) - Permissions 0755</span>";
 } else {
     $requirement_proposals = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/ticket_attachments')){
     $error = true;
-    $requirement1 = "<span class='label label-danger'>No (Make uploads/ticket_attachments writable) - Permissions 755</span>";
+    $requirement1 = "<span class='label label-danger'>No (Make uploads/ticket_attachments writable) - Permissions 0755</span>";
 } else {
     $requirement1 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/tasks')){
     $error = true;
-    $requirement2 = "<span class='label label-danger'>No (Make uploads/tasks writable) - Permissions 755</span>";
+    $requirement2 = "<span class='label label-danger'>No (Make uploads/tasks writable) - Permissions 0755</span>";
 } else {
     $requirement2 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/staff_profile_images')){
     $error = true;
-    $requirement3 = "<span class='label label-danger'>No (Make uploads/staff_profile_images writable) - Permissions 755</span>";
+    $requirement3 = "<span class='label label-danger'>No (Make uploads/staff_profile_images writable) - Permissions 0755</span>";
 } else {
     $requirement3 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/projects')){
     $error = true;
-    $requirement4 = "<span class='label label-danger'>No (Make uploads/projects writable) - Permissions 755</span>";
+    $requirement4 = "<span class='label label-danger'>No (Make uploads/projects writable) - Permissions 0755</span>";
 } else {
     $requirement4 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/newsfeed')){
     $error = true;
-    $requirement5 = "<span class='label label-danger'>No (Make uploads/newsfeed writable) - Permissions 755</span>";
+    $requirement5 = "<span class='label label-danger'>No (Make uploads/newsfeed writable) - Permissions 0755</span>";
 } else {
     $requirement5 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/leads')){
     $error = true;
-    $requirement6 = "<span class='label label-danger'>No (Make uploads/leads writable) - Permissions 755</span>";
+    $requirement6 = "<span class='label label-danger'>No (Make uploads/leads writable) - Permissions 0755</span>";
 } else {
     $requirement6 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/invoices')){
     $error = true;
-    $requirement7 = "<span class='label label-danger'>No (Make uploads/invoices writable) - Permissions 755</span>";
+    $requirement7 = "<span class='label label-danger'>No (Make uploads/invoices writable) - Permissions 0755</span>";
 } else {
     $requirement7 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/expenses')){
     $error = true;
-    $requirement8 = "<span class='label label-danger'>No (Make uploads/expenses writable) - Permissions 755</span>";
+    $requirement8 = "<span class='label label-danger'>No (Make uploads/expenses writable) - Permissions 0755</span>";
 } else {
     $requirement8 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/discussions')){
     $error = true;
-    $requirement9 = "<span class='label label-danger'>No (Make uploads/discussions writable) - Permissions 755</span>";
+    $requirement9 = "<span class='label label-danger'>No (Make uploads/discussions writable) - Permissions 0755</span>";
 } else {
     $requirement9 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/contracts')){
     $error = true;
-    $requirement10 = "<span class='label label-danger'>No (Make uploads/contracts writable) - Permissions 755</span>";
+    $requirement10 = "<span class='label label-danger'>No (Make uploads/contracts writable) - Permissions 0755</span>";
 } else {
     $requirement10 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/company')){
     $error = true;
-    $requirement11 = "<span class='label label-danger'>No (Make uploads/company writable) - Permissions 755</span>";
+    $requirement11 = "<span class='label label-danger'>No (Make uploads/company writable) - Permissions 0755</span>";
 } else {
     $requirement11 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/clients')){
     $error = true;
-    $requirement12 = "<span class='label label-danger'>No (Make uploads/clients writable) - Permissions 755</span>";
+    $requirement12 = "<span class='label label-danger'>No (Make uploads/clients writable) - Permissions 0755</span>";
 } else {
     $requirement12 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../uploads/client_profile_images')){
     $error = true;
-    $requirement13 = "<span class='label label-danger'>No (Make uploads/client_profile_images writable) - Permissions 755</span>";
+    $requirement13 = "<span class='label label-danger'>No (Make uploads/client_profile_images writable) - Permissions 0755</span>";
 } else {
     $requirement13 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../application/config')){
     $error = true;
-    $requirement14 = "<span class='label label-danger'>No (Make application/config/ writable - Permissions 755</span>";
+    $requirement14 = "<span class='label label-danger'>No (Make application/config/ writable - Permissions 0755</span>";
 } else {
     $requirement14 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../application/config/config.php')){
     $error = true;
-    $requirement15 = "<span class='label label-danger'>No (Make application/config/config.php writable) - Permissions 755</span>";
+    $requirement15 = "<span class='label label-danger'>No (Make application/config/config.php writable) - Permissions 0644</span>";
 } else {
     $requirement15 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../application/config/app-config-sample.php')){
     $error = true;
-    $requirement16 = "<span class='label label-danger'>No (Make application/config/app-config-sample.php writable) - Permissions - 644 or 755</span>";
+    $requirement16 = "<span class='label label-danger'>No (Make application/config/app-config-sample.php writable) - Permissions - 0644</span>";
 } else {
     $requirement16 = "<span class='label label-success'>Ok</span>";
 }
 if (!is_writable('../temp')){
     $error = true;
-    $requirement17 = "<span class='label label-danger'>No (Make temp folder writable) - Permissions 755</span>";
+    $requirement17 = "<span class='label label-danger'>No (Make temp folder writable) - Permissions 0755</span>";
 } else {
     $requirement17 = "<span class='label label-success'>Ok</span>";
 }

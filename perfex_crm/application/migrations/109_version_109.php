@@ -11,7 +11,7 @@ class Migration_Version_109 extends CI_Migration
   public function up()
   {
     if (!is_dir(PROJECT_ATTACHMENTS_FOLDER)) {
-      mkdir(PROJECT_ATTACHMENTS_FOLDER);
+      mkdir(PROJECT_ATTACHMENTS_FOLDER, 0755);
       fopen(PROJECT_ATTACHMENTS_FOLDER . 'index.html', 'w');
       $fp = fopen(PROJECT_ATTACHMENTS_FOLDER . 'index.html', 'a+');
       if ($fp) {
@@ -19,7 +19,7 @@ class Migration_Version_109 extends CI_Migration
       }
     }
     if (!is_dir(PROJECT_DISCUSSION_ATTACHMENT_FOLDER)) {
-      mkdir(PROJECT_DISCUSSION_ATTACHMENT_FOLDER);
+      mkdir(PROJECT_DISCUSSION_ATTACHMENT_FOLDER, 0755);
       fopen(PROJECT_DISCUSSION_ATTACHMENT_FOLDER . 'index.html', 'w');
       $fp = fopen(PROJECT_DISCUSSION_ATTACHMENT_FOLDER . 'index.html', 'a+');
       if ($fp) {
@@ -28,7 +28,7 @@ class Migration_Version_109 extends CI_Migration
     }
 
     if (!is_dir(CONTACT_PROFILE_IMAGES_FOLDER)) {
-      mkdir(CONTACT_PROFILE_IMAGES_FOLDER);
+      mkdir(CONTACT_PROFILE_IMAGES_FOLDER, 0755);
       fopen(CONTACT_PROFILE_IMAGES_FOLDER . 'index.html', 'w');
       $fp = fopen(CONTACT_PROFILE_IMAGES_FOLDER . 'index.html', 'a+');
       if ($fp) {
@@ -182,7 +182,7 @@ class Migration_Version_109 extends CI_Migration
     $this->db->query("ALTER TABLE `tblinvoices` ADD `total_tax` DECIMAL(11,2) NOT NULL DEFAULT '0' AFTER `subtotal`;");
     $this->db->query("ALTER TABLE `tblestimates` ADD `total_tax` DECIMAL(11,2) NOT NULL DEFAULT '0' AFTER `subtotal`;");
 
-    $invoice_ids = $this->db->get('tblinvoices')->result_array();
+    $invoice_ids = $this->db->get(db_prefix().'invoices')->result_array();
     $this->load->model('invoices_model');
 
     foreach($invoice_ids as $i){
@@ -223,12 +223,12 @@ class Migration_Version_109 extends CI_Migration
    }
 
    $this->db->where('id',$i['id']);
-   $this->db->update('tblinvoices',array('total_tax'=>$total_tax));
+   $this->db->update(db_prefix().'invoices',array('total_tax'=>$total_tax));
 
  }
 
 
- $estimate_ids = $this->db->get('tblestimates')->result_array();
+ $estimate_ids = $this->db->get(db_prefix().'estimates')->result_array();
  $this->load->model('estimates_model');
 
  foreach($estimate_ids as $i){
@@ -269,7 +269,7 @@ class Migration_Version_109 extends CI_Migration
  }
 
  $this->db->where('id',$i['id']);
- $this->db->update('tblestimates',array('total_tax'=>$total_tax));
+ $this->db->update(db_prefix().'estimates',array('total_tax'=>$total_tax));
 
 }
 
@@ -278,9 +278,9 @@ $this->db->query("ALTER TABLE `tblclients` CHANGE `firstname` `firstname` VARCHA
   NULL;");
 $this->db->query("ALTER TABLE `tblclients` CHANGE `lastname` `lastname` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;");
 
-$clients = $this->db->get('tblclients')->result_array();
+$clients = $this->db->get(db_prefix().'clients')->result_array();
 foreach ($clients as $client) {
-  $this->db->insert('tblcustomerpermissions', array(
+  $this->db->insert(db_prefix().'customerpermissions', array(
     'permission_id' => 6,
     'userid' => $client['userid']
     ));
@@ -325,7 +325,7 @@ add_main_menu_item(array(
   'id' => 'projects'
   ));
 
-$tasks = $this->db->get('tblstafftasks')->result_array();
+$tasks = $this->db->get(db_prefix().'stafftasks')->result_array();
 foreach ($tasks as $task) {
   if ($task['priority'] == _l('task_priority_low')) {
     $priority = 1;
@@ -339,7 +339,7 @@ foreach ($tasks as $task) {
     $priority = 2;
   }
   $this->db->where('id', $task['id']);
-  $this->db->update('tblstafftasks', array(
+  $this->db->update(db_prefix().'stafftasks', array(
     'priority' => $priority
     ));
 }

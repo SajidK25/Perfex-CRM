@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
    <div class="content">
@@ -9,7 +10,7 @@
                   <a href="<?php echo admin_url('expenses/expense'); ?>" class="btn btn-info"><?php echo _l('new_expense'); ?></a>
                   <?php } ?>
                   <?php $this->load->view('admin/expenses/filter_by_template'); ?>
-                  <a href="#" onclick="slideToggle('#stats-top'); return false;" class="pull-right btn btn-default mright5 mleft5 btn-with-tooltip" data-toggle="tooltip" title="<?php echo _l('view_stats_tooltip'); ?>"><i class="fa fa-bar-chart"></i></a>
+                  <a href="#" onclick="slideToggle('#stats-top'); return false;" class="pull-right btn btn-default mleft5 btn-with-tooltip" data-toggle="tooltip" title="<?php echo _l('view_stats_tooltip'); ?>"><i class="fa fa-bar-chart"></i></a>
                   <a href="#" class="btn btn-default pull-right btn-with-tooltip toggle-small-view hidden-xs" onclick="toggle_small_view('.table-expenses','#expense'); return false;" data-toggle="tooltip" title="<?php echo _l('invoices_toggle_table_tooltip'); ?>"><i class="fa fa-angle-double-left"></i></a>
                   <div id="stats-top" class="hide">
                      <hr />
@@ -24,26 +25,7 @@
                         <div class="clearfix"></div>
                         <!-- if expenseid found in url -->
                         <?php echo form_hidden('expenseid',$expenseid); ?>
-                        <?php
-                           $table_data = array(
-                             '#',
-                             _l('expense_dt_table_heading_category'),
-                             _l('expense_dt_table_heading_amount'),
-                             _l('expense_name'),
-                             _l('expense_receipt'),
-                             _l('expense_dt_table_heading_date'),
-                             _l('project'),
-                             _l('expense_dt_table_heading_customer'),
-                             _l('invoice'),
-                             _l('expense_dt_table_heading_reference_no'),
-                             _l('expense_dt_table_heading_payment_mode'),
-                           );
-                           $custom_fields = get_custom_fields('expenses',array('show_on_table'=>1));
-                           foreach($custom_fields as $field){
-                            array_push($table_data,$field['name']);
-                           }
-                           $table_data = do_action('expenses_table_columns',$table_data);
-                           render_datatable($table_data,'expenses'); ?>
+                        <?php $this->load->view('admin/expenses/table_html', ['withBulkActions'=>true]); ?>
                      </div>
                   </div>
                </div>
@@ -102,10 +84,12 @@
    $(function(){
              // Expenses additional server params
              var Expenses_ServerParams = {};
+
              $.each($('._hidden_inputs._filters input'),function(){
                Expenses_ServerParams[$(this).attr('name')] = '[name="'+$(this).attr('name')+'"]';
              });
-             initDataTable('.table-expenses', admin_url+'expenses/table', 'undefined', 'undefined', Expenses_ServerParams, <?php echo do_action('expenses_table_default_order',json_encode(array(5,'DESC'))); ?>).column(0).visible(false, false).columns.adjust();
+
+             initDataTable('.table-expenses', admin_url+'expenses/table', [0], [0], Expenses_ServerParams, <?php echo hooks()->apply_filters('expenses_table_default_order', json_encode(array(6,'desc'))); ?>).column(1).visible(false, false).columns.adjust();
 
              init_expense();
 

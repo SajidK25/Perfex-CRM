@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
     <div class="screen-options-area"></div>
@@ -7,9 +8,9 @@
     <div class="content">
         <div class="row">
 
-            <?php include_once(APPPATH . 'views/admin/includes/alerts.php'); ?>
+            <?php $this->load->view('admin/includes/alerts'); ?>
 
-            <?php do_action( 'before_start_render_dashboard_content' ); ?>
+            <?php hooks()->do_action( 'before_start_render_dashboard_content' ); ?>
 
             <div class="clearfix"></div>
 
@@ -17,7 +18,7 @@
                 <?php render_dashboard_widgets('top-12'); ?>
             </div>
 
-            <?php do_action('after_dashboard_top_container'); ?>
+            <?php hooks()->do_action('after_dashboard_top_container'); ?>
 
             <div class="col-md-6" data-container="middle-left-6">
                 <?php render_dashboard_widgets('middle-left-6'); ?>
@@ -26,7 +27,7 @@
                 <?php render_dashboard_widgets('middle-right-6'); ?>
             </div>
 
-            <?php do_action('after_dashboard_half_container'); ?>
+            <?php hooks()->do_action('after_dashboard_half_container'); ?>
 
             <div class="col-md-8" data-container="left-8">
                 <?php render_dashboard_widgets('left-8'); ?>
@@ -47,14 +48,12 @@
                 <?php render_dashboard_widgets('bottom-right-4'); ?>
             </div>
 
-            <?php do_action('after_dashboard'); ?>
+            <?php hooks()->do_action('after_dashboard'); ?>
         </div>
     </div>
 </div>
-</div>
 <script>
-    google_api = '<?php echo $google_api_key; ?>';
-    calendarIDs = '<?php echo json_encode($google_ids_calendars); ?>';
+    app.calendarIDs = '<?php echo json_encode($google_ids_calendars); ?>';
 </script>
 <?php init_tail(); ?>
 <?php $this->load->view('admin/utilities/calendar_template'); ?>

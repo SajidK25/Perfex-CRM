@@ -1,24 +1,26 @@
-   <div class="modal fade _event" id="viewEvent">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title"><?php echo $event->title; ?></h4>
-        </div>
-        <?php echo form_open('admin/utilities/calendar',array('id'=>'calendar-event-form')); ?>
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-md-12">
-              <?php if($event->userid != get_staff_user_id()){ ?>
-                <div class="alert alert-info"><?php echo _l('event_created_by','<a href="'.admin_url('profile/'.$event->userid).'" target="_blank">'.get_staff_full_name($event->userid)).'</a>'; ?></div>
-              <?php } ?>
-              <?php if($event->userid == get_staff_user_id() || is_admin()){ ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<div class="modal fade _event" id="viewEvent">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title"><?php echo $event->title; ?></h4>
+      </div>
+      <?php echo form_open('admin/utilities/calendar',array('id'=>'calendar-event-form')); ?>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-12">
+            <?php if($event->userid != get_staff_user_id()){ ?>
+              <div class="alert alert-info"><?php echo _l('event_created_by','<a href="'.admin_url('profile/'.$event->userid).'" target="_blank">'.get_staff_full_name($event->userid)).'</a>'; ?></div>
+            <?php } ?>
+            <?php if($event->userid == get_staff_user_id() || is_admin()){ ?>
               <?php echo form_hidden('eventid',$event->eventid); ?>
               <?php echo render_input('title','utility_calendar_new_event_placeholder',$event->title); ?>
               <?php echo render_textarea('description','event_description',$event->description,array('rows'=>5)); ?>
-              <?php echo render_datetime_input('start','utility_calendar_new_event_start_date',_dt($event->start)); ?>
+              <?php echo render_datetime_input('start','utility_calendar_new_event_start_date',_dt($event->start), ['data-step' => 30]); ?>
               <div class="clearfix mtop15"></div>
-              <?php echo render_datetime_input('end','utility_calendar_new_event_end_date',_dt($event->end)); ?>
+              <?php echo render_datetime_input('end','utility_calendar_new_event_end_date',_dt($event->end), ['data-step' => 30]); ?>
+              <?php if(is_email_template_active('event-notification-to-staff')){ ?>
               <div class="form-group">
                <div class="row">
                 <div class="col-md-12">
@@ -40,6 +42,7 @@
                </div>
              </div>
            </div>
+            <?php } ?>
            <hr />
            <p class="bold"><?php echo _l('event_color'); ?></p>
            <?php
@@ -66,7 +69,7 @@
             <input type="checkbox" name="public" id="event_public" <?php if($event->public == 1){echo 'checked';} ?>>
             <label for="event_public"><?php echo _l('utility_calendar_new_event_make_public'); ?></label>
           </div>
-          <?php } else { ?>
+        <?php } else { ?>
           <a href="<?php echo admin_url('profile/'.$event->userid); ?>"><?php echo staff_profile_image($event->userid,array('staff-profile-xs-image')); ?> <?php echo get_staff_full_name($event->userid); ?></a>
           <hr />
           <h5 class="bold"><?php echo _l('event_description'); ?></h5>
@@ -74,21 +77,21 @@
           <h5 class="bold"><?php echo _l('utility_calendar_new_event_start_date'); ?></h5>
           <p><?php echo _dt($event->start); ?></p>
           <?php if(is_date($event->end)){ ?>
-          <h5 class="bold"><?php echo _l('utility_calendar_new_event_end_date'); ?></h5>
-          <p><?php echo _dt($event->end); ?></p>
+            <h5 class="bold"><?php echo _l('utility_calendar_new_event_end_date'); ?></h5>
+            <p><?php echo _dt($event->end); ?></p>
           <?php } ?>
-          <?php } ?>
-        </div>
+        <?php } ?>
       </div>
     </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo _l('close'); ?></button>
-      <?php if($event->userid == get_staff_user_id() || is_admin()){ ?>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo _l('close'); ?></button>
+    <?php if($event->userid == get_staff_user_id() || is_admin()){ ?>
       <button type="button" class="btn btn-danger" onclick="delete_event(<?php echo $event->eventid; ?>); return false"><?php echo _l('delete_event'); ?></button>
       <button type="submit" class="btn btn-info"><?php echo _l('submit'); ?></button>
-      <?php } ?>
-    </div>
-    <?php echo form_close(); ?>
-  </div><!-- /.modal-content -->
+    <?php } ?>
+  </div>
+  <?php echo form_close(); ?>
+</div><!-- /.modal-content -->
 </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->

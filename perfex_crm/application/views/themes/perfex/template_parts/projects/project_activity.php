@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="mtop15"></div>
 <div class="activity-feed">
     <?php if($project->settings->view_activity_log == 1){ ?>
@@ -20,7 +21,7 @@
                     <p class="text-muted mtop5"><?php echo $activity['additional_data']; ?></p>
                 </div>
             </div>
-            <hr />
+            <hr class="hr-10" />
         </div>
         <?php } ?>
         <?php } ?>

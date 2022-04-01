@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
     <div class="content">
@@ -11,17 +12,19 @@
                     <div class="clearfix"></div>
                     <hr class="hr-panel-heading" />
                     <?php if(count($sources) > 0){ ?>
-                    <table class="table dt-table scroll-responsive">
+                    <table class="table dt-table" data-order-col="1" data-order-type="asc">
                         <thead>
+                            <th><?php echo _l('id'); ?></th>
                             <th><?php echo _l('leads_sources_table_name'); ?></th>
                             <th><?php echo _l('options'); ?></th>
                         </thead>
                         <tbody>
                             <?php foreach($sources as $source){ ?>
                             <tr>
+                                <td><?php echo $source['id']; ?></td>
                                 <td><a href="#" onclick="edit_source(this,<?php echo $source['id']; ?>); return false" data-name="<?php echo $source['name']; ?>"><?php echo $source['name']; ?></a><br />
                                     <span class="text-muted">
-                                        <?php echo _l('leads_table_total',total_rows('tblleads',array('source'=>$source['id']))); ?>
+                                        <?php echo _l('leads_table_total',total_rows(db_prefix().'leads',array('source'=>$source['id']))); ?>
                                     </span>
                                 </td>
                                 <td>
@@ -74,7 +77,7 @@
 <?php init_tail(); ?>
 <script>
     $(function(){
-    	_validate_form($('form'),{name:'required'},manage_leads_sources);
+    	appValidateForm($('form'),{name:'required'},manage_leads_sources);
     	$('#source').on('hidden.bs.modal', function(event) {
     		$('#additional').html('');
     		$('#source input[name="name"]').val('');

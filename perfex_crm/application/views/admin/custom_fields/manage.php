@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
     <div class="content">
@@ -19,7 +20,6 @@
                             _l('custom_field_dt_field_type'),
                             _l('kb_article_slug'),
                             _l('custom_field_add_edit_active'),
-                            _l('options')
                             ),'custom-fields'); ?>
                         </div>
                     </div>
@@ -30,7 +30,7 @@
     <?php init_tail(); ?>
     <script>
         $(function(){
-            initDataTable('.table-custom-fields', window.location.href, [6], [6]);
+            initDataTable('.table-custom-fields', window.location.href);
         });
     </script>
 </body>

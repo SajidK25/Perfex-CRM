@@ -74,15 +74,15 @@ class Migration_Version_194 extends CI_Migration
 
         $this->db->where('fieldto','proposal');
         $this->db->where('show_on_pdf',1);
-        $this->db->update('tblcustomfields',array('show_on_client_portal'=>1));
+        $this->db->update(db_prefix().'customfields',array('show_on_client_portal'=>1));
 
         $this->db->where('fieldto','invoice');
         $this->db->where('show_on_pdf',1);
-        $this->db->update('tblcustomfields',array('show_on_client_portal'=>1));
+        $this->db->update(db_prefix().'customfields',array('show_on_client_portal'=>1));
 
         $this->db->where('fieldto','estimate');
         $this->db->where('show_on_pdf',1);
-        $this->db->update('tblcustomfields',array('show_on_client_portal'=>1));
+        $this->db->update(db_prefix().'customfields',array('show_on_client_portal'=>1));
 
         update_option('update_info_message', '<div class="col-md-12">
             <div class="alert alert-success bold">

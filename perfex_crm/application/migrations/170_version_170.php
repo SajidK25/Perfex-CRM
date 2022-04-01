@@ -23,7 +23,7 @@ class Migration_Version_170 extends CI_Migration
         $this->db->query("ALTER TABLE `tblevents` ADD `reminder_before` INT NOT NULL DEFAULT '0' AFTER `isstartnotified`;");
         $this->db->query("ALTER TABLE `tblevents` ADD `reminder_before_type` VARCHAR(10) NULL AFTER `reminder_before`;");
 
-        $this->db->update('tblevents',array('reminder_before_type'=>'minutes'));
+        $this->db->update(db_prefix().'events',array('reminder_before_type'=>'minutes'));
 
         add_option('contract_expiry_reminder_enabled',1);
         add_option('time_format',24);
@@ -33,7 +33,7 @@ class Migration_Version_170 extends CI_Migration
         add_option('company_state','');
 
         $this->db->where('name','calendar_task_color');
-        $this->db->delete('tbloptions');
+        $this->db->delete(db_prefix().'options');
 
         $default_tax = get_option('default_tax');
         if($default_tax != ''){
@@ -55,7 +55,7 @@ class Migration_Version_170 extends CI_Migration
         $this->db->query("ALTER TABLE `tblexpenses` ADD `tax2` INT NOT NULL DEFAULT '0' AFTER `tax`;");
 
         $this->db->where('isread',1);
-        $this->db->update('tblnotifications',array('isread_inline'=>1));
+        $this->db->update(db_prefix().'notifications',array('isread_inline'=>1));
 
         $this->db->query("ALTER TABLE `tbltaskstimers` ADD `note` TEXT NULL AFTER `hourly_rate`;");
         $this->db->query("ALTER TABLE `tblleads` ADD `default_language` VARCHAR(40) NULL AFTER `is_public`;");

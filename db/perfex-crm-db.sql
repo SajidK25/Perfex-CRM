@@ -1,6 +1,6 @@
 -- MySQL dump 10.19  Distrib 10.3.29-MariaDB, for debian-linux-gnu (x86_64)
 --
--- Host: localhost    Database: techcompletedb
+-- Host: localhost    Database: perfex_db
 -- ------------------------------------------------------
 -- Server version	10.3.29-MariaDB-0+deb10u1
 

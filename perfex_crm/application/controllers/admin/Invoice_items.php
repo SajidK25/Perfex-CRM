@@ -1,7 +1,11 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Invoice_items extends Admin_controller
+
+class Invoice_items extends AdminController
 {
+    private $not_importable_fields = ['id'];
+
     public function __construct()
     {
         parent::__construct();
@@ -28,12 +32,14 @@ class Invoice_items extends Admin_controller
         $this->load->view('admin/invoice_items/manage', $data);
     }
 
-    public function table(){
+    public function table()
+    {
         if (!has_permission('items', '', 'view')) {
             ajax_access_denied();
         }
         $this->app->get_table_data('invoice_items');
     }
+
     /* Edit or update items / ajax request /*/
     public function manage()
     {
@@ -51,13 +57,13 @@ class Invoice_items extends Admin_controller
                     $message = '';
                     if ($id) {
                         $success = true;
-                        $message = _l('added_successfully', _l('invoice_item'));
+                        $message = _l('added_successfully', _l('sales_item'));
                     }
-                    echo json_encode(array(
+                    echo json_encode([
                         'success' => $success,
                         'message' => $message,
-                        'item' => $this->invoice_items_model->get($id)
-                    ));
+                        'item'    => $this->invoice_items_model->get($id),
+                    ]);
                 } else {
                     if (!has_permission('items', '', 'edit')) {
                         header('HTTP/1.0 400 Bad error');
@@ -67,15 +73,50 @@ class Invoice_items extends Admin_controller
                     $success = $this->invoice_items_model->edit($data);
                     $message = '';
                     if ($success) {
-                        $message = _l('updated_successfully', _l('invoice_item'));
+                        $message = _l('updated_successfully', _l('sales_item'));
                     }
-                    echo json_encode(array(
+                    echo json_encode([
                         'success' => $success,
-                        'message' => $message
-                    ));
+                        'message' => $message,
+                    ]);
                 }
             }
         }
+    }
+
+    public function import()
+    {
+        if (!has_permission('items', '', 'create')) {
+            access_denied('Items Import');
+        }
+
+        $this->load->library('import/import_items', [], 'import');
+
+        $this->import->setDatabaseFields($this->db->list_fields(db_prefix() . 'items'))
+            ->setCustomFields(get_custom_fields('items'));
+
+        if ($this->input->post('download_sample') === 'true') {
+            $this->import->downloadSample();
+        }
+
+        if (
+            $this->input->post()
+            && isset($_FILES['file_csv']['name']) && $_FILES['file_csv']['name'] != ''
+        ) {
+            $this->import->setSimulation($this->input->post('simulate'))
+                ->setTemporaryFileLocation($_FILES['file_csv']['tmp_name'])
+                ->setFilename($_FILES['file_csv']['name'])
+                ->perform();
+
+            $data['total_rows_post'] = $this->import->totalRows();
+
+            if (!$this->import->isSimulation()) {
+                set_alert('success', _l('import_total_imported', $this->import->totalImported()));
+            }
+        }
+
+        $data['title'] = _l('import');
+        $this->load->view('admin/invoice_items/import', $data);
     }
 
     public function add_group()
@@ -126,8 +167,34 @@ class Invoice_items extends Admin_controller
         redirect(admin_url('invoice_items'));
     }
 
-    public function search(){
-        if($this->input->post() && $this->input->is_ajax_request()){
+    public function bulk_action()
+    {
+        hooks()->do_action('before_do_bulk_action_for_items');
+        $total_deleted = 0;
+        if ($this->input->post()) {
+            $ids                   = $this->input->post('ids');
+            $has_permission_delete = has_permission('items', '', 'delete');
+            if (is_array($ids)) {
+                foreach ($ids as $id) {
+                    if ($this->input->post('mass_delete')) {
+                        if ($has_permission_delete) {
+                            if ($this->invoice_items_model->delete($id)) {
+                                $total_deleted++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($this->input->post('mass_delete')) {
+            set_alert('success', _l('total_items_deleted', $total_deleted));
+        }
+    }
+
+    public function search()
+    {
+        if ($this->input->post() && $this->input->is_ajax_request()) {
             echo json_encode($this->invoice_items_model->search($this->input->post('q')));
         }
     }
@@ -136,16 +203,16 @@ class Invoice_items extends Admin_controller
     public function get_item_by_id($id)
     {
         if ($this->input->is_ajax_request()) {
-            $item                   = $this->invoice_items_model->get($id);
-            $item->long_description = nl2br($item->long_description);
-            $item->custom_fields_html = render_custom_fields('items',$id,array(),array('items_pr'=>true));
-            $item->custom_fields = array();
+            $item                     = $this->invoice_items_model->get($id);
+            $item->long_description   = nl2br($item->long_description);
+            $item->custom_fields_html = render_custom_fields('items', $id, [], ['items_pr' => true]);
+            $item->custom_fields      = [];
 
             $cf = get_custom_fields('items');
 
-            foreach($cf as $custom_field) {
-                $val = get_custom_field_value($id,$custom_field['id'],'items_pr');
-                if($custom_field['type'] == 'textarea') {
+            foreach ($cf as $custom_field) {
+                $val = get_custom_field_value($id, $custom_field['id'], 'items_pr');
+                if ($custom_field['type'] == 'textarea') {
                     $val = clear_textarea_breaks($val);
                 }
                 $custom_field['value'] = $val;
@@ -154,5 +221,25 @@ class Invoice_items extends Admin_controller
 
             echo json_encode($item);
         }
+    }
+
+    /* Copy Item */
+    public function copy($id)
+    {
+        if (!has_permission('items', '', 'create')) {
+            access_denied('Create Item');
+        }
+
+        $data = (array) $this->invoice_items_model->get($id);
+
+        $id = $this->invoice_items_model->copy($data);
+
+        if ($id) {
+            set_alert('success', _l('item_copy_success'));
+            return redirect(admin_url('invoice_items?id=' . $id));
+        }
+
+        set_alert('warning', _l('item_copy_fail'));
+        return redirect(admin_url('invoice_items'));
     }
 }

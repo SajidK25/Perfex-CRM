@@ -1,8 +1,9 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!-- Modal Contact -->
 <div class="modal fade" id="contact" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <?php echo form_open('admin/clients/contact/'.$customer_id.'/'.$contactid,array('id'=>'contact-form','autocomplete'=>'off')); ?>
+            <?php echo form_open(admin_url('clients/form_contact/'.$customer_id.'/'.$contactid),array('id'=>'contact-form','autocomplete'=>'off')); ?>
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 <h4 class="modal-title" id="myModalLabel"><?php echo $title; ?><br /><small id=""><?php echo get_company_name($customer_id,true); ?></small></h4>
@@ -40,7 +41,13 @@
                         <?php echo render_input( 'title', 'contact_position',$value); ?>
                         <?php $value=( isset($contact) ? $contact->email : ''); ?>
                         <?php echo render_input( 'email', 'client_email',$value, 'email'); ?>
-                        <?php $value=( isset($contact) ? $contact->phonenumber : ''); ?>
+                        <?php
+                            if(!isset($contact)) {
+                                $value = $calling_code ?: '';
+                            } else {
+                                $value = empty($contact->phonenumber) ? $calling_code : $contact->phonenumber;
+                            }
+                        ?>
                         <?php echo render_input( 'phonenumber', 'client_phonenumber',$value,'text',array('autocomplete'=>'off')); ?>
                         <div class="form-group contact-direction-option">
                           <label for="direction"><?php echo _l('document_direction'); ?></label>
@@ -84,12 +91,12 @@
                 </div>
                 <hr />
                 <div class="checkbox checkbox-primary">
-                    <input type="checkbox" name="is_primary" id="contact_primary" <?php if((!isset($contact) && total_rows('tblcontacts',array('is_primary'=>1,'userid'=>$customer_id)) == 0) || (isset($contact) && $contact->is_primary == 1)){echo 'checked';}; ?> <?php if((isset($contact) && total_rows('tblcontacts',array('is_primary'=>1,'userid'=>$customer_id)) == 1 && $contact->is_primary == 1)){echo 'disabled';} ?>>
+                    <input type="checkbox" name="is_primary" id="contact_primary" <?php if((!isset($contact) && total_rows(db_prefix().'contacts',array('is_primary'=>1,'userid'=>$customer_id)) == 0) || (isset($contact) && $contact->is_primary == 1)){echo 'checked';}; ?> <?php if((isset($contact) && total_rows(db_prefix().'contacts',array('is_primary'=>1,'userid'=>$customer_id)) == 1 && $contact->is_primary == 1)){echo 'disabled';} ?>>
                     <label for="contact_primary">
                         <?php echo _l( 'contact_primary'); ?>
                     </label>
                 </div>
-                <?php if(!isset($contact) && total_rows('tblemailtemplates',array('slug'=>'new-client-created','active'=>0)) == 0){ ?>
+                <?php if(!isset($contact) && is_email_template_active('new-client-created')){ ?>
                 <div class="checkbox checkbox-primary">
                     <input type="checkbox" name="donotsendwelcomeemail" id="donotsendwelcomeemail">
                     <label for="donotsendwelcomeemail">
@@ -97,7 +104,7 @@
                     </label>
                 </div>
                 <?php } ?>
-                <?php if(total_rows('tblemailtemplates',array('slug'=>'contact-set-password','active'=>0)) == 0){ ?>
+                <?php if(is_email_template_active('contact-set-password')){ ?>
                 <div class="checkbox checkbox-primary">
                     <input type="checkbox" name="send_set_password_email" id="send_set_password_email">
                     <label for="send_set_password_email">
@@ -189,6 +196,15 @@
                 <div class="col-md-6 row">
                     <div class="row">
                         <div class="col-md-6 mtop10 border-right">
+                            <span><?php echo _l('tickets'); ?></span>
+                        </div>
+                        <div class="col-md-6 mtop10">
+                            <div class="onoffswitch">
+                                <input type="checkbox" id="ticket_emails" data-perm-id="5" class="onoffswitch-checkbox" <?php if(isset($contact) && $contact->ticket_emails == '1'){echo 'checked';} ?>  value="ticket_emails" name="ticket_emails">
+                                <label class="onoffswitch-label" for="ticket_emails"></label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mtop10 border-right">
                             <span><i class="fa fa-question-circle" data-toggle="tooltip" data-title="<?php echo _l('only_project_tasks'); ?>"></i> <?php echo _l('task'); ?></span>
                         </div>
                         <div class="col-md-6 mtop10">
@@ -197,6 +213,7 @@
                                 <label class="onoffswitch-label" for="task_emails"></label>
                             </div>
                         </div>
+
                     </div>
                 </div>
                  <div class="col-md-6 row">
@@ -215,6 +232,7 @@
                 </div>
             </div>
         </div>
+        <?php hooks()->do_action('after_contact_modal_content_loaded'); ?>
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo _l('close'); ?></button>

@@ -61,7 +61,7 @@ class Migration_Version_104 extends CI_Migration
         $this->db->query("INSERT INTO `tblpermissions` (`permissionid`, `name`, `shortname`) VALUES (NULL, 'Manage Expenses', 'manageExpenses');");
 
         if(!is_dir(INVOICE_ATTACHMENTS_FOLDER)){
-            mkdir(INVOICE_ATTACHMENTS_FOLDER);
+            mkdir(INVOICE_ATTACHMENTS_FOLDER, 0755);
             fopen(INVOICE_ATTACHMENTS_FOLDER . '.htaccess', 'w');
             $fp = fopen(INVOICE_ATTACHMENTS_FOLDER.'.htaccess','a+');
             if($fp)
@@ -72,7 +72,7 @@ class Migration_Version_104 extends CI_Migration
         }
 
         if(!is_dir(EXPENSE_ATTACHMENTS_FOLDER)){
-          mkdir(EXPENSE_ATTACHMENTS_FOLDER);
+          mkdir(EXPENSE_ATTACHMENTS_FOLDER, 0755);
           fopen(EXPENSE_ATTACHMENTS_FOLDER . '.htaccess', 'w');
           $fp = fopen(EXPENSE_ATTACHMENTS_FOLDER.'.htaccess','a+');
           if($fp)
@@ -83,7 +83,7 @@ class Migration_Version_104 extends CI_Migration
         }
 
          if(!is_dir(LEAD_ATTACHMENTS_FOLDER)){
-          mkdir(LEAD_ATTACHMENTS_FOLDER);
+          mkdir(LEAD_ATTACHMENTS_FOLDER, 0755);
           fopen(LEAD_ATTACHMENTS_FOLDER . '.htaccess', 'w');
           $fp = fopen(LEAD_ATTACHMENTS_FOLDER.'.htaccess','a+');
           if($fp)

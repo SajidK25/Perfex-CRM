@@ -35,47 +35,47 @@ class Migration_Version_129 extends CI_Migration
 
         $this->db->query("ALTER TABLE `tblannouncements` CHANGE `userid` `userid` VARCHAR(100) NOT NULL;");
 
-        $announcements = $this->db->get('tblannouncements')->result_array();
+        $announcements = $this->db->get(db_prefix().'announcements')->result_array();
 
         foreach ($announcements as $an) {
             $full = get_staff_full_name($an['userid']);
             $this->db->where('announcementid', $an['announcementid']);
-            $this->db->update('tblannouncements', array(
+            $this->db->update(db_prefix().'announcements', array(
                 'userid' => $full
             ));
         }
-        $activity_log = $this->db->get('tblactivitylog')->result_array();
+        $activity_log = $this->db->get(db_prefix().'activitylog')->result_array();
         foreach ($activity_log as $ac) {
             if (is_numeric($ac['staffid'])) {
                 $full = get_staff_full_name($ac['staffid']);
                 $this->db->where('id', $ac['id']);
-                $this->db->update('tblactivitylog', array(
+                $this->db->update(db_prefix().'activitylog', array(
                     'staffid' => $full
                 ));
             }
         }
 
         $this->db->query("ALTER TABLE `tblcontractrenewals` CHANGE `renewed_by` `renewed_by` VARCHAR(100) NOT NULL;");
-        $renewals_contracts = $this->db->get('tblcontractrenewals')->result_array();
+        $renewals_contracts = $this->db->get(db_prefix().'contractrenewals')->result_array();
 
         foreach ($renewals_contracts as $r) {
             $full = get_staff_full_name($r['renewed_by']);
 
             $this->db->where('id', $r['id']);
-            $this->db->update('tblcontractrenewals', array(
+            $this->db->update(db_prefix().'contractrenewals', array(
                 'renewed_by' => $full
             ));
         }
 
         $this->db->query("ALTER TABLE `tblemaillists` CHANGE `creator` `creator` VARCHAR(100) NOT NULL;");
 
-        $mail_lists = $this->db->get('tblemaillists')->result_array();
+        $mail_lists = $this->db->get(db_prefix().'emaillists')->result_array();
 
         foreach ($mail_lists as $m) {
             $full = get_staff_full_name($m['creator']);
 
             $this->db->where('listid', $m['listid']);
-            $this->db->update('tblemaillists', array(
+            $this->db->update(db_prefix().'emaillists', array(
                 'creator' => $full
             ));
         }
@@ -87,14 +87,14 @@ class Migration_Version_129 extends CI_Migration
 
         $this->db->query("ALTER TABLE `tblleadactivitylog` ADD `full_name` VARCHAR(100) NULL AFTER `staffid`;");
 
-        $lead_activity = $this->db->get('tblleadactivitylog')->result_array();
+        $lead_activity = $this->db->get(db_prefix().'leadactivitylog')->result_array();
         foreach ($lead_activity as $l) {
             if (is_numeric($l['staffid']) && $l['staffid'] != 0) {
 
                 $full = get_staff_full_name($l['staffid']);
 
                 $this->db->where('id', $l['id']);
-                $this->db->update('tblleadactivitylog', array(
+                $this->db->update(db_prefix().'leadactivitylog', array(
                     'full_name' => $full
                 ));
             }
@@ -104,19 +104,19 @@ class Migration_Version_129 extends CI_Migration
 
         $this->db->query("ALTER TABLE `tblprojectdiscussioncomments` CHANGE `full_name` `fullname` VARCHAR(300) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL;");
 
-        $discussion_comments = $this->db->get('tblprojectdiscussioncomments')->result_array();
+        $discussion_comments = $this->db->get(db_prefix().'projectdiscussioncomments')->result_array();
         foreach ($discussion_comments as $c) {
             if ($c['staff_id'] != 0) {
                 $full = get_staff_full_name($c['staff_id']);
                 $this->db->where('id', $c['id']);
-                $this->db->update('tblprojectdiscussioncomments', array(
+                $this->db->update(db_prefix().'projectdiscussioncomments', array(
                     'fullname' => $full
                 ));
             }
         }
 
         $this->db->query("ALTER TABLE `tblprojectactivity` ADD `fullname` VARCHAR(100) NULL AFTER `contact_id`;");
-        $project_activity = $this->db->get('tblprojectactivity')->result_array();
+        $project_activity = $this->db->get(db_prefix().'projectactivity')->result_array();
         foreach ($project_activity as $a) {
             if ($a['staff_id'] != 0) {
                 $full = get_staff_full_name($a['staff_id']);
@@ -127,13 +127,13 @@ class Migration_Version_129 extends CI_Migration
             }
 
             $this->db->where('id', $a['id']);
-            $this->db->update('tblprojectactivity', array(
+            $this->db->update(db_prefix().'projectactivity', array(
                 'fullname' => $full
             ));
         }
 
         $this->db->query("ALTER TABLE `tblnotifications` ADD `from_fullname` VARCHAR(100) NOT NULL AFTER `fromclientid`;");
-        $notifications = $this->db->get('tblnotifications')->result_array();
+        $notifications = $this->db->get(db_prefix().'notifications')->result_array();
         foreach ($notifications as $n) {
             if ($n['fromuserid'] != 0) {
                 $full = get_staff_full_name($n['fromuserid']);
@@ -141,7 +141,7 @@ class Migration_Version_129 extends CI_Migration
                 $full = get_contact_full_name($n['fromclientid']);
             }
             $this->db->where('id', $n['id']);
-            $this->db->update('tblnotifications', array(
+            $this->db->update(db_prefix().'notifications', array(
                 'from_fullname' => $full
             ));
         }
@@ -155,7 +155,7 @@ class Migration_Version_129 extends CI_Migration
 
         $this->db->where('invoices_only', 1);
         $this->db->where('expenses_only', 1);
-        $this->db->update('tblinvoicepaymentsmodes', array(
+        $this->db->update(db_prefix().'invoicepaymentsmodes', array(
             'expenses_only' => 0
         ));
 
@@ -164,17 +164,17 @@ class Migration_Version_129 extends CI_Migration
         $this->db->query("ALTER TABLE  `tblsalesactivity` CHANGE  `invoiceid`  `rel_id` INT( 11 ) NOT NULL ;");
         $this->db->query("ALTER TABLE  `tblsalesactivity` ADD  `rel_type` VARCHAR( 20 ) NULL AFTER  `id` ;");
 
-        $invoice_activity = $this->db->get('tblsalesactivity')->result_array();
+        $invoice_activity = $this->db->get(db_prefix().'salesactivity')->result_array();
         foreach ($invoice_activity as $a) {
             $this->db->where('id', $a['id']);
-            $this->db->update('tblsalesactivity', array(
+            $this->db->update(db_prefix().'salesactivity', array(
                 'rel_type' => 'invoice'
             ));
         }
 
-        $estimate_activity = $this->db->get('tblestimateactivity')->result_array();
+        $estimate_activity = $this->db->get(db_prefix().'estimateactivity')->result_array();
         foreach ($estimate_activity as $a) {
-            $this->db->insert('tblsalesactivity', array(
+            $this->db->insert(db_prefix().'salesactivity', array(
                 'rel_id' => $a['estimateid'],
                 'description' => $a['description'],
                 'additional_data' => $a['additional_data'],
@@ -188,7 +188,7 @@ class Migration_Version_129 extends CI_Migration
 
         $this->db->query("ALTER TABLE `tblsalesactivity` ADD `full_name` VARCHAR(100) NULL AFTER `staffid`;");
 
-        $sales_activity = $this->db->get('tblsalesactivity')->result_array();
+        $sales_activity = $this->db->get(db_prefix().'salesactivity')->result_array();
 
         foreach ($sales_activity as $l) {
             if (is_numeric($l['staffid']) && $l['staffid'] != 0) {
@@ -200,7 +200,7 @@ class Migration_Version_129 extends CI_Migration
             }
 
             $this->db->where('id', $l['id']);
-            $this->db->update('tblsalesactivity', array(
+            $this->db->update(db_prefix().'salesactivity', array(
                 'full_name' => $full
             ));
         }
@@ -218,18 +218,18 @@ class Migration_Version_129 extends CI_Migration
         $this->db->query("ALTER TABLE  `tblformresults` CHANGE  `surveyid`  `rel_id` INT( 11 ) NOT NULL ;");
         $this->db->query("ALTER TABLE `tblformresults` ADD `rel_type` VARCHAR(20) NULL AFTER `rel_id`;");
 
-        $questions = $this->db->get('tblformquestions')->result_array();
+        $questions = $this->db->get(db_prefix().'formquestions')->result_array();
         foreach ($questions as $question) {
             $this->db->where('questionid', $question['questionid']);
-            $this->db->update('tblformquestions', array(
+            $this->db->update(db_prefix().'formquestions', array(
                 'rel_type' => 'survey'
             ));
         }
 
-        $results = $this->db->get('tblformresults')->result_array();
+        $results = $this->db->get(db_prefix().'formresults')->result_array();
         foreach ($results as $result) {
             $this->db->where('resultid', $result['resultid']);
-            $this->db->update('tblformresults', array(
+            $this->db->update(db_prefix().'formresults', array(
                 'rel_type' => 'survey'
             ));
         }
@@ -237,7 +237,7 @@ class Migration_Version_129 extends CI_Migration
         add_option('proposal_number_prefix', 'PRO-');
 
         $this->db->where('name', 'number_padding_invoice_and_estimate');
-        $pd = $this->db->get('tbloptions')->row();
+        $pd = $this->db->get(db_prefix().'options')->row();
         if ($pd) {
             $pd = $pd->value;
         } else {
@@ -247,7 +247,7 @@ class Migration_Version_129 extends CI_Migration
         add_option('number_padding_prefixes', $pd);
 
         $this->db->where('name', 'number_padding_invoice_and_estimate');
-        $this->db->delete('tbloptions');
+        $this->db->delete(db_prefix().'options');
 
 
         $this->db->query("INSERT INTO `tblemailtemplates` (`type`, `slug`, `language`, `name`, `subject`, `message`, `fromname`, `fromemail`, `plaintext`, `active`, `order`) VALUES
@@ -288,9 +288,9 @@ class Migration_Version_129 extends CI_Migration
                       KEY `rel_type` (`rel_type`)
                     ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;");
 
-        $estimate_items = $this->db->get('tblestimateitems')->result_array();
+        $estimate_items = $this->db->get(db_prefix().'estimateitems')->result_array();
         foreach ($estimate_items as $item) {
-            $this->db->insert('tblitems_in', array(
+            $this->db->insert(db_prefix().'items_in', array(
                 'rel_id' => $item['estimateid'],
                 'rel_type' => 'estimate',
                 'description' => $item['description'],
@@ -304,7 +304,7 @@ class Migration_Version_129 extends CI_Migration
             $this->db->where('rel_type', 'estimate');
             $this->db->where('rel_id', $item['estimateid']);
             $this->db->where('itemid', $item['id']);
-            $this->db->update('tblitemstax', array(
+            $this->db->update(db_prefix().'itemstax', array(
                 'itemid' => $item_id
             ));
 
@@ -312,9 +312,9 @@ class Migration_Version_129 extends CI_Migration
 
         $this->db->query("DROP TABLE tblestimateitems");
 
-        $invoice_items = $this->db->get('tblinvoiceitems')->result_array();
+        $invoice_items = $this->db->get(db_prefix().'invoiceitems')->result_array();
         foreach ($invoice_items as $item) {
-            $this->db->insert('tblitems_in', array(
+            $this->db->insert(db_prefix().'items_in', array(
                 'rel_id' => $item['invoiceid'],
                 'rel_type' => 'invoice',
                 'description' => $item['description'],
@@ -326,14 +326,14 @@ class Migration_Version_129 extends CI_Migration
 
             $item_id = $this->db->insert_id();
             $this->db->where('item_id', $item['id']);
-            $this->db->update('tblitemsrelated', array(
+            $this->db->update(db_prefix().'itemsrelated', array(
                 'item_id' => $item_id
             ));
 
             $this->db->where('rel_type', 'invoice');
             $this->db->where('rel_id', $item['invoiceid']);
             $this->db->where('itemid', $item['id']);
-            $this->db->update('tblitemstax', array(
+            $this->db->update(db_prefix().'itemstax', array(
                 'itemid' => $item_id
             ));
         }

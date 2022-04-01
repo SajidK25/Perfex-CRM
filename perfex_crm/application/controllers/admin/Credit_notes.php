@@ -1,7 +1,8 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Credit_notes extends Admin_controller
+class Credit_notes extends AdminController
 {
     public function __construct()
     {
@@ -24,10 +25,10 @@ class Credit_notes extends Admin_controller
 
         close_setup_menu();
 
-        $data['years'] = $this->credit_notes_model->get_credits_years();
-        $data['statuses'] = $this->credit_notes_model->get_statuses();
+        $data['years']          = $this->credit_notes_model->get_credits_years();
+        $data['statuses']       = $this->credit_notes_model->get_statuses();
         $data['credit_note_id'] = $id;
-        $data['title']                = _l('credit_notes');
+        $data['title']          = _l('credit_notes');
         $this->load->view('admin/credit_notes/manage', $data);
     }
 
@@ -37,25 +38,25 @@ class Credit_notes extends Admin_controller
             ajax_access_denied();
         }
 
-        $this->app->get_table_data('credit_notes', array(
+        $this->app->get_table_data('credit_notes', [
             'clientid' => $clientid,
-        ));
+        ]);
     }
 
     public function update_number_settings($id)
     {
-        $response = array(
+        $response = [
             'success' => false,
             'message' => '',
-        );
+        ];
         if (has_permission('credit_notes', '', 'edit')) {
             if ($this->input->post('prefix')) {
                 $affected_rows = 0;
 
                 $this->db->where('id', $id);
-                $this->db->update('tblcreditnotes', array(
+                $this->db->update(db_prefix() . 'creditnotes', [
                     'prefix' => $this->input->post('prefix'),
-                ));
+                ]);
                 if ($this->db->affected_rows() > 0) {
                     $affected_rows++;
                 }
@@ -74,18 +75,20 @@ class Credit_notes extends Admin_controller
     {
         $isedit          = $this->input->post('isedit');
         $number          = $this->input->post('number');
+        $date            = $this->input->post('date');
         $original_number = $this->input->post('original_number');
         $number          = trim($number);
         $number          = ltrim($number, '0');
-        if ($isedit == 'true') {
+        if ($isedit == 'true') { 
             if ($number == $original_number) {
                 echo json_encode(true);
                 die;
             }
         }
-        if (total_rows('tblcreditnotes', array(
+        if (total_rows(db_prefix() . 'creditnotes', [
+            'YEAR(date)' => date('Y', strtotime(to_sql_date($date))),
             'number' => $number,
-        )) > 0) {
+        ]) > 0) {
             echo 'false';
         } else {
             echo 'true';
@@ -121,7 +124,7 @@ class Credit_notes extends Admin_controller
             }
         }
         if ($id == '') {
-            $title                  = _l('add_new', _l('credit_note_lowercase'));
+            $title = _l('add_new', _l('credit_note_lowercase'));
         } else {
             $credit_note = $this->credit_notes_model->get($id);
 
@@ -129,13 +132,13 @@ class Credit_notes extends Admin_controller
                 blank_page(_l('credit_note_not_found'), 'danger');
             }
 
-            $data['credit_note']        = $credit_note;
-            $data['edit']           = true;
-            $title                  = _l('edit', _l('credit_note_lowercase')) . ' - ' . format_credit_note_number($credit_note->id);
+            $data['credit_note'] = $credit_note;
+            $data['edit']        = true;
+            $title               = _l('edit', _l('credit_note_lowercase')) . ' - ' . format_credit_note_number($credit_note->id);
         }
 
         if ($this->input->get('customer_id')) {
-            $data['customer_id']        = $this->input->get('customer_id');
+            $data['customer_id'] = $this->input->get('customer_id');
         }
 
         $this->load->model('taxes_model');
@@ -143,10 +146,10 @@ class Credit_notes extends Admin_controller
         $this->load->model('invoice_items_model');
 
         $data['ajaxItems'] = false;
-        if (total_rows('tblitems') <= ajax_on_total_items()) {
-            $data['items']        = $this->invoice_items_model->get_grouped();
+        if (total_rows(db_prefix() . 'items') <= ajax_on_total_items()) {
+            $data['items'] = $this->invoice_items_model->get_grouped();
         } else {
-            $data['items'] = array();
+            $data['items']     = [];
             $data['ajaxItems'] = true;
         }
 
@@ -157,8 +160,8 @@ class Credit_notes extends Admin_controller
 
         $data['base_currency'] = $this->currencies_model->get_base_currency();
 
-        $data['title']             = $title;
-        $data['bodyclass']         = 'credit-note';
+        $data['title']     = $title;
+        $data['bodyclass'] = 'credit-note';
         $this->load->view('admin/credit_notes/credit_note', $data);
     }
 
@@ -166,8 +169,8 @@ class Credit_notes extends Admin_controller
     {
         $creditApplied = false;
         if ($this->input->post()) {
-            foreach ($this->input->post('amount') as $invoice_id=>$amount) {
-                if ($this->credit_notes_model->apply_credits($credit_note_id, array('amount'=>$amount, 'invoice_id'=>$invoice_id))) {
+            foreach ($this->input->post('amount') as $invoice_id => $amount) {
+                if ($this->credit_notes_model->apply_credits($credit_note_id, ['amount' => $amount, 'invoice_id' => $invoice_id])) {
                     update_invoice_status($invoice_id, true);
                     $creditsApplied = true;
                 }
@@ -176,7 +179,7 @@ class Credit_notes extends Admin_controller
         if ($creditApplied) {
             set_alert('success', _l('credits_successfully_applied_to_invoices'));
         }
-        redirect(admin_url('credit_notes/list_credit_notes/'.$credit_note_id));
+        redirect(admin_url('credit_notes/list_credit_notes/' . $credit_note_id));
     }
 
     public function credit_note_from_invoice($invoice_id)
@@ -185,10 +188,77 @@ class Credit_notes extends Admin_controller
             $id = $this->credit_notes_model->credit_note_from_invoice($invoice_id);
 
             if ($id) {
-                redirect(admin_url('credit_notes/credit_note/'.$id));
+                redirect(admin_url('credit_notes/credit_note/' . $id));
             }
         }
-        redirect(admin_url('invoices/list_invoices/'.$invoice_id));
+        redirect(admin_url('invoices/list_invoices/' . $invoice_id));
+    }
+
+    public function refund($id, $refund_id = null)
+    {
+        if (has_permission('credit_notes', '', 'edit')) {
+            $this->load->model('payment_modes_model');
+            if (!$refund_id) {
+                $data['payment_modes'] = $this->payment_modes_model->get('', [
+                    'expenses_only !=' => 1,
+                ]);
+            } else {
+                $data['refund']        = $this->credit_notes_model->get_refund($refund_id);
+                $data['payment_modes'] = $this->payment_modes_model->get('', [], true, true);
+                $i                     = 0;
+                foreach ($data['payment_modes'] as $mode) {
+                    if ($mode['active'] == 0 && $data['refund']->payment_mode != $mode['id']) {
+                        unset($data['payment_modes'][$i]);
+                    }
+                    $i++;
+                }
+            }
+
+            $data['credit_note'] = $this->credit_notes_model->get($id);
+            $this->load->view('admin/credit_notes/refund', $data);
+        }
+    }
+
+    public function create_refund($credit_note_id)
+    {
+        if (has_permission('credit_notes', '', 'edit')) {
+            $data                = $this->input->post();
+            $data['refunded_on'] = to_sql_date($data['refunded_on']);
+            $data['staff_id']    = get_staff_user_id();
+            $success             = $this->credit_notes_model->create_refund($credit_note_id, $data);
+
+            if ($success) {
+                set_alert('success', _l('added_successfully', _l('refund')));
+            }
+        }
+
+        redirect(admin_url('credit_notes/list_credit_notes/' . $credit_note_id));
+    }
+
+    public function edit_refund($refund_id, $cerdit_note_id)
+    {
+        if (has_permission('credit_notes', '', 'edit')) {
+            $data                = $this->input->post();
+            $data['refunded_on'] = to_sql_date($data['refunded_on']);
+            $success             = $this->credit_notes_model->edit_refund($refund_id, $data);
+
+            if ($success) {
+                set_alert('success', _l('updated_successfully', _l('refund')));
+            }
+        }
+
+        redirect(admin_url('credit_notes/list_credit_notes/' . $cerdit_note_id));
+    }
+
+    public function delete_refund($refund_id, $credit_note_id)
+    {
+        if (has_permission('credit_notes', '', 'delete')) {
+            $success = $this->credit_notes_model->delete_refund($refund_id, $credit_note_id);
+            if ($success) {
+                set_alert('success', _l('deleted', _l('refund')));
+            }
+        }
+        redirect(admin_url('credit_notes/list_credit_notes/' . $credit_note_id));
     }
 
     /* Get all invoice note data */
@@ -210,31 +280,10 @@ class Credit_notes extends Admin_controller
             die;
         }
 
-        $template_name    = 'credit-note-send-to-client';
-        $contact = $this->clients_model->get_contact(get_primary_contact_user_id($credit_note->clientid));
+        $data = prepare_mail_preview_data('credit_note_send_to_customer', $credit_note->clientid);
 
-        $email   = '';
-        if ($contact) {
-            $email = $contact->email;
-        }
-
-        $data['template'] = get_email_template_for_sending($template_name, $email);
-
-        $data['template_name']     = $template_name;
-        $this->db->where('slug', $template_name);
-        $this->db->where('language', 'english');
-        $template_result = $this->db->get('tblemailtemplates')->row();
-
-        $data['template_system_name'] = $template_result->name;
-        $data['template_id'] = $template_result->emailtemplateid;
-
-        $data['template_disabled'] = false;
-        if (total_rows('tblemailtemplates', array('slug'=>$data['template_name'], 'active'=>0)) > 0) {
-            $data['template_disabled'] = true;
-        }
-
-        $data['credit_note'] = $credit_note;
-        $data['members']  = $this->staff_model->get('', 1);
+        $data['credit_note']                   = $credit_note;
+        $data['members']                       = $this->staff_model->get('', ['active' => 1]);
         $data['available_creditable_invoices'] = $this->credit_notes_model->get_available_creditable_invoices($id);
 
         $this->load->view('admin/credit_notes/credit_note_preview_template', $data);
@@ -242,11 +291,11 @@ class Credit_notes extends Admin_controller
 
     public function mark_open($id)
     {
-        if (total_rows('tblcreditnotes', array('status'=>3, 'id'=>$id)) > 0 && has_permission('credit_notes', '', 'edit')) {
+        if (total_rows(db_prefix() . 'creditnotes', ['status' => 3, 'id' => $id]) > 0 && has_permission('credit_notes', '', 'edit')) {
             $this->credit_notes_model->mark($id, 1);
         }
 
-        redirect(admin_url('credit_notes/list_credit_notes/'.$id));
+        redirect(admin_url('credit_notes/list_credit_notes/' . $id));
     }
 
     public function delete_attachment($id)
@@ -265,7 +314,7 @@ class Credit_notes extends Admin_controller
         if ($credit_note->status != 2 && $credit_note->status != 3 && !$credit_note->credits_used && has_permission('credit_notes', '', 'edit')) {
             $this->credit_notes_model->mark($id, 3);
         }
-        redirect(admin_url('credit_notes/list_credit_notes/'.$id));
+        redirect(admin_url('credit_notes/list_credit_notes/' . $id));
     }
 
     /* Send credit note to email */
@@ -290,7 +339,7 @@ class Credit_notes extends Admin_controller
         if (has_permission('credit_notes', '', 'delete')) {
             $this->credit_notes_model->delete_applied_credit($id, $credit_id, $invoice_id);
         }
-        redirect(admin_url('invoices/list_invoices/'.$invoice_id));
+        redirect(admin_url('invoices/list_invoices/' . $invoice_id));
     }
 
     public function delete_credit_note_applied_credit($id, $credit_id, $invoice_id)
@@ -298,7 +347,7 @@ class Credit_notes extends Admin_controller
         if (has_permission('credit_notes', '', 'delete')) {
             $this->credit_notes_model->delete_applied_credit($id, $credit_id, $invoice_id);
         }
-        redirect(admin_url('credit_notes/list_credit_notes/'.$credit_id));
+        redirect(admin_url('credit_notes/list_credit_notes/' . $credit_id));
     }
 
     /* Delete credit note */
@@ -342,7 +391,7 @@ class Credit_notes extends Admin_controller
         $credit_note_number = format_credit_note_number($credit_note->id);
 
         try {
-            $pdf            = credit_note_pdf($credit_note);
+            $pdf = credit_note_pdf($credit_note);
         } catch (Exception $e) {
             $message = $e->getMessage();
             echo $message;
@@ -352,7 +401,12 @@ class Credit_notes extends Admin_controller
             die;
         }
 
-        $type           = 'D';
+        $type = 'D';
+
+        if ($this->input->get('output_type')) {
+            $type = $this->input->get('output_type');
+        }
+
         if ($this->input->get('print')) {
             $type = 'I';
         }

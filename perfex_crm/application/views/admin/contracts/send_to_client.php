@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade email-template" data-editor-id=".<?php echo 'tinymce-'.$contract->id; ?>" id="contract_send_to_client_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <?php echo form_open('admin/contracts/send_to_email/'.$contract->id); ?>
@@ -51,7 +52,7 @@
                             <?php foreach($contract->attachments as $attachment) { ?>
                                 <div class="checkbox checkbox-primary">
                                     <input type="checkbox" <?php if(!empty($attachment['external'])){echo 'disabled';}; ?> value="<?php echo $attachment['id']; ?>" name="email_attachments[]">
-                                    <label for=""><a href="<?php echo site_url('download/file/contract/'.$attachment['id']); ?>"><?php echo $attachment['file_name']; ?></a></label>
+                                    <label for=""><a href="<?php echo site_url('download/file/contract/'.$attachment['attachment_key']); ?>"><?php echo $attachment['file_name']; ?></a></label>
                                 </div>
                                 <?php } ?>
                             </div>

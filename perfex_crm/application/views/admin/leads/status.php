@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="status" tabindex="-1" role="dialog">
    <div class="modal-dialog">
       <?php echo form_open(admin_url('leads/status'), array('id'=>'leads-status-form')); ?>
@@ -15,7 +16,7 @@
                   <div id="additional"></div>
                   <?php echo render_input('name', 'leads_status_add_edit_name'); ?>
                   <?php echo render_color_picker('color', _l('leads_status_color')); ?>
-                  <?php echo render_input('statusorder', 'leads_status_add_edit_order', total_rows('tblleadsstatus') + 1, 'number'); ?>
+                  <?php echo render_input('statusorder', 'leads_status_add_edit_order', total_rows(db_prefix().'leads_status') + 1, 'number'); ?>
                </div>
             </div>
          </div>
@@ -32,7 +33,7 @@
 <!-- /.modal -->
 <script>
   window.addEventListener('load', function () {
-    _validate_form($("body").find('#leads-status-form'), {
+    appValidateForm($("body").find('#leads-status-form'), {
         name: 'required'
     }, manage_leads_statuses);
     $('#status').on("hidden.bs.modal", function (event) {

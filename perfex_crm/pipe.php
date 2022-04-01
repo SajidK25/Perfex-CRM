@@ -1,13 +1,13 @@
 #!/usr/local/bin/php
 <?php
-
+define('TICKETS_PIPE', true);
 error_reporting(1);
 
 $environment = 'development';
 
-$system_path = dirname(__FILE__) . DIRECTORY_SEPARATOR .'system';
+$system_path = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'system';
 
-$application_folder = dirname(__FILE__) . DIRECTORY_SEPARATOR .'application';
+$application_folder = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'application';
 
 if (realpath($system_path) !== false) {
     $system_path = realpath($system_path) . '/';
@@ -15,230 +15,198 @@ if (realpath($system_path) !== false) {
 
 $system_path = rtrim($system_path, '/') . '/';
 
-define('BASEPATH', str_replace("\\", "/", $system_path));
+define('BASEPATH', str_replace('\\', '/', $system_path));
 define('APPPATH', $application_folder . '/');
+$view_folder = APPPATH . 'views';
+define('VIEWPATH', $view_folder . DIRECTORY_SEPARATOR);
 define('EXT', '.php');
 define('ENVIRONMENT', $environment ? $environment : 'development');
+define('FCPATH', dirname(__FILE__) . '/');
 
-require(BASEPATH .'core/Common.php');
+if (file_exists(APPPATH . 'config/' . ENVIRONMENT . '/constants.php')) {
+    require(APPPATH . 'config/' . ENVIRONMENT . '/constants.php');
+} else {
+    require(APPPATH . 'config/constants.php');
+}
 
-if ($composer_autoload = config_item('composer_autoload'))
-{
-    if ($composer_autoload === TRUE)
-    {
-        file_exists(APPPATH.'vendor/autoload.php')
-        ? require_once(APPPATH.'vendor/autoload.php')
-        : log_message('error', '$config[\'composer_autoload\'] is set to TRUE but '.APPPATH.'vendor/autoload.php was not found.');
-    }
-    elseif (file_exists($composer_autoload))
-    {
+require(BASEPATH . 'core/Common.php');
+
+if ($composer_autoload = config_item('composer_autoload')) {
+    if ($composer_autoload === true) {
+        file_exists(APPPATH . 'vendor/autoload.php')
+        ? require_once(APPPATH . 'vendor/autoload.php')
+        : log_message('error', '$config[\'composer_autoload\'] is set to TRUE but ' . APPPATH . 'vendor/autoload.php was not found.');
+    } elseif (file_exists($composer_autoload)) {
         require_once($composer_autoload);
-    }
-    else
-    {
-        log_message('error', 'Could not find the specified $config[\'composer_autoload\'] path: '.$composer_autoload);
+    } else {
+        log_message('error', 'Could not find the specified $config[\'composer_autoload\'] path: ' . $composer_autoload);
     }
 } else {
     // Fix for user who don't replace all the files during update
-    if(file_exists(APPPATH.'vendor/autoload.php')){
-        require_once(APPPATH.'vendor/autoload.php');
+    if (file_exists(APPPATH . 'vendor/autoload.php')) {
+        require_once(APPPATH . 'vendor/autoload.php');
     }
 }
 
-if (file_exists(APPPATH.'config/'.ENVIRONMENT.'/constants.php')) {
-    require(APPPATH.'config/'.ENVIRONMENT.'/constants.php');
+// Only uses the hooks() function.
+require_once(APPPATH . 'config/hooks.php');
+// Load the classes autoloader
+require_once(APPPATH . 'hooks/App_Autoloader.php');
+
+(new App_Autoloader)->register();
+
+if (extension_loaded('mbstring')) {
+    define('MB_ENABLED', true);
+    // This is required for mb_convert_encoding() to strip invalid characters.
+    // That's utilized by CI_Utf8, but it's also done for consistency with iconv.
+    mb_substitute_character('none');
 } else {
-    require(APPPATH.'config/constants.php');
+    define('MB_ENABLED', false);
 }
 
-define('FCPATH', dirname(__FILE__).'/');
+// There's an ICONV_IMPL constant, but the PHP manual says that using
+// iconv's predefined constants is "strongly discouraged".
+define('ICONV_ENABLED', extension_loaded('iconv'));
 
-$GLOBALS['CFG'] =& load_class('Config', 'core');
-$GLOBALS['UNI'] =& load_class('Utf8', 'core');
+$GLOBALS['CFG'] = & load_class('Config', 'core');
+$GLOBALS['UNI'] = & load_class('Utf8', 'core');
 
-if (file_exists($basepath.'core/Security.php')) {
-  $GLOBALS['SEC'] =& load_class('Security', 'core');
+if (file_exists(BASEPATH . 'core/Security.php')) {
+    $GLOBALS['SEC'] = & load_class('Security', 'core');
 }
 
-load_class('Loader', 'core');
 load_class('Router', 'core');
 load_class('Input', 'core');
 load_class('Lang', 'core');
 
 require(BASEPATH . 'core/Controller.php');
 
-function &get_instance() {
+function &get_instance()
+{
     return CI_Controller::get_instance();
 }
 
-$class = 'CI_Controller';
+$class    = 'CI_Controller';
 $instance = new $class();
-$email_output = array();
 
-$fd = fopen("php://stdin", "r");
-$input = "";
-while( !feof($fd) )
-{
+$fd = fopen('php://stdin', 'r');
+
+$input = '';
+
+while (!feof($fd)) {
     $input .= fread($fd, 1024);
 }
+
 fclose($fd);
-require_once(APPPATH . 'third_party/Mime_decode.php');
 
-$decode_params["input"]          = $input;
-$decode_params["include_bodies"] = true;
-$decode_params["decode_bodies"]  = true;
-$decode_params["decode_headers"] = true;
+require_once(APPPATH . 'hooks/InitHook.php');
 
-$decode                        = new Mail_mimeDecode($input);
-$structure                     = $decode->decode($decode_params);
-$email_output['headers'] = $structure->headers;
+_app_init_load();
 
-interpret_structure($structure);
-if ($email_output["body"]["text/plain"]) {
-    $body = $email_output["body"]["text/plain"];
-} else {
-    if ($email_output["body"]["text/html"]) {
-        $body = strip_tags($email_output["body"]["text/html"]);
-    } else {
-        $body = "No message found.";
-    }
-}
-
-$from        = $email_output["headers"]["from"];
-$to          = $email_output["headers"]["to"];
-$cc          = $email_output["headers"]["cc"];
-$bcc         = $email_output["headers"]["bcc"];
-if (!$to) {
-    $to = $email_output["headers"]["resent-to"];
-}
-
-$subject  = $email_output["headers"]["subject"];
-
-$fromname = preg_replace("/(.*)<(.*)>/", "\\1", $from);
-$fromname = str_replace("\"", "", $fromname);
-if ($email_output["headers"]["reply-to"]) {
-    $fromemail = $email_output["headers"]["reply-to"];
-}
-
-$fromemail = preg_replace("/(.*)<(.*)>/", "\\2", $from);
-$to        = explode(",", $to);
-foreach ($to as $toemail) {
-    if (strpos("." . $toemail, "<")) {
-        $toemails[] = preg_replace("/(.*)<(.*)>/", "\\2", $toemail);
-    } else {
-        $toemails[] = $toemail;
-    }
-
-}
-$to = explode(",", $cc);
-foreach ($to as $toemail) {
-    if (strpos("." . $toemail, "<")) {
-        $toemails[] = preg_replace("/(.*)<(.*)>/", "\\2", $toemail);
-    } else {
-        $toemails[] = $toemail;
-    }
-
-}
-$to = explode(",", $bcc);
-foreach ($to as $toemail) {
-    if (strpos("." . $toemail, "<")) {
-        $toemails[] = preg_replace("/(.*)<(.*)>/", "\\2", $toemail);
-    } else {
-        $toemails[] = $toemail;
-    }
-}
-
-$to = implode(",", $toemails);
 $instance->load->model('tickets_model');
+$instance->load->helper('files');
+$instance->load->helper('func');
+$instance->load->helper('misc');
+$instance->load->helper('database');
 
-$pattern = '#\bhttps?://drive.google.com[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#';
+$mailParser = new \ZBateson\MailMimeParser\MailMimeParser();
+$message    = $mailParser->parse($input);
 
-preg_match_all($pattern, $body, $matchGoogleDriveLinks);
+$body = $message->getHtmlContent();
 
-if(isset($matchGoogleDriveLinks[0]) && is_array($matchGoogleDriveLinks[0])){
-    foreach($matchGoogleDriveLinks[0] as $driveLink){
-        $link = '<a href="'.$driveLink.'">'.$driveLink.'</a>';
-        $body = str_replace($driveLink, $link,$body);
-        $body = str_replace('<'.$link.'>', $link ,$body);
-    }
+if (! $body) {
+    $body = $message->getTextContent();
 }
 
-$instance->tickets_model->insert_piped_ticket(array(
-    'to'=>$to,
-    'fromname'=>$fromname,
-    'email'=>$fromemail,
-    'subject'=>$subject,
-    'body'=>$body,
-    'attachments'=>$email_output["attachments"],
-));
+$body = trim($body);
 
-function interpret_structure($structure)
-{
-    global $email_output;
-    $ctype = strtolower($structure->ctype_primary) . "/" . strtolower($structure->ctype_secondary);
-    if (!$ctype) {
-        $ctype = "text/plain";
+if (! $body) {
+    $body = 'No message found.';
+}
+
+$attachments     = [];
+$mailAttachments = $message->getAllAttachmentParts();
+
+foreach ($mailAttachments as $attachment) {
+    $filename = $attachment->getFilename();
+    $content  = $attachment->getContent();
+
+    if (!$filename || !$content) {
+        continue;
     }
 
-    if ($ctype == "text/html" || $ctype == "text/plain") {
-        $charset = "us-ascii";
-        if (!empty($structure->ctype_parameters) && isset($structure->ctype_parameters["charset"])) {
-            $charset = $structure->ctype_parameters["charset"];
-        }
+    $attachments[] = [
+        'data'     => $content,
+        'filename' => sanitize_file_name($filename),
+    ];
+}
 
-        if (!empty($structure->disposition) && $structure->disposition == "attachment") {
-            handle_attachment($structure);
-        } else {
-            $var      = $ctype == "text/html" ? "html" : "text";
-            $bodyUtf8 = $structure->body;
-            if ($charset == "UTF-8") {
-                $charset = "";
+$subject   = $message->getHeaderValue('subject');
+$fromemail = $message->getHeaderValue('from');
+$fromname  = '';
+
+if ($fromHeader = $message->getHeader('from')) {
+    $fromname = $fromHeader->getPersonName();
+}
+
+if (empty($fromname)) {
+    $fromname = $fromemail;
+}
+
+if ($reply_to = $message->getHeaderValue('reply-to')) {
+    $fromemail = $reply_to;
+}
+
+$cc       = [];
+$toemails = [];
+foreach (['to', 'cc', 'bcc'] as $checkHeader) {
+    $addreses = $message->getHeader($checkHeader);
+
+    if ($addreses) {
+        foreach ($addreses->getAddresses() as $addr) {
+            $toemails[] = $addr->getEmail();
+            if ($checkHeader === 'cc') {
+                $cc[] = $addr->getEmail();
             }
-
-            if ($charset && function_exists("iconv")) {
-                $bodyUtf8 = iconv($charset, "utf-8", $bodyUtf8);
-                if (isset($email_output["headers"]["convertedcharset"])) {
-                    $email_output["headers"]["subject"]          = iconv($charset, "utf-8", $email_output["headers"]["subject"]);
-                    $email_output["headers"]["convertedcharset"] = true;
-                }
-
-            }
-
-            $email_output["body"][$ctype] = trim($bodyUtf8);
-        }
-
-    } else {
-        if (strtolower($structure->ctype_primary) == "multipart") {
-            if (!empty($structure->parts)) {
-                for ($i = 0; $i < count($structure->parts); $i++) {
-                    interpret_structure($structure->parts[$i]);
-                }
-            }
-
-        } else {
-            handle_attachment($structure);
         }
     }
 }
 
-function handle_attachment($structure)
-{
-    global $email_output;
-    if (!empty($structure->d_parameters["filename"])) {
-        $filename = $structure->d_parameters["filename"];
-    } else {
-        if (!empty($structure->ctype_parameters["name"])) {
-            $filename = $structure->ctype_parameters["name"];
-        } else {
-            return NULL;
-        }
-    }
+$to = implode(',', $toemails);
 
-    $ctype                               = strtolower($structure->ctype_primary) . "/" . strtolower($structure->ctype_secondary);
-    $email_output["attachments"][] = array(
-        "data" => $structure->body,
-        "size" => strlen($structure->body),
-        "filename" => $filename,
-        "contenttype" => $ctype
-    );
+if (class_exists('EmailReplyParser\EmailReplyParser')
+    && get_option('ticket_import_reply_only') === '1'
+    && (mb_substr_count($subject, 'FWD:') == 0 && mb_substr_count($subject, 'FW:') == 0)) {
+    $parsedBody = \EmailReplyParser\EmailReplyParser::parseReply($body);
+
+    $parsedBody = trim($parsedBody);
+
+    // For some emails this is causing an issue and not returning the email, instead is returning empty string
+    // In this case, only use parsed email reply if not empty
+    if (!empty($parsedBody)) {
+        $body = $parsedBody;
+    }
 }
+
+// Trim message
+$body = trim($body);
+$body = str_replace('&nbsp;', ' ', $body);
+// Remove html tags - strips inline styles also
+$body = trim(strip_html_tags($body, '<br/>, <br>, <a>'));
+// Once again do security
+$body = $instance->security->xss_clean($body);
+// Remove duplicate new lines
+$body = preg_replace("/[\r\n]+/", "\n", $body);
+// new lines with <br />
+$body = preg_replace('/\n(\s*\n)+/', '<br />', $body);
+$body = preg_replace('/\n/', '<br />', $body);
+
+$instance->tickets_model->insert_piped_ticket([
+    'to'          => $to,
+    'cc'          => $cc,
+    'fromname'    => $fromname,
+    'email'       => $fromemail,
+    'subject'     => $subject,
+    'body'        => $body,
+    'attachments' => $attachments,
+]);

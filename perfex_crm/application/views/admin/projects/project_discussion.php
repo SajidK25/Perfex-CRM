@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!-- Miles Stones -->
 <div class="modal fade" id="discussion" tabindex="-1" role="dialog">
     <div class="modal-dialog">

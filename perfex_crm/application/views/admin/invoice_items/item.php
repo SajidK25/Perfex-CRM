@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="sales_item_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -25,10 +26,10 @@
                         </div>
                         <?php
                             foreach($currencies as $currency){
-                                if($currency['isdefault'] == 0 && total_rows('tblclients',array('default_currency'=>$currency['id'])) > 0){ ?>
+                                if($currency['isdefault'] == 0 && total_rows(db_prefix().'clients',array('default_currency'=>$currency['id'])) > 0){ ?>
                                 <div class="form-group">
                                     <label for="rate_currency_<?php echo $currency['id']; ?>" class="control-label">
-                                        <?php echo _l('invoice_item_add_edit_rate_currency',$currency['name']); ?></label>
+                                        <?php echo _l('invoice_item_add_edit_rate_currency', $currency['name']); ?></label>
                                         <input type="number" id="rate_currency_<?php echo $currency['id']; ?>" name="rate_currency_<?php echo $currency['id']; ?>" class="form-control" value="">
                                     </div>
                              <?php   }
@@ -80,8 +81,13 @@
     if(typeof(jQuery) != 'undefined'){
         init_item_js();
     } else {
-      window.addEventListener('load', function () {
-        init_item_js();
+     window.addEventListener('load', function () {
+       var initItemsJsInterval = setInterval(function(){
+            if(typeof(jQuery) != 'undefined') {
+                init_item_js();
+                clearInterval(initItemsJsInterval);
+            }
+         }, 1000);
      });
   }
 // Items add/edit
@@ -94,18 +100,17 @@ function manage_invoice_items(form) {
         if (response.success == true) {
             var item_select = $('#item_select');
             if ($("body").find('.accounting-template').length > 0) {
-                var group = item_select.find('[data-group-id="' + response.item.group_id + '"]');
-                var _option = '<option data-subtext="' + response.item.long_description + '" value="' + response.item.itemid + '">(' + accounting.formatNumber(response.item.rate) + ') ' + response.item.description + '</option>';
                 if (!item_select.hasClass('ajax-search')) {
+                    var group = item_select.find('[data-group-id="' + response.item.group_id + '"]');
                     if (group.length == 0) {
-                        _option = '<optgroup label="' + (response.item.group_name == null ? '' : response.item.group_name) + '" data-group-id="' + response.item.group_id + '">' + _option + '</optgroup>';
+                        var _option = '<optgroup label="' + (response.item.group_name == null ? '' : response.item.group_name) + '" data-group-id="' + response.item.group_id + '">' + _option + '</optgroup>';
                         if (item_select.find('[data-group-id="0"]').length == 0) {
                             item_select.find('option:first-child').after(_option);
                         } else {
                             item_select.find('[data-group-id="0"]').after(_option);
                         }
                     } else {
-                        group.prepend(_option);
+                        group.prepend('<option data-subtext="' + response.item.long_description + '" value="' + response.item.itemid + '">(' + accounting.formatNumber(response.item.rate) + ') ' + response.item.description + '</option>');
                     }
                 }
                 if (!item_select.hasClass('ajax-search')) {
@@ -113,13 +118,12 @@ function manage_invoice_items(form) {
                 } else {
 
                     item_select.contents().filter(function () {
-                        return !$(this).is('.newitem') && $(this).is('.newitem-divider');
+                        return !$(this).is('.newitem') && !$(this).is('.newitem-divider');
                     }).remove();
 
                     var clonedItemsAjaxSearchSelect = item_select.clone();
                     item_select.selectpicker('destroy').remove();
-                    item_select = clonedItemsAjaxSearchSelect;
-                    $("body").find('.items-wrapper').append(clonedItemsAjaxSearchSelect);
+                    $("body").find('.items-select-wrapper').append(clonedItemsAjaxSearchSelect);
                     init_ajax_search('items', '#item_select.ajax-search', undefined, admin_url + 'items/search');
                 }
 
@@ -140,11 +144,8 @@ function init_item_js() {
      // Add item to preview from the dropdown for invoices estimates
     $("body").on('change', 'select[name="item_select"]', function () {
         var itemid = $(this).selectpicker('val');
-        if (itemid != '' && itemid !== 'newitem') {
+        if (itemid != '') {
             add_item_to_preview(itemid);
-        } else if (itemid == 'newitem') {
-            // New item
-            $('#sales_item_modal').modal('show');
         }
     });
 
@@ -206,7 +207,7 @@ function init_item_js() {
 }
 function validate_item_form(){
     // Set validation for invoice item form
-    _validate_form($('#invoice_item_form'), {
+    appValidateForm($('#invoice_item_form'), {
         description: 'required',
         rate: {
             required: true,

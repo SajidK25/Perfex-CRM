@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="row">
   <?php if(count($expenses_years) > 1 || isset($currencies)){ ?>
   <div class="col-md-12 simple-bootstrap-select mbot5">
@@ -29,7 +30,7 @@
 </div>
 <?php } ?>
 <div class="col-md-5ths col-xs-12 total-column">
-  <div class="panel_s">
+  <div class="panel_s no-mbot">
     <div class="panel-body">
       <h3 class="text-muted _total">
        <?php echo $totals['all']['total']; ?>
@@ -39,7 +40,7 @@
  </div>
 </div>
 <div class="col-md-5ths col-xs-12 total-column">
-  <div class="panel_s">
+  <div class="panel_s no-mbot">
     <div class="panel-body">
       <h3 class="text-muted _total">
        <?php echo $totals['billable']['total']; ?>
@@ -49,7 +50,7 @@
  </div>
 </div>
 <div class="col-md-5ths col-xs-12 total-column">
-  <div class="panel_s">
+  <div class="panel_s no-mbot">
     <div class="panel-body">
       <h3 class="text-muted _total">
        <?php echo $totals['non_billable']['total']; ?>
@@ -59,7 +60,7 @@
  </div>
 </div>
 <div class="col-md-5ths col-xs-12 total-column">
-  <div class="panel_s">
+  <div class="panel_s no-mbot">
     <div class="panel-body">
       <h3 class="text-muted _total">
        <?php echo $totals['unbilled']['total']; ?>
@@ -69,7 +70,7 @@
  </div>
 </div>
 <div class="col-md-5ths col-xs-12 total-column">
-  <div class="panel_s">
+  <div class="panel_s no-mbot">
     <div class="panel-body">
       <h3 class="text-muted _total">
        <?php echo $totals['billed']['total']; ?>

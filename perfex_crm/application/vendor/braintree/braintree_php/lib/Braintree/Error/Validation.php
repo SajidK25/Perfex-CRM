@@ -9,7 +9,7 @@ use Braintree\Util;
  *
  * <b>== More information ==</b>
  *
- * For more detailed information on Validation errors, see {@link http://www.braintreepayments.com/gateway/validation-errors http://www.braintreepaymentsolutions.com/gateway/validation-errors}
+ * For more detailed information on Validation errors, see {@link https://developers.braintreepayments.com/reference/general/validation-errors/overview/php https://developers.braintreepayments.com/reference/general/validation-errors/overview/php}
  *
  * @package    Braintree
  * @subpackage Error
@@ -57,4 +57,3 @@ class Validation
         return isset($this->$varName) ? $this->$varName : null;
     }
 }
-class_alias('Braintree\Error\Validation', 'Braintree_Error_Validation');

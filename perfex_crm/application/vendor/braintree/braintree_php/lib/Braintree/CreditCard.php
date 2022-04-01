@@ -7,26 +7,42 @@ namespace Braintree;
  *
  * <b>== More information ==</b>
  *
- * For more detailed information on CreditCards, see {@link http://www.braintreepayments.com/gateway/credit-card-api http://www.braintreepaymentsolutions.com/gateway/credit-card-api}<br />
- * For more detailed information on CreditCard verifications, see {@link http://www.braintreepayments.com/gateway/credit-card-verification-api http://www.braintreepaymentsolutions.com/gateway/credit-card-verification-api}
+ * For more detailed information on CreditCards, see {@link https://developers.braintreepayments.com/reference/response/credit-card/php https://developers.braintreepayments.com/reference/response/credit-card/php}<br />
+ * For more detailed information on CreditCard verifications, see {@link https://developers.braintreepayments.com/reference/response/credit-card-verification/php https://developers.braintreepayments.com/reference/response/credit-card-verification/php}
  *
  * @package    Braintree
  * @category   Resources
  *
- * @property-read string $billingAddress
+ * @property-read \Braintree\Address $billingAddress
  * @property-read string $bin
  * @property-read string $cardType
  * @property-read string $cardholderName
- * @property-read string $createdAt
+ * @property-read string $commercial
+ * @property-read string $countryOfIssuance
+ * @property-read \DateTime $createdAt
  * @property-read string $customerId
+ * @property-read string $customerLocation
+ * @property-read string $debit
+ * @property-read boolean $default
+ * @property-read string $durbinRegulated
  * @property-read string $expirationDate
  * @property-read string $expirationMonth
  * @property-read string $expirationYear
+ * @property-read boolean $expired
+ * @property-read boolean $healthcare
  * @property-read string $imageUrl
+ * @property-read string $issuingBank
+ * @property-read string $isNetworkTokenized
  * @property-read string $last4
  * @property-read string $maskedNumber
+ * @property-read string $payroll
+ * @property-read string $prepaid
+ * @property-read string $productId
+ * @property-read \Braintree\Subscription[] $subscriptions
  * @property-read string $token
- * @property-read string $updatedAt
+ * @property-read string $uniqueNumberIdentifier
+ * @property-read \DateTime $updatedAt
+ * @property-read \Braintree\CreditCardVerification|null $verification
  */
 class CreditCard extends Base
 {
@@ -36,6 +52,7 @@ class CreditCard extends Base
     const CHINA_UNION_PAY = 'China UnionPay';
     const DINERS_CLUB_INTERNATIONAL = 'Diners Club';
     const DISCOVER = 'Discover';
+    const ELO = 'Elo';
     const JCB = 'JCB';
     const LASER = 'Laser';
     const MAESTRO = 'Maestro';
@@ -208,11 +225,6 @@ class CreditCard extends Base
         return Configuration::gateway()->creditCard()->createNoValidate($attribs);
     }
 
-    public static function createFromTransparentRedirect($queryString)
-    {
-        return Configuration::gateway()->creditCard()->createFromTransparentRedirect($queryString);
-    }
-
     public static function createCreditCardUrl()
     {
         return Configuration::gateway()->creditCard()->createCreditCardUrl();
@@ -283,11 +295,6 @@ class CreditCard extends Base
         return Configuration::gateway()->creditCard()->updateCreditCardUrl();
     }
 
-    public static function updateFromTransparentRedirect($queryString)
-    {
-        return Configuration::gateway()->creditCard()->updateFromTransparentRedirect($queryString);
-    }
-
     public static function delete($token)
     {
         return Configuration::gateway()->creditCard()->delete($token);
@@ -302,6 +309,7 @@ class CreditCard extends Base
             CreditCard::CHINA_UNION_PAY,
             CreditCard::DINERS_CLUB_INTERNATIONAL,
             CreditCard::DISCOVER,
+            CreditCard::ELO,
             CreditCard::JCB,
             CreditCard::LASER,
             CreditCard::MAESTRO,
@@ -313,4 +321,3 @@ class CreditCard extends Base
         ];
     }
 }
-class_alias('Braintree\CreditCard', 'Braintree_CreditCard');

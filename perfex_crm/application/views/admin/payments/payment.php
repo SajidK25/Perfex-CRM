@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
 	<div class="content">
@@ -8,7 +9,7 @@
 						<div class="panel_s">
 							<?php echo form_open($this->uri->uri_string()); ?>
 							<div class="panel-body">
-								<h4 class="no-margin"><?php echo _l('payment_edit_for_invoice'); ?> <a href="<?php echo admin_url('invoices/list_invoices/'.$payment->invoiceid); ?>"><?php echo format_invoice_number($invoice->id); ?></a></h4>
+								<h4 class="no-margin"><?php echo _l('payment_edit_for_invoice'); ?> <a href="<?php echo admin_url('invoices/list_invoices/'.$payment->invoiceid); ?>"><?php echo format_invoice_number($payment->invoice->id); ?></a></h4>
 								<hr class="hr-panel-heading" />
 								<?php echo render_input('amount','payment_edit_amount_received',$payment->amount,'number'); ?>
 								<?php echo render_date_input('date','payment_edit_date',_d($payment->date)); ?>
@@ -31,16 +32,51 @@
 					<div class="panel-body">
 						<h4 class="pull-left "><?php echo _l('payment_view_heading'); ?></h4>
 						<div class="pull-right">
-							<a href="<?php echo admin_url('payments/pdf/'.$payment->paymentid.'?print=true'); ?>" target="_blank" class="btn btn-default" data-toggle="tooltip" title="<?php echo _l('print'); ?>" data-placement="bottom"><i class="fa fa-print"></i></a>
-							<a href="<?php echo admin_url('payments/pdf/'.$payment->paymentid); ?>" class="btn btn-default" data-toggle="tooltip" title="<?php echo _l('view_pdf'); ?>" data-placement="bottom"><i class="fa fa-file-pdf-o"></i></a>
-							<?php if(has_permission('managePayment','','delete')){ ?>
-							<a href="<?php echo admin_url('payments/delete/'.$payment->paymentid); ?>" class="btn btn-danger _delete"><i class="fa fa-remove"></i></a>
+							<div class="btn-group">
+
+								<a href="#" data-toggle="modal" data-target="#payment_send_to_client"
+								class="payment-send-to-client btn-with-tooltip btn btn-default">
+									<i class="fa fa-envelope"></i></span>
+								</a>
+
+								<a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+									<i class="fa fa-file-pdf-o"></i>
+									<?php if(is_mobile()){echo ' PDF';} ?> <span class="caret"></span>
+								</a>
+
+								<ul class="dropdown-menu dropdown-menu-right">
+									<li class="hidden-xs">
+										<a href="<?php echo admin_url('payments/pdf/'.$payment->paymentid.'?output_type=I'); ?>">
+											<?php echo _l('view_pdf'); ?>
+										</a>
+									</li>
+									<li class="hidden-xs">
+										<a href="<?php echo admin_url('payments/pdf/'.$payment->paymentid.'?output_type=I'); ?>" target="_blank">
+											<?php echo _l('view_pdf_in_new_window'); ?>
+										</a>
+									</li>
+									<li>
+										<a href="<?php echo admin_url('payments/pdf/'.$payment->paymentid); ?>">
+											<?php echo _l('download'); ?>
+										</a>
+									</li>
+									<li>
+										<a href="<?php echo admin_url('payments/pdf/'.$payment->paymentid.'?print=true'); ?>" target="_blank">
+											<?php echo _l('print'); ?>
+										</a>
+									</li>
+								</ul>
+							</div>
+							<?php if(has_permission('payments','','delete')){ ?>
+								<a href="<?php echo admin_url('payments/delete/'.$payment->paymentid); ?>" class="btn btn-danger _delete">
+									<i class="fa fa-remove"></i>
+								</a>
 							<?php } ?>
 						</div>
 						<div class="clearfix"></div>
 						<hr class="hr-panel-heading" />
 						<div class="row">
-							<div class="col-md-6">
+							<div class="col-md-6 col-sm-6">
 								<address>
 									<?php echo format_organization_info(); ?>
 								</address>
@@ -48,7 +84,7 @@
 							<div class="col-sm-6 text-right">
 								<address>
 									<span class="bold">
-										<?php echo format_customer_info($invoice, 'payment', 'billing', true); ?>
+										<?php echo format_customer_info($payment->invoice, 'payment', 'billing', true); ?>
 									</address>
 								</div>
 							</div>
@@ -61,72 +97,75 @@
 										<p><?php echo _l('payment_date'); ?> <span class="pull-right bold"><?php echo _d($payment->date); ?></span></p>
 										<hr />
 										<p><?php echo _l('payment_view_mode'); ?>
-											<span class="pull-right bold">
-												<?php echo $payment->name; ?>
-												<?php if(!empty($payment->paymentmethod)){
-													echo ' - ' . $payment->paymentmethod;
-												}
-												?>
-											</span></p>
-											<?php if(!empty($payment->transactionid)) { ?>
+										<span class="pull-right bold">
+											<?php echo $payment->name; ?>
+											<?php if(!empty($payment->paymentmethod)){
+												echo ' - ' . $payment->paymentmethod;
+											}
+											?>
+										</span></p>
+										<?php if(!empty($payment->transactionid)) { ?>
 											<hr />
 											<p><?php echo _l('payment_transaction_id'); ?>: <span class="pull-right bold"><?php echo $payment->transactionid; ?></span></p>
-											<?php } ?>
-										</div>
-										<div class="clearfix"></div>
-										<div class="col-md-6">
-											<div class="payment-preview-wrapper">
-												<?php echo _l('payment_total_amount'); ?><br />
-												<?php echo format_money($payment->amount,$invoice->symbol); ?>
-											</div>
+										<?php } ?>
+									</div>
+									<div class="clearfix"></div>
+									<div class="col-md-6">
+										<div class="payment-preview-wrapper">
+											<?php echo _l('payment_total_amount'); ?><br />
+											<?php echo app_format_money($payment->amount, $payment->invoice->currency_name); ?>
 										</div>
 									</div>
 								</div>
-								<div class="col-md-12 mtop30">
-									<h4><?php echo _l('payment_for_string'); ?></h4>
-									<div class="table-responsive">
-										<table class="table table-borderd table-hover">
-											<thead>
-												<tr>
-													<th><?php echo _l('payment_table_invoice_number'); ?></th>
-													<th><?php echo _l('payment_table_invoice_date'); ?></th>
-													<th><?php echo _l('payment_table_invoice_amount_total'); ?></th>
-													<th><?php echo _l('payment_table_payment_amount_total'); ?></th>
-													<?php if($invoice->status != 2 && $invoice->status != 5) { ?>
-													<th><span class="text-danger"><?php echo _l('invoice_amount_due'); ?></span></th>
+							</div>
+							<div class="col-md-12 mtop30">
+								<h4><?php echo _l('payment_for_string'); ?></h4>
+								<div class="table-responsive">
+									<table class="table table-borderd table-hover">
+										<thead>
+											<tr>
+												<th><?php echo _l('payment_table_invoice_number'); ?></th>
+												<th><?php echo _l('payment_table_invoice_date'); ?></th>
+												<th><?php echo _l('payment_table_invoice_amount_total'); ?></th>
+												<th><?php echo _l('payment_table_payment_amount_total'); ?></th>
+												<?php if($payment->invoice->status != Invoices_model::STATUS_PAID
+													&& $payment->invoice->status != Invoices_model::STATUS_CANCELLED) { ?>
+														<th><span class="text-danger"><?php echo _l('invoice_amount_due'); ?></span></th>
 													<?php } ?>
 												</tr>
 											</thead>
 											<tbody>
 												<tr>
-													<td><?php echo format_invoice_number($invoice->id); ?></td>
-													<td><?php echo _d($invoice->date); ?></td>
-													<td><?php echo format_money($invoice->total,$invoice->symbol); ?></td>
-													<td><?php echo format_money($payment->amount,$invoice->symbol); ?></td>
-													<?php if($invoice->status != 2 && $invoice->status != 5) { ?>
-													<td class="text-danger">
-													<?php echo format_money(get_invoice_total_left_to_pay($invoice->id, $invoice->total), $invoice->symbol); ?>
-													</td>
-													<?php } ?>
-												</tr>
-											</tbody>
-										</table>
+													<td><?php echo format_invoice_number($payment->invoice->id); ?></td>
+													<td><?php echo _d($payment->invoice->date); ?></td>
+													<td><?php echo app_format_money($payment->invoice->total, $payment->invoice->currency_name); ?></td>
+													<td><?php echo app_format_money($payment->amount, $payment->invoice->currency_name); ?></td>
+													<?php if($payment->invoice->status != Invoices_model::STATUS_PAID
+														&& $payment->invoice->status != Invoices_model::STATUS_CANCELLED) { ?>
+															<td class="text-danger">
+																<?php echo app_format_money(get_invoice_total_left_to_pay($payment->invoice->id, $payment->invoice->total), $payment->invoice->currency_name); ?>
+															</td>
+														<?php } ?>
+													</tr>
+												</tbody>
+											</table>
+										</div>
 									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
+				<div class="col-md-12">
+					<div class="btn-bottom-pusher"></div>
+				</div>
 			</div>
-			<div class="col-md-12">
-				 <div class="btn-bottom-pusher"></div>
-			</div>
-		</div>
-		<?php init_tail(); ?>
-		<script>
-			$(function(){
-				_validate_form($('form'),{amount:'required',date:'required'});
-			});
-		</script>
-	</body>
-	</html>
+			<?php $this->load->view('admin/payments/send_to_client'); ?>
+			<?php init_tail(); ?>
+			<script>
+				$(function(){
+					appValidateForm($('form'),{ amount:'required', date:'required' });
+				});
+			</script>
+		</body>
+		</html>

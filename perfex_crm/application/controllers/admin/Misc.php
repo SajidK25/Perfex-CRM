@@ -1,6 +1,8 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Misc extends Admin_controller
+
+class Misc extends AdminController
 {
     public function __construct()
     {
@@ -10,23 +12,39 @@ class Misc extends Admin_controller
 
     public function fetch_address_info_gmaps()
     {
-        include_once(APPPATH.'third_party/JD_Geocoder_Request.php');
+        include_once(APPPATH . 'third_party/JD_Geocoder_Request.php');
 
-        $data = $this->input->post();
+        $data    = $this->input->post();
         $address = '';
 
-        $address.= $data['address'];
+        $address .= $data['address'];
         if (!empty($data['city'])) {
-            $address .= ', '.$data['city'];
+            $address .= ', ' . $data['city'];
         }
 
         if (!empty($data['country'])) {
-            $address .= ', '.$data['country'];
+            $address .= ', ' . $data['country'];
         }
 
-        $georequest = new JD_Geocoder_Request();
+        $apiKey = get_option('google_api_key');
+        if (empty($apiKey)) {
+            echo json_encode([
+                'response' => [
+                    'status'        => 'MISSING_API_KEY',
+                    'error_message' => 'Add Google API Key in Setup->Settings->Google',
+                ],
+            ]);
+            die;
+        }
+
+        $georequest = new JD_Geocoder_Request($apiKey);
         $georequest->forwardSearch($address);
         echo json_encode($georequest);
+    }
+
+    public function get_currency($id)
+    {
+        echo json_encode(get_currency($id));
     }
 
     public function get_taxes_dropdown_template()
@@ -54,6 +72,12 @@ class Misc extends Admin_controller
         redirect($_SERVER['HTTP_REFERER']);
     }
 
+    public function dismiss_php_version_notice()
+    {
+        update_option('show_php_version_notice', 0);
+        redirect($_SERVER['HTTP_REFERER']);
+    }
+
     public function clear_system_popup()
     {
         $this->session->unset_userdata('system-popup');
@@ -61,7 +85,9 @@ class Misc extends Admin_controller
 
     public function tinymce_file_browser()
     {
-        $data['connector'] = admin_url() . '/utilities/media_connector';
+        $data['connector']   = admin_url() . '/utilities/media_connector';
+        $data['mediaLocale'] = get_media_locale();
+        $this->app_css->add('app-css', base_url($this->app_css->core_file('assets/css', 'style.css')) . '?v=' . $this->app_css->core_version(), 'editor-media');
         $this->load->view('admin/includes/elfinder_tinymce', $data);
     }
 
@@ -69,7 +95,7 @@ class Misc extends Admin_controller
     {
         if ($this->input->post()) {
             $type = $this->input->post('type');
-            $data = get_relation_data($type, '', $this->input->post('connection_type'), $this->input->post('connection_id'));
+            $data = get_relation_data($type, '', $this->input->post('extra'));
             if ($this->input->post('rel_id')) {
                 $rel_id = $this->input->post('rel_id');
             } else {
@@ -86,7 +112,7 @@ class Misc extends Admin_controller
     {
         if (is_admin()) {
             $this->db->where('id', $id);
-            $this->db->delete('tblsalesactivity');
+            $this->db->delete(db_prefix() . 'sales_activity');
         }
     }
 
@@ -106,7 +132,7 @@ class Misc extends Admin_controller
     public function toggle_file_visibility($id)
     {
         $this->db->where('id', $id);
-        $row = $this->db->get('tblfiles')->row();
+        $row = $this->db->get(db_prefix() . 'files')->row();
         if ($row->visible_to_customer == 1) {
             $v = 0;
         } else {
@@ -114,9 +140,9 @@ class Misc extends Admin_controller
         }
 
         $this->db->where('id', $id);
-        $this->db->update('tblfiles', array(
+        $this->db->update(db_prefix() . 'files', [
             'visible_to_customer' => $v,
-        ));
+        ]);
         echo $v;
     }
 
@@ -124,7 +150,7 @@ class Misc extends Admin_controller
     {
         if ($this->input->post()) {
             $date = $this->input->post('date');
-            $date = strtotime(current(explode("(", $date)));
+            $date = strtotime(current(explode('(', $date)));
             echo _d(date('Y-m-d', $date));
         }
     }
@@ -134,12 +160,12 @@ class Misc extends Admin_controller
         if ($this->input->post('send_file_email')) {
             if ($this->input->post('file_path')) {
                 $this->load->model('emails_model');
-                $this->emails_model->add_attachment(array(
+                $this->emails_model->add_attachment([
                     'attachment' => $this->input->post('file_path'),
-                    'filename' => $this->input->post('file_name'),
-                    'type' => $this->input->post('filetype'),
-                    'read' => true,
-                ));
+                    'filename'   => $this->input->post('file_name'),
+                    'type'       => $this->input->post('filetype'),
+                    'read'       => true,
+                ]);
                 $message = $this->input->post('send_file_message');
                 $message = nl2br($message);
                 $success = $this->emails_model->send_simple_email($this->input->post('send_file_email'), $this->input->post('send_file_subject'), $message);
@@ -158,9 +184,9 @@ class Misc extends Admin_controller
         $data = $this->input->post();
         foreach ($data['data'] as $order) {
             $this->db->where('id', $order[0]);
-            $this->db->update('tblitems_in', array(
+            $this->db->update(db_prefix() . 'itemable', [
                 'item_order' => $order[1],
-            ));
+            ]);
         }
     }
 
@@ -176,19 +202,19 @@ class Misc extends Admin_controller
                 $message    = _l('reminder_added_successfully');
             }
         }
-        echo json_encode(array(
+        echo json_encode([
             'alert_type' => $alert_type,
-            'message' => $message,
-        ));
+            'message'    => $message,
+        ]);
     }
 
     public function get_reminders($id, $rel_type)
     {
         if ($this->input->is_ajax_request()) {
-            $this->app->get_table_data('reminders', array(
-                'id' => $id,
+            $this->app->get_table_data('reminders', [
+                'id'       => $id,
                 'rel_type' => $rel_type,
-            ));
+            ]);
         }
     }
 
@@ -202,9 +228,9 @@ class Misc extends Admin_controller
     public function reminders()
     {
         $this->load->model('staff_model');
-        $data['members']  = $this->staff_model->get('', 1);
-        $data['title'] = _l('reminders');
-        $data['bodyclass'] = 'all_reminders';
+        $data['members']   = $this->staff_model->get('', ['active' => 1]);
+        $data['title']     = _l('reminders');
+        $data['bodyclass'] = 'all-reminders';
         $this->load->view('admin/utilities/all_reminders', $data);
     }
 
@@ -228,10 +254,10 @@ class Misc extends Admin_controller
             $alert_type = 'success';
             $message    = _l('reminder_deleted');
         }
-        echo json_encode(array(
+        echo json_encode([
             'alert_type' => $alert_type,
-            'message' => $message,
-        ));
+            'message'    => $message,
+        ]);
     }
 
     public function get_reminder($id)
@@ -239,7 +265,7 @@ class Misc extends Admin_controller
         $reminder = $this->misc_model->get_reminders($id);
         if ($reminder) {
             if ($reminder->creator == get_staff_user_id() || is_admin()) {
-                $reminder->date = _dt($reminder->date);
+                $reminder->date        = _dt($reminder->date);
                 $reminder->description = clear_textarea_breaks($reminder->description);
                 echo json_encode($reminder);
             }
@@ -249,14 +275,12 @@ class Misc extends Admin_controller
     public function edit_reminder($id)
     {
         $reminder = $this->misc_model->get_reminders($id);
-        if ($reminder) {
-            if (($reminder->creator == get_staff_user_id() || is_admin()) && $reminder->isnotified == 0) {
-                $success = $this->misc_model->edit_reminder($this->input->post(), $id);
-                echo json_encode(array(
+        if ($reminder && ($reminder->creator == get_staff_user_id() || is_admin()) && $reminder->isnotified == 0) {
+            $success = $this->misc_model->edit_reminder($this->input->post(), $id);
+            echo json_encode([
                     'alert_type' => 'success',
-                    'message' =>  ($success ? _l('updated_successfully', _l('reminder')) : ''),
-                ));
-            }
+                    'message'    => ($success ? _l('updated_successfully', _l('reminder')) : ''),
+                ]);
         }
     }
 
@@ -272,8 +296,26 @@ class Misc extends Admin_controller
     /* Since Version 1.0.1 - General search */
     public function search()
     {
-        $data['result'] = $this->misc_model->perform_search($this->input->post('q'));
-        $this->load->view('admin/search', $data);
+        $q = $this->input->post('q');
+
+        $recentSearches = array_reverse(get_staff_recent_search_history());
+
+        $recentSearches[] = $q;
+
+        $recentSearches = update_staff_recent_search_history($recentSearches);
+
+        $data['result'] = $this->misc_model->perform_search($q);
+        echo json_encode([
+            'results' => $this->load->view('admin/search', $data, true),
+            'history' => $recentSearches,
+        ]);
+    }
+
+    public function remove_recent_search($index)
+    {
+        $recentSearches = get_staff_recent_search_history();
+        unset($recentSearches[$index]);
+        update_staff_recent_search_history(array_reverse($recentSearches));
     }
 
     public function add_note($rel_id, $rel_type)
@@ -291,10 +333,10 @@ class Misc extends Admin_controller
     {
         if ($this->input->post()) {
             $success = $this->misc_model->edit_note($this->input->post(), $id);
-            echo json_encode(array(
+            echo json_encode([
                 'success' => $success,
                 'message' => _l('note_updated_successfully'),
-            ));
+            ]);
         }
     }
 
@@ -308,7 +350,7 @@ class Misc extends Admin_controller
             }
             redirect($_SERVER['HTTP_REFERER']);
         } else {
-            echo json_encode(array('success'=>$success));
+            echo json_encode(['success' => $success]);
         }
     }
 
@@ -316,9 +358,9 @@ class Misc extends Admin_controller
     public function set_setup_menu_closed()
     {
         if ($this->input->is_ajax_request()) {
-            $this->session->set_userdata(array(
+            $this->session->set_userdata([
                 'setup-menu-open' => '',
-            ));
+            ]);
         }
     }
 
@@ -326,9 +368,9 @@ class Misc extends Admin_controller
     public function set_setup_menu_open()
     {
         if ($this->input->is_ajax_request()) {
-            $this->session->set_userdata(array(
+            $this->session->set_userdata([
                 'setup-menu-open' => true,
-            ));
+            ]);
         }
     }
 
@@ -343,9 +385,9 @@ class Misc extends Admin_controller
     public function set_notifications_read()
     {
         if ($this->input->is_ajax_request()) {
-            echo json_encode(array(
+            echo json_encode([
                 'success' => $this->misc_model->set_notifications_read(),
-            ));
+            ]);
         }
     }
 
@@ -366,9 +408,9 @@ class Misc extends Admin_controller
 
     public function notifications_check()
     {
-        $notificationsIds = array();
-        if (get_option('desktop_notifications') == "1") {
-            $notifications = $this->misc_model->get_user_notifications(false);
+        $notificationsIds = [];
+        if (get_option('desktop_notifications') == '1') {
+            $notifications = $this->misc_model->get_user_notifications();
 
             $notificationsPluck = array_filter($notifications, function ($n) {
                 return $n['isread'] == 0;
@@ -377,10 +419,10 @@ class Misc extends Admin_controller
             $notificationsIds = array_pluck($notificationsPluck, 'id');
         }
 
-        echo json_encode(array(
-        'html'=>$this->load->view('admin/includes/notifications', array(), true),
-        'notificationsIds'=>$notificationsIds,
-        ));
+        echo json_encode([
+        'html'             => $this->load->view('admin/includes/notifications', [], true),
+        'notificationsIds' => $notificationsIds,
+        ]);
     }
 
     /* Check if staff email exists / ajax */
@@ -392,14 +434,14 @@ class Misc extends Admin_controller
                 $member_id = $this->input->post('memberid');
                 if ($member_id != '') {
                     $this->db->where('staffid', $member_id);
-                    $_current_email = $this->db->get('tblstaff')->row();
+                    $_current_email = $this->db->get(db_prefix() . 'staff')->row();
                     if ($_current_email->email == $this->input->post('email')) {
                         echo json_encode(true);
                         die();
                     }
                 }
                 $this->db->where('email', $this->input->post('email'));
-                $total_rows = $this->db->count_all_results('tblstaff');
+                $total_rows = $this->db->count_all_results(db_prefix() . 'staff');
                 if ($total_rows > 0) {
                     echo json_encode(false);
                 } else {
@@ -419,14 +461,14 @@ class Misc extends Admin_controller
                 $userid = $this->input->post('userid');
                 if ($userid != '') {
                     $this->db->where('id', $userid);
-                    $_current_email = $this->db->get('tblcontacts')->row();
+                    $_current_email = $this->db->get(db_prefix() . 'contacts')->row();
                     if ($_current_email->email == $this->input->post('email')) {
                         echo json_encode(true);
                         die();
                     }
                 }
                 $this->db->where('email', $this->input->post('email'));
-                $total_rows = $this->db->count_all_results('tblcontacts');
+                $total_rows = $this->db->count_all_results(db_prefix() . 'contacts');
                 if ($total_rows > 0) {
                     echo json_encode(false);
                 } else {
@@ -449,28 +491,20 @@ class Misc extends Admin_controller
         $this->load->view('admin/blank_page');
     }
 
-    /* Get role permission for specific role id / Function relocated here becuase the Roles Model have statement on top if has role permission */
-    public function get_role_permissions_ajax($id)
-    {
-        if ($this->input->is_ajax_request()) {
-            echo json_encode($this->roles_model->get_role_permissions($id));
-            die();
-        }
-    }
-
     public function change_maximum_number_of_digits_to_decimal_fields($digits)
     {
         if (is_admin()) {
+            hooks()->do_action('before_change_maximum_number_of_digits_to_decimal_fields');
             $tables = $this->db->query("SELECT *
                 FROM INFORMATION_SCHEMA.TABLES
-                WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA='".APP_DB_NAME."'")->result_array();
+                WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA='" . APP_DB_NAME . "'")->result_array();
             foreach ($tables as $table_data) {
-                $table = $table_data['TABLE_NAME'];
+                $table  = $table_data['TABLE_NAME'];
                 $fields = $this->db->list_fields($table);
 
                 foreach ($fields as $field) {
-                    $field_info = $this->db->query("SHOW FIELDS
-                        FROM ".$table." where Field ='".$field."'")->result_array();
+                    $field_info = $this->db->query('SHOW FIELDS
+                        FROM ' . $table . " where Field ='" . $field . "'")->result_array();
                     $field_type = strtolower($field_info[0]['Type']);
                     if (strpos($field_type, 'decimal') !== false) {
                         $field_null = strtoupper($field_info[0]['Null']);
@@ -485,7 +519,7 @@ class Misc extends Admin_controller
                         if ($field_info[0]['Default'] == null) {
                             $field_default_value = '';
                         } else {
-                            $field_default_value = ' DEFAULT 0.'.str_repeat(0, $total_decimals);
+                            $field_default_value = ' DEFAULT 0.' . str_repeat(0, $total_decimals);
                         }
 
                         $this->db->query("ALTER TABLE $table CHANGE $field $field DECIMAL($digits,$total_decimals) $field_is_null$field_default_value;");
@@ -499,21 +533,23 @@ class Misc extends Admin_controller
 
     public function change_decimal_places($total_decimals)
     {
-        $notChangableFields = array('estimated_hours');
+        $notChangableFields = ['estimated_hours'];
 
         if (is_admin()) {
+            hooks()->do_action('before_change_decimal_places');
+
             $tables = $this->db->query("SELECT *
                 FROM INFORMATION_SCHEMA.TABLES
-                WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA='".APP_DB_NAME."'")->result_array();
+                WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA='" . APP_DB_NAME . "'")->result_array();
 
             foreach ($tables as $table_data) {
-                $table = $table_data['TABLE_NAME'];
+                $table  = $table_data['TABLE_NAME'];
                 $fields = $this->db->list_fields($table);
 
                 foreach ($fields as $field) {
                     if (!in_array($field, $notChangableFields)) {
-                        $field_info = $this->db->query("SHOW FIELDS
-                            FROM ".$table." where Field ='".$field."'")->result_array();
+                        $field_info = $this->db->query('SHOW FIELDS
+                            FROM ' . $table . " where Field ='" . $field . "'")->result_array();
                         $field_type = strtolower($field_info[0]['Type']);
                         if (strpos($field_type, 'decimal') !== false) {
                             $field_null = strtoupper($field_info[0]['Null']);
@@ -525,7 +561,7 @@ class Misc extends Admin_controller
                             if ($field_info[0]['Default'] == null) {
                                 $field_default_value = '';
                             } else {
-                                $field_default_value = ' DEFAULT 0.'.str_repeat(0, $total_decimals);
+                                $field_default_value = ' DEFAULT 0.' . str_repeat(0, $total_decimals);
                             }
                             $this->db->query("ALTER TABLE $table CHANGE $field $field DECIMAL(15,$total_decimals) $field_is_null$field_default_value;");
                         }
@@ -536,5 +572,99 @@ class Misc extends Admin_controller
         } else {
             echo 'You need to be logged in as administrator to perform this action.';
         }
+    }
+
+    public function convert_tables_to_innodb_engine()
+    {
+        if (is_admin()) {
+            $databaseName = APP_DB_NAME;
+            $tables       = $this->db->query("SELECT TABLE_NAME,
+                             ENGINE
+                            FROM information_schema.TABLES
+                            WHERE TABLE_SCHEMA = '$databaseName' and ENGINE = 'myISAM'")->result_array();
+
+            foreach ($tables as $table) {
+                $tableName = $table['TABLE_NAME'];
+                $this->db->query("ALTER TABLE $tableName ENGINE=InnoDB;");
+            }
+            echo 'Table engines successfully changed to InnoDB';
+        } else {
+            echo 'You need to be logged in as administrator to perform this action.';
+        }
+    }
+
+    /**
+     * The upgrade script for 232 does not perform the queries below for backward compatibility
+     * Mostly it changes the varchar maximum length because of InnoDB index
+     */
+    public function upgrade_232_database()
+    {
+        $charset = $this->db->char_set;
+        $collat  = $this->db->dbcollat;
+
+        if (!is_admin()) {
+            die('You must be logged in as administrator to perform this action');
+        }
+
+        if (get_option('_232_upgrade_db_queries_performed') === '1') {
+            die('This action is already processed');
+        }
+
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'contacts` CHANGE `lastname` `lastname` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'contacts` CHANGE `firstname` `firstname` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'clients` CHANGE `company` `company` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'customers_groups` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'options` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'invoicepaymentrecords` CHANGE `paymentmethod` `paymentmethod` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'leads` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'leads` CHANGE `company` `company` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'projects` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'contacts` CHANGE `title` `title` VARCHAR(100) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'web_to_lead` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'vault` CHANGE `username` `username` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'vault` CHANGE `server_address` `server_address` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'tracked_mails` CHANGE `subject` `subject` MEDIUMTEXT CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'tickets_predefined_replies` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'tickets_pipe_log` CHANGE `email_to` `email_to` VARCHAR(100) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'tickets_pipe_log` CHANGE `email` `email` VARCHAR(100) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'tickets_pipe_log` CHANGE `subject` `subject` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'tickets` CHANGE `subject` `subject` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'subscriptions` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'staff` CHANGE `media_path_slug` `media_path_slug` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'proposals` CHANGE `subject` `subject` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'proposals` CHANGE `proposal_to` `proposal_to` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'projectdiscussions` CHANGE `subject` `subject` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'projectdiscussioncomments` CHANGE `fullname` `fullname` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'project_files` CHANGE `subject` `subject` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'project_activity` CHANGE `description_key` `description_key` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . " NOT NULL COMMENT 'Language file key';");
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'notifications` CHANGE `additional_data` `additional_data` TEXT CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'lead_activity_log` CHANGE `additional_data` `additional_data` TEXT CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'knowledge_base_groups` CHANGE `group_slug` `group_slug` TEXT CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'knowledge_base_groups` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'files` CHANGE `file_name` `file_name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'expenses_categories` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'expenses` CHANGE `expense_name` `expense_name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'contracts` CHANGE `subject` `subject` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'contacts` CHANGE `profile_image` `profile_image` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'staff` CHANGE `profile_image` `profile_image` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'clients` CHANGE `longitude` `longitude` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'clients` CHANGE `latitude` `latitude` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'announcements` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'projectdiscussioncomments` CHANGE `file_name` `file_name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'gdpr_requests` CHANGE `request_type` `request_type` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'user_meta` CHANGE `meta_key` `meta_key` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'tickets_pipe_log` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'mail_queue` CHANGE `email` `email` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'mail_queue` CHANGE `cc` `cc` TEXT CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'mail_queue` CHANGE `bcc` `bcc` TEXT CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'project_files` CHANGE `file_name` `file_name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'ticket_attachments` CHANGE `file_name` `file_name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'milestones` CHANGE `name` `name` VARCHAR(191) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NOT NULL;');
+        $this->db->query('ALTER TABLE `' . db_prefix() . 'leads` CHANGE `email` `email` VARCHAR(100) CHARACTER SET ' . $charset . ' COLLATE ' . $collat . ' NULL DEFAULT NULL;');
+        add_option('_232_upgrade_db_queries_performed', '1', 0);
     }
 }

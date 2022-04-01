@@ -1,4 +1,5 @@
-<li data-task-id="<?php echo $task['id']; ?>" class="task<?php if(has_permission('tasks','','create') || has_permission('tasks','','edit')){echo ' sortable';} ?><?php if($task['current_user_is_assigned']){echo ' current-user-task';} if((!empty($task['duedate']) && $task['duedate'] < date('Y-m-d')) && $task['status'] != 5){ echo ' overdue-task'; } ?>">
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<li data-task-id="<?php echo $task['id']; ?>" class="task<?php if(has_permission('tasks','','create') || has_permission('tasks','','edit')){echo ' sortable';} ?><?php if($task['current_user_is_assigned']){echo ' current-user-task';} if((!empty($task['duedate']) && $task['duedate'] < date('Y-m-d')) && $task['status'] != Tasks_model::STATUS_COMPLETE){ echo ' overdue-task'; } ?>">
   <div class="panel-body">
     <div class="media">
       <?php
@@ -19,7 +20,7 @@
    </div>
    <?php } ?>
    <div class="media-body">
-    <a href="<?php echo admin_url('tasks/view/'.$task['id']); ?>" class="task_milestone pull-left mbot5 mtop5<?php if($task['status'] == 5){echo ' text-muted line-throught';} ?>" onclick="init_task_modal(<?php echo $task['id']; ?>); return false;"><?php echo $task['name']; ?></a>
+    <a href="<?php echo admin_url('tasks/view/'.$task['id']); ?>" class="task_milestone pull-left mbot5 mtop5<?php if($task['status'] == Tasks_model::STATUS_COMPLETE){echo ' text-muted line-throught';} ?>" onclick="init_task_modal(<?php echo $task['id']; ?>); return false;"><?php echo $task['name']; ?></a>
     <div class="clearfix"></div>
     <?php if(has_permission('tasks','','create')){ ?>
     <small>

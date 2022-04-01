@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="row">
   <div class="col-md-12 mtop10">
     <?php echo form_open_multipart('',array('id'=>'task-form')); ?>
@@ -18,7 +19,7 @@
             <option value="2" <?php if($task->priority == 2){echo 'selected';} ?>><?php echo _l('task_priority_medium'); ?></option>
             <option value="3" <?php if($task->priority == 3){echo 'selected';} ?>><?php echo _l('task_priority_high'); ?></option>
             <option value="4" <?php if($task->priority == 4){echo 'selected';} ?>><?php echo _l('task_priority_urgent'); ?></option>
-            <?php do_action('task_priorities_select',$task); ?>
+            <?php hooks()->apply_filters('task_priorities_select', $task); ?>
           </select>
         </div>
       </div>

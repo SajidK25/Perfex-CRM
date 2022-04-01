@@ -330,7 +330,7 @@ AjaxBootstrapSelect.prototype.init = function () {
             plugin.log(plugin.LOG_DEBUG, 'Key ignored.');
             return;
         }
-		
+
         // Don't process if below minimum query length
         if (query.length < plugin.options.minLength) {
             plugin.list.setStatus(plugin.t('statusTooShort'));
@@ -773,7 +773,7 @@ AjaxBootstrapSelectList.prototype.refresh = function (triggerChange) {
     else if (
         this.title ||
         (
-            this.selectedTextFormat !== 'static' && 
+            this.selectedTextFormat !== 'static' &&
             this.selectedTextFormat !== this.plugin.selectpicker.options.selectedTextFormat
         )
     ) {

@@ -1,55 +1,47 @@
 <?php
 
+defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Function used to get related data based on rel_id and rel_type
  * Eq in the tasks section there is field where this task is related eq invoice with number INV-0005
  * @param  string $type
  * @param  string $rel_id
- * @param  string $connection_type
- * @param  string $connection_id
+ * @param  array $extra
  * @return mixed
  */
-function get_relation_data($type, $rel_id = '', $connection_type = '', $connection_id = '')
+function get_relation_data($type, $rel_id = '', $extra = [])
 {
-    $CI =& get_instance();
-    $q = '';
+    $CI = & get_instance();
+    $q  = '';
     if ($CI->input->post('q')) {
         $q = $CI->input->post('q');
         $q = trim($q);
     }
-    $data = array();
+
+    $data = [];
     if ($type == 'customer' || $type == 'customers') {
-        $where_clients = 'tblclients.active=1';
-        if ($connection_id != '') {
-            if ($connection_type == 'proposal') {
-                $where_clients = 'CASE
-                WHEN tblclients.userid NOT IN(SELECT rel_id FROM tblproposals WHERE id=' . $connection_id . ' AND rel_type="customer") THEN tblclients.active=1
-                ELSE 1=1
-                END';
-            } elseif ($connection_type == 'task') {
-                $where_clients = 'CASE
-                WHEN tblclients.userid NOT IN(SELECT rel_id FROM tblstafftasks WHERE id=' . $connection_id . ' AND rel_type="customer") THEN tblclients.active=1
-                ELSE 1=1
-                END';
-            }
+        $where_clients = ''; 
+        if ($q) {
+            $where_clients .= '(company LIKE "%' . $CI->db->escape_like_str($q) . '%" ESCAPE \'!\' OR CONCAT(firstname, " ", lastname) LIKE "%' . $CI->db->escape_like_str($q) . '%" ESCAPE \'!\' OR email LIKE "%' . $CI->db->escape_like_str($q) . '%" ESCAPE \'!\') AND ' . db_prefix() . 'clients.active = 1';
         }
 
-        if ($q) {
-            $where_clients .= ' AND (company LIKE "%' . $q . '%" OR CONCAT(firstname, " ", lastname) LIKE "%' . $q . '%" OR email LIKE "%' . $q . '%")';
-        }
         $data = $CI->clients_model->get($rel_id, $where_clients);
     } elseif ($type == 'contact' || $type == 'contacts') {
         if ($rel_id != '') {
             $data = $CI->clients_model->get_contact($rel_id);
         } else {
-            $where_contacts = 'tblcontacts.active=1';
+            $where_contacts = db_prefix() . 'contacts.active=1';
+            if (isset($extra['client_id']) && $extra['client_id'] != '') {
+                $where_contacts .= ' AND '. db_prefix() . 'contacts.userid='. $extra['client_id'];
+            }
+            
             if ($CI->input->post('tickets_contacts')) {
                 if (!has_permission('customers', '', 'view') && get_option('staff_members_open_tickets_to_all_contacts') == 0) {
-                    $where_contacts .= ' AND tblcontacts.userid IN (SELECT customer_id FROM tblcustomeradmins WHERE staff_id=' . get_staff_user_id() . ')';
+                    $where_contacts .= ' AND ' . db_prefix() . 'contacts.userid IN (SELECT customer_id FROM ' . db_prefix() . 'customer_admins WHERE staff_id=' . get_staff_user_id() . ')';
                 }
             }
             if ($CI->input->post('contact_userid')) {
-                $where_contacts .= ' AND tblcontacts.userid='.$CI->input->post('contact_userid');
+                $where_contacts .= ' AND ' . db_prefix() . 'contacts.userid=' . $CI->db->escape_str($CI->input->post('contact_userid'));
             }
             $search = $CI->misc_model->_search_contacts($q, 0, $where_contacts);
             $data   = $search['result'];
@@ -109,10 +101,10 @@ function get_relation_data($type, $rel_id = '', $connection_type = '', $connecti
             $CI->load->model('leads_model');
             $data = $CI->leads_model->get($rel_id);
         } else {
-            $search = $CI->misc_model->_search_leads($q, 0, array(
+            $search = $CI->misc_model->_search_leads($q, 0, [
                 'junk' => 0,
-                ));
-            $data   = $search['result'];
+                ]);
+            $data = $search['result'];
         }
     } elseif ($type == 'proposal') {
         if ($rel_id != '') {
@@ -129,7 +121,7 @@ function get_relation_data($type, $rel_id = '', $connection_type = '', $connecti
         } else {
             $where_projects = '';
             if ($CI->input->post('customer_id')) {
-                $where_projects .= 'clientid='.$CI->input->post('customer_id');
+                $where_projects .= 'clientid=' . $CI->db->escape_str($CI->input->post('customer_id'));
             }
             $search = $CI->misc_model->_search_projects($q, 0, $where_projects);
             $data   = $search['result'];
@@ -142,7 +134,14 @@ function get_relation_data($type, $rel_id = '', $connection_type = '', $connecti
             $search = $CI->misc_model->_search_staff($q);
             $data   = $search['result'];
         }
+    } elseif ($type == 'tasks' || $type == 'task') {
+        // Tasks only have relation with custom fields when searching on top
+        if ($rel_id != '') {
+            $data = $CI->tasks_model->get($rel_id);
+        }
     }
+
+    $data = hooks()->apply_filters('get_relation_data', $data, compact('type', 'rel_id', 'extra'));
 
     return $data;
 }
@@ -157,20 +156,20 @@ function get_relation_data($type, $rel_id = '', $connection_type = '', $connecti
 function get_relation_values($relation, $type)
 {
     if ($relation == '') {
-        return array(
-            'name' => '',
-            'id' => '',
-            'link' => '',
+        return [
+            'name'      => '',
+            'id'        => '',
+            'link'      => '',
             'addedfrom' => 0,
-            'subtext' => '',
-            );
+            'subtext'   => '',
+            ];
     }
 
     $addedfrom = 0;
     $name      = '';
     $id        = '';
     $link      = '';
-    $subtext      = '';
+    $subtext   = '';
 
     if ($type == 'customer' || $type == 'customers') {
         if (is_array($relation)) {
@@ -184,15 +183,15 @@ function get_relation_values($relation, $type)
     } elseif ($type == 'contact' || $type == 'contacts') {
         if (is_array($relation)) {
             $userid = isset($relation['userid']) ? $relation['userid'] : $relation['relid'];
-            $id   = $relation['id'];
-            $name = $relation['firstname'] . ' ' . $relation['lastname'];
+            $id     = $relation['id'];
+            $name   = $relation['firstname'] . ' ' . $relation['lastname'];
         } else {
             $userid = $relation->userid;
-            $id   = $relation->id;
-            $name = $relation->firstname . ' ' .$relation->lastname;
+            $id     = $relation->id;
+            $name   = $relation->firstname . ' ' . $relation->lastname;
         }
         $subtext = get_company_name($userid);
-        $link = admin_url('clients/client/' . $userid .'?contactid='.$id);
+        $link    = admin_url('clients/client/' . $userid . '?contactid=' . $id);
     } elseif ($type == 'invoice') {
         if (is_array($relation)) {
             $id        = $relation['id'];
@@ -201,7 +200,7 @@ function get_relation_values($relation, $type)
             $id        = $relation->id;
             $addedfrom = $relation->addedfrom;
         }
-        $name      = format_invoice_number($id);
+        $name = format_invoice_number($id);
         $link = admin_url('invoices/list_invoices/' . $id);
     } elseif ($type == 'credit_note') {
         if (is_array($relation)) {
@@ -211,7 +210,7 @@ function get_relation_values($relation, $type)
             $id        = $relation->id;
             $addedfrom = $relation->addedfrom;
         }
-        $name      = format_credit_note_number($id);
+        $name = format_credit_note_number($id);
         $link = admin_url('credit_notes/list_credit_notes/' . $id);
     } elseif ($type == 'estimate') {
         if (is_array($relation)) {
@@ -221,7 +220,7 @@ function get_relation_values($relation, $type)
             $id        = $relation->id;
             $addedfrom = $relation->addedfrom;
         }
-        $name      = format_estimate_number($id);
+        $name = format_estimate_number($id);
         $link = admin_url('estimates/list_estimates/' . $id);
     } elseif ($type == 'contract' || $type == 'contracts') {
         if (is_array($relation)) {
@@ -292,9 +291,9 @@ function get_relation_values($relation, $type)
                 $name .= ' - ' . $relation->subject;
             }
         }
-        $name      = format_proposal_number($id);
-        $link = admin_url('proposals/proposal/' . $id);
-    } elseif ($type == 'tasks') {
+        $name = format_proposal_number($id);
+        $link = admin_url('proposals/list_proposals/' . $id);
+    } elseif ($type == 'tasks' || $type == 'task') {
         if (is_array($relation)) {
             $id   = $relation['id'];
             $name = $relation['name'];
@@ -314,28 +313,28 @@ function get_relation_values($relation, $type)
         $link = admin_url('profile/' . $id);
     } elseif ($type == 'project') {
         if (is_array($relation)) {
-            $id   = $relation['id'];
-            $name = $relation['name'];
+            $id       = $relation['id'];
+            $name     = $relation['name'];
             $clientId = $relation['clientid'];
         } else {
-            $id   = $relation->id;
-            $name = $relation->name;
+            $id       = $relation->id;
+            $name     = $relation->name;
             $clientId = $relation->clientid;
         }
 
-        $name = '#' . $id . ' - '.$name . ' - '.get_company_name($clientId);
+        $name = '#' . $id . ' - ' . $name . ' - ' . get_company_name($clientId);
 
         $link = admin_url('projects/view/' . $id);
     }
 
-    return do_action('relation_values', array(
-        'name' => $name,
-        'id' => $id,
-        'link' => $link,
+    return hooks()->apply_filters('relation_values', [
+        'id'        => $id,
+        'name'      => $name,
+        'link'      => $link,
         'addedfrom' => $addedfrom,
-        'subtext' => $subtext,
-        'type'=>$type,
-        ));
+        'subtext'   => $subtext,
+        'type'      => $type,
+        ]);
 }
 
 /**
@@ -348,7 +347,7 @@ function get_relation_values($relation, $type)
  */
 function init_relation_options($data, $type, $rel_id = '')
 {
-    $_data = array();
+    $_data = [];
 
     $has_permission_projects_view  = has_permission('projects', '', 'view');
     $has_permission_customers_view = has_permission('customers', '', 'view');
@@ -358,7 +357,7 @@ function init_relation_options($data, $type, $rel_id = '')
     $has_permission_expenses_view  = has_permission('expenses', '', 'view');
     $has_permission_proposals_view = has_permission('proposals', '', 'view');
     $is_admin                      = is_admin();
-    $CI =& get_instance();
+    $CI                            = & get_instance();
     $CI->load->model('projects_model');
 
     foreach ($data as $relation) {
@@ -370,7 +369,7 @@ function init_relation_options($data, $type, $rel_id = '')
                 }
             }
         } elseif ($type == 'lead') {
-            if (!$is_admin) {
+            if (!has_permission('leads', '', 'view')) {
                 if ($relation['assigned'] != get_staff_user_id() && $relation['addedfrom'] != get_staff_user_id() && $relation['is_public'] != 1 && $rel_id != $relation_values['id']) {
                     continue;
                 }
@@ -408,6 +407,8 @@ function init_relation_options($data, $type, $rel_id = '')
         $_data[] = $relation_values;
         //  echo '<option value="' . $relation_values['id'] . '"' . $selected . '>' . $relation_values['name'] . '</option>';
     }
+
+    $_data = hooks()->apply_filters('init_relation_options', $_data, compact('data', 'type', 'rel_id'));
 
     return $_data;
 }

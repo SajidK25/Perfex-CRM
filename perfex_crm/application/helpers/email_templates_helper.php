@@ -1,217 +1,61 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * All email client templates slugs used for sending the emails
- * If you create new email template you can and must add the slug here with action hook.
- * Those are used to identify in what language should the email template to be sent
+ * Prepares email template preview $data for the view
+ * @param  string $template    template class name
+ * @param  mixed $customer_id_or_email customer ID to fetch the primary contact email or email
  * @return array
  */
-function get_client_email_templates_slugs()
+function prepare_mail_preview_data($template, $customer_id_or_email, $mailClassParams = [])
 {
-    $client_email_templates_slugs = array(
-        'new-client-created',
-        'client-statement',
-        'invoice-send-to-client',
-        'new-ticket-opened-admin',
-        'ticket-reply',
-        'ticket-autoresponse',
-        'assigned-to-project',
-        'credit-note-send-to-client',
-        'invoice-payment-recorded',
-        'invoice-overdue-notice',
-        'invoice-already-send',
-        'estimate-send-to-client',
-        'contact-forgot-password',
-        'contact-password-reseted',
-        'contact-set-password',
-        'estimate-already-send',
-        'contract-expiration',
-        'proposal-send-to-customer',
-        'proposal-client-thank-you',
-        'proposal-comment-to-client',
-        'estimate-thank-you-to-customer',
-        'send-contract',
-        'auto-close-ticket',
-        'new-project-discussion-created-to-customer',
-        'new-project-file-uploaded-to-customer',
-        'new-project-discussion-comment-to-customer',
-        'project-finished-to-customer',
-        'estimate-expiry-reminder',
-        'estimate-expiry-reminder',
-        'task-status-change-to-contacts',
-        'task-added-attachment-to-contacts',
-        'task-commented-to-contacts',
-    );
+    $CI = &get_instance();
 
-    return do_action('client_email_templates', $client_email_templates_slugs);
-}
-/**
- * All email staff templates slugs used for sending the emails
- * If you create new email template you can and must add the slug here with action hook.
- * Those are used to identify in what language should the email template to be sent
- * @return array
- */
-function get_staff_email_templates_slugs()
-{
-    $staff_email_templates_slugs = array(
-        'reminder-email-staff',
-        'new-ticket-created-staff',
-        'two-factor-authentication',
-        'ticket-reply-to-admin',
-        'ticket-assigned-to-admin',
-        'task-assigned',
-        'task-added-as-follower',
-        'task-commented',
-        'staff-password-reseted',
-        'staff-forgot-password',
-        'task-status-change-to-staff',
-        'task-added-attachment',
-        'estimate-declined-to-staff',
-        'estimate-accepted-to-staff',
-        'proposal-client-accepted',
-        'proposal-client-declined',
-        'proposal-comment-to-admin',
-        'task-deadline-notification',
-        'invoice-payment-recorded-to-staff',
-        'new-project-discussion-created-to-staff',
-        'new-project-file-uploaded-to-staff',
-        'new-project-discussion-comment-to-staff',
-        'staff-added-as-project-member',
-        'new-staff-created',
-        'new-client-registered-to-admin',
-        'new-lead-assigned',
-    );
-
-    return do_action('staff_email_templates', $staff_email_templates_slugs);
-}
-/**
- * Function that will return in what language the email template should be sent
- * @param  string $template_slug the template slug
- * @param  string $email         email that this template will be sent
- * @return string
- */
-function get_email_template_language($template_slug, $email)
-{
-    $CI =& get_instance();
-    $language = get_option('active_language');
-
-    if (total_rows('tblcontacts', array(
-        'email' => $email,
-    )) > 0 && in_array($template_slug, get_client_email_templates_slugs())) {
-        $CI->db->where('email', $email);
-
-        $contact = $CI->db->get('tblcontacts')->row();
-        $lang    = get_client_default_language($contact->userid);
-        if ($lang != '') {
-            $language = $lang;
-        }
-    } elseif (total_rows('tblstaff', array(
-            'email' => $email,
-        )) > 0 && in_array($template_slug, get_staff_email_templates_slugs())) {
-        $CI->db->where('email', $email);
-        $staff = $CI->db->get('tblstaff')->row();
-
-        $lang = get_staff_default_language($staff->staffid);
-        if ($lang != '') {
-            $language = $lang;
-        }
-    } elseif (class_exists('Emails_model') || defined('EMAIL_TEMPLATE_PROPOSAL_ID_HELP')) {
-        if (defined('EMAIL_TEMPLATE_PROPOSAL_ID_HELP')) {
-            $CI->db->select('rel_type,rel_id')
-            ->where('id', EMAIL_TEMPLATE_PROPOSAL_ID_HELP);
-            $proposal = $CI->db->get('tblproposals')->row();
-        } else {
-            // check for leads default language
-            if ($CI->emails_model->get_rel_type() == 'proposal') {
-                $CI->db->select('rel_type,rel_id')
-            ->where('id', $CI->emails_model->get_rel_id());
-                $proposal = $CI->db->get('tblproposals')->row();
-            }
-            if (isset($proposal) && $proposal && $proposal->rel_type == 'lead') {
-                $CI->db->select('default_language')
-                ->where('id', $proposal->rel_id);
-
-                $lead = $CI->db->get('tblleads')->row();
-
-                if ($lead && !empty($lead->default_language)) {
-                    $language = $lead->default_language;
-                }
-            }
-        }
-    }
-
-    $hook_data['language'] = $language;
-    $hook_data['template_slug'] = $template_slug;
-    $hook_data['email'] = $email;
-
-    $hook_data = do_action('email_template_language', $hook_data);
-    $language = $hook_data['language'];
-
-    return $language;
-}
-
-/**
- * Based on the template slug and email the function will fetch a template from database
- * The template will be fetched on the language that should be sent
- * @param  string $template_slug
- * @param  string $email
- * @return object
- */
-function get_email_template_for_sending($template_slug, $email)
-{
-    $CI =& get_instance();
-
-    $language = get_email_template_language($template_slug, $email);
-
-    if (!is_dir(APPPATH . 'language/' . $language)) {
-        $language = 'english';
-    }
-
-    $CI->db->where('language', $language);
-    $CI->db->where('slug', $template_slug);
-    $template = $CI->db->get('tblemailtemplates')->row();
-
-    // Template languages not yet inserted
-    // Users needs to visit Setup->Email Templates->Any template to initialize all languages
-    if (!$template) {
-        $CI->db->where('language', 'english');
-        $CI->db->where('slug', $template_slug);
-        $template = $CI->db->get('tblemailtemplates')->row();
+    if (is_numeric($customer_id_or_email)) {
+        $contact = $CI->clients_model->get_contact(get_primary_contact_user_id($customer_id_or_email));
+        $email   = $contact ? $contact->email : '';
     } else {
-        if ($template && $template->message == '') {
-            // Template message blank use the active language default template
-            $CI->db->where('language', get_option('active_language'));
-            $CI->db->where('slug', $template_slug);
-            $template = $CI->db->get('tblemailtemplates')->row();
-
-            if ($template->message == '') {
-                $CI->db->where('language', 'english');
-                $CI->db->where('slug', $template_slug);
-                $template = $CI->db->get('tblemailtemplates')->row();
-            }
-        }
+        $email = $customer_id_or_email;
     }
 
-    return $template;
-}
+    $CI->load->model('emails_model');
 
+    $data['template'] = $CI->app_mail_template->prepare($email, $template);
+    $slug             = $CI->app_mail_template->get_default_property_value('slug', $template, $mailClassParams);
+
+    $data['template_name'] = $slug;
+
+    $template_result = $CI->emails_model->get(['slug' => $slug, 'language' => 'english'], 'row');
+
+    $data['template_system_name'] = $template_result->name;
+    $data['template_id']          = $template_result->emailtemplateid;
+
+    $data['template_disabled'] = $template_result->active == 0;
+
+    return $data;
+}
 /**
  * Parse email template with the merge fields
  * @param  mixed $template     template
  * @param  array  $merge_fields
  * @return object
  */
-function parse_email_template($template, $merge_fields = array())
+function parse_email_template($template, $merge_fields = [])
 {
-    $CI =& get_instance();
+    $CI = & get_instance();
     if (!is_object($template) || $CI->input->post('template_name')) {
         $original_template = $template;
+
+        if (!class_exists('emails_model', false)) {
+            $CI->load->model('emails_model');
+        }
+
         if ($CI->input->post('template_name')) {
             $template = $CI->input->post('template_name');
         }
-        $CI->db->where('slug', $template);
-        $template = $CI->db->get('tblemailtemplates')->row();
+
+        $template = $CI->emails_model->get(['slug' => $template], 'row');
 
         if ($CI->input->post('email_template_custom')) {
             $template->message = $CI->input->post('email_template_custom', false);
@@ -219,10 +63,13 @@ function parse_email_template($template, $merge_fields = array())
             $template->subject = $original_template->subject;
         }
     }
-    $template = _parse_email_template_merge_fields($template, $merge_fields);
 
+    $template = parse_email_template_merge_fields($template, $merge_fields);
 
-    return do_action('email_template_parsed', $template);
+    // Used in hooks eq for emails tracking
+    $template->tmp_id = app_generate_hash();
+
+    return hooks()->apply_filters('email_template_parsed', $template);
 }
 
 /**
@@ -231,26 +78,140 @@ function parse_email_template($template, $merge_fields = array())
  * @param  array $merge_fields available merge fields
  * @return object
  */
-function _parse_email_template_merge_fields($template, $merge_fields)
+function parse_email_template_merge_fields($template, $merge_fields)
 {
-    $merge_fields = array_merge($merge_fields, get_other_merge_fields());
+    $CI = &get_instance();
+
+    if (!class_exists('other_merge_fields', false)) {
+        $CI->load->library('merge_fields/other_merge_fields');
+    }
+
+    $merge_fields = array_merge($merge_fields, $CI->other_merge_fields->format());
+
     foreach ($merge_fields as $key => $val) {
-        if (stripos($template->message, $key) !== false) {
-            $template->message = str_ireplace($key, $val, $template->message);
-        } else {
-            $template->message = str_ireplace($key, '', $template->message);
-        }
-        if (stripos($template->fromname, $key) !== false) {
-            $template->fromname = str_ireplace($key, $val, $template->fromname);
-        } else {
-            $template->fromname = str_ireplace($key, '', $template->fromname);
-        }
-        if (stripos($template->subject, $key) !== false) {
-            $template->subject = str_ireplace($key, $val, $template->subject);
-        } else {
-            $template->subject = str_ireplace($key, '', $template->subject);
+        foreach (['message', 'fromname', 'subject'] as $section) {
+            $template->{$section} = stripos($template->{$section}, $key) !== false
+            ? str_replace($key, $val, $template->{$section})
+            : str_replace($key, '', $template->{$section});
         }
     }
 
     return $template;
+}
+
+/**
+ * Send mail template
+ * @since  2.3.0
+ * @return mixed
+ */
+function send_mail_template()
+{
+    $params = func_get_args();
+
+    return mail_template(...$params)->send();
+}
+
+/**
+ * Prepare mail template class
+ * @param  string $class mail template class name
+ * @return mixed
+ */
+function mail_template($class)
+{
+    $CI = &get_instance();
+
+    $params = func_get_args();
+
+    // First params is the $class param
+    unset($params[0]);
+
+    $params = array_values($params);
+
+    $path = get_mail_template_path($class, $params);
+
+    if (!file_exists($path)) {
+        if (!defined('CRON')) {
+            show_error('Mail Class Does Not Exists [' . $path . ']');
+        } else {
+            return false;
+        }
+    }
+
+    // Include the mailable class
+    if (!class_exists($class, false)) {
+        include_once($path);
+    }
+
+    // Initialize the class and pass the params
+    $instance = new $class(...$params);
+
+    // Call the send method
+    return $instance;
+}
+
+function get_mail_template_path($class, &$params)
+{
+    $CI  = &get_instance();
+    $dir = APPPATH . 'libraries/mails/';
+
+    // Check if second parameter is module and is activated so we can get the class from the module path
+    // Also check if the first value is not equal to '/' e.q. when import is performed we set
+    // for some values which are blank to "/"
+    if (isset($params[0]) && is_string($params[0]) && $params[0] !== '/' && is_dir(module_dir_path($params[0]))) {
+        $module = $CI->app_modules->get($params[0]);
+
+        if ($module['activated'] === 1) {
+            $dir = module_libs_path($params[0]) . 'mails/';
+        }
+
+        unset($params[0]);
+        $params = array_values($params);
+    }
+
+    return $dir . ucfirst($class) . '.php';
+}
+/**
+ * Create new email template
+ * @param  string  $subject the predefined email template subject
+ * @param  string  $message the predefined email template message
+ * @param  string  $type    for what feature this email template is related e.q. invoice|ticket
+ * @param  string  $name    the email template name which user see in Setup->Email Template, this is used for easier email template recognition
+ * @param  string  $slug    unique email template slug
+ * @param  integer $active  whether by default this email template is active
+ * @return mixed
+ */
+function create_email_template($subject, $message, $type, $name, $slug, $active = 1)
+{
+    if (total_rows('emailtemplates', ['slug' => $slug]) > 0) {
+        return false;
+    }
+
+    $data['subject']   = $subject;
+    $data['message']   = $message;
+    $data['type']      = $type;
+    $data['name']      = $name;
+    $data['slug']      = $slug;
+    $data['language']  = 'english';
+    $data['active']    = $active;
+    $data['plaintext'] = 0;
+    $data['fromname'] = '{companyname} | CRM';
+
+    $CI                = &get_instance();
+    $CI->load->model('emails_model');
+
+    return $CI->emails_model->add_template($data);
+}
+
+/**
+ * Check whether an email template is active based on given slug
+ *
+ * @since 2.7.0
+ *
+ * @param  string  $slug
+ *
+ * @return boolean
+ */
+function is_email_template_active($slug)
+{
+    return total_rows(db_prefix() . 'emailtemplates', ['slug' => $slug, 'active' => 1]) > 0;
 }

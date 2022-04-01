@@ -1,4 +1,4 @@
-<?php
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $tags = get_tags();
 $totalTags = count($tags);
 ?>
@@ -12,7 +12,7 @@ $totalTags = count($tags);
               <div class="form-group no-mbot settings-tag-input">
                   <div class="input-group">
                     <div class="input-group-addon">
-                        <?php echo total_rows('tbltags_in',array('tag_id'=>$tag['id'])); ?>
+                        <?php echo total_rows(db_prefix().'taggables',array('tag_id'=>$tag['id'])); ?>
                     </div>
                     <input type="text" name="tags[<?php echo $tag['id']; ?>]" value="<?php echo $tag['name']; ?>" class="form-control">
                     <div class="input-group-addon">

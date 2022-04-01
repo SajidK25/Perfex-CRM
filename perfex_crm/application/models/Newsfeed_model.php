@@ -1,10 +1,15 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Newsfeed_model extends CRM_Model
+
+class Newsfeed_model extends App_Model
 {
     public $post_likes_limit = 6;
+
     public $post_comment_likes_limit = 6;
+
     public $post_comments_limit = 6;
+
     public $newsfeed_posts_limit = 10;
 
     public function __construct()
@@ -20,10 +25,10 @@ class Newsfeed_model extends CRM_Model
     public function pin_post($id)
     {
         $this->db->where('postid', $id);
-        $this->db->update('tblposts', array(
-            'pinned' => 1,
-            'datepinned' => date('Y-m-d H:i:s')
-        ));
+        $this->db->update(db_prefix() . 'newsfeed_posts', [
+            'pinned'     => 1,
+            'datepinned' => date('Y-m-d H:i:s'),
+        ]);
         if ($this->db->affected_rows() > 0) {
             return true;
         }
@@ -39,10 +44,10 @@ class Newsfeed_model extends CRM_Model
     public function unpin_post($id)
     {
         $this->db->where('postid', $id);
-        $this->db->update('tblposts', array(
-            'pinned' => 0,
-            'datepinned' => null
-        ));
+        $this->db->update(db_prefix() . 'newsfeed_posts', [
+            'pinned'     => 0,
+            'datepinned' => null,
+        ]);
         if ($this->db->affected_rows() > 0) {
             return true;
         }
@@ -65,7 +70,7 @@ class Newsfeed_model extends CRM_Model
             $this->db->not_like('filetype', 'image');
         }
 
-        return $this->db->get('tblfiles')->result_array();
+        return $this->db->get(db_prefix() . 'files')->result_array();
     }
 
     /**
@@ -76,8 +81,8 @@ class Newsfeed_model extends CRM_Model
     public function get_post_likes($id)
     {
         $this->db->select();
-        $this->db->from('tblpostlikes');
-        $this->db->join('tblstaff', 'tblstaff.staffid = tblpostlikes.userid', 'left');
+        $this->db->from(db_prefix() . 'newsfeed_post_likes');
+        $this->db->join(db_prefix() . 'staff', db_prefix() . 'staff.staffid = ' . db_prefix() . 'newsfeed_post_likes.userid', 'left');
         $this->db->where('userid !=', get_staff_user_id());
         $this->db->where('postid', $id);
         $this->db->order_by('dateliked', 'asc');
@@ -98,7 +103,7 @@ class Newsfeed_model extends CRM_Model
         $this->db->order_by('dateliked', 'desc');
         $this->db->limit($this->post_likes_limit, $offset);
 
-        return $this->db->get('tblpostlikes')->result_array();
+        return $this->db->get(db_prefix() . 'newsfeed_post_likes')->result_array();
     }
 
     /**
@@ -114,7 +119,7 @@ class Newsfeed_model extends CRM_Model
         $this->db->order_by('dateliked', 'desc');
         $this->db->limit($this->post_comment_likes_limit, $offset);
 
-        return $this->db->get('tblcommentlikes')->result_array();
+        return $this->db->get(db_prefix() . 'newsfeed_comment_likes')->result_array();
     }
 
     /**
@@ -134,7 +139,7 @@ class Newsfeed_model extends CRM_Model
             $this->db->limit($this->newsfeed_posts_limit, $offset);
         }
 
-        return $this->db->get('tblposts')->result_array();
+        return $this->db->get(db_prefix() . 'newsfeed_posts')->result_array();
     }
 
     /**
@@ -146,7 +151,7 @@ class Newsfeed_model extends CRM_Model
         $this->db->where('pinned', 1);
         $this->db->order_by('datepinned', 'asc');
 
-        return $this->db->get('tblposts')->result_array();
+        return $this->db->get(db_prefix() . 'newsfeed_posts')->result_array();
     }
 
     /**
@@ -158,7 +163,7 @@ class Newsfeed_model extends CRM_Model
     {
         $this->db->where('postid', $id);
 
-        return $this->db->get('tblposts')->row();
+        return $this->db->get(db_prefix() . 'newsfeed_posts')->row();
     }
 
     /**
@@ -170,10 +175,10 @@ class Newsfeed_model extends CRM_Model
     {
         $this->db->where('id', $id);
         if ($return_as_array == false) {
-            return $this->db->get('tblpostcomments')->row();
-        } else {
-            return $this->db->get('tblpostcomments')->row_array();
+            return $this->db->get(db_prefix() . 'newsfeed_post_comments')->row();
         }
+
+        return $this->db->get(db_prefix() . 'newsfeed_post_comments')->row_array();
     }
 
     /**
@@ -187,26 +192,24 @@ class Newsfeed_model extends CRM_Model
         $data['content']     = nl2br($data['content']);
         $data['creator']     = get_staff_user_id();
 
+
         if (!isset($data['visibility'])) {
             $data['visibility'] = 'all';
         } else {
-            if ($data['visibility'][0] != 'all') {
-                $data['visibility'] = implode(':', $data['visibility']);
-            } else {
-                $data['visibility'] = 'all';
-            }
+            $data['visibility'] = implode(':', $data['visibility']);
         }
-        $this->db->insert('tblposts', $data);
+        $this->db->insert(db_prefix() . 'newsfeed_posts', $data);
         $postid = $this->db->insert_id();
 
 
         $this->load->model('departments_model');
         $this->load->model('staff_model');
 
-        $staff = $this->staff_model->get('', 1, array(
-            'is_not_staff' => 0
-        ));
-        $notifiedUsers = array();
+        $staff = $this->staff_model->get('', [
+            'active'       => 1,
+            'is_not_staff' => 0,
+        ]);
+        $notifiedUsers = [];
         foreach ($staff as $member) {
             $staff_deparments = $this->departments_model->get_staff_departments($member['staffid'], true);
             $visibility       = explode(':', $data['visibility']);
@@ -222,14 +225,14 @@ class Newsfeed_model extends CRM_Model
             }
 
             if ($data['creator'] != $member['staffid']) {
-                $notified = add_notification(array(
+                $notified = add_notification([
                     'description' => 'not_published_new_post',
-                    'touserid' => $member['staffid'],
-                    'link' => '#postid=' . $postid
-                ));
+                    'touserid'    => $member['staffid'],
+                    'link'        => '#postid=' . $postid,
+                ]);
 
-                if($notified) {
-                    array_push($notifiedUsers,$member['staffid']);
+                if ($notified) {
+                    array_push($notifiedUsers, $member['staffid']);
                 }
             }
         }
@@ -249,26 +252,26 @@ class Newsfeed_model extends CRM_Model
         if ($this->user_liked_post($id)) {
             return true;
         }
-        $this->db->insert('tblpostlikes', array(
-            'postid' => $id,
-            'userid' => get_staff_user_id(),
-            'dateliked' => date('Y-m-d H:i:s')
-        ));
+        $this->db->insert(db_prefix() . 'newsfeed_post_likes', [
+            'postid'    => $id,
+            'userid'    => get_staff_user_id(),
+            'dateliked' => date('Y-m-d H:i:s'),
+        ]);
         $likeid = $this->db->insert_id();
         if ($likeid) {
             $post = $this->get_post($id);
             if ($post->creator != get_staff_user_id()) {
-                $notified = add_notification(array(
-                    'description' => 'not_liked_your_post',
-                    'touserid' => $post->creator,
-                    'link' => '#postid=' . $id,
-                    'additional_data' => serialize(array(
+                $notified = add_notification([
+                    'description'     => 'not_liked_your_post',
+                    'touserid'        => $post->creator,
+                    'link'            => '#postid=' . $id,
+                    'additional_data' => serialize([
                         get_staff_full_name(get_staff_user_id()),
-                        strip_tags(mb_substr($post->content, 0, 50))
-                    ))
-                ));
-                if($notified){
-                    pusher_trigger_notification(array($post->creator));
+                        strip_tags(mb_substr($post->content, 0, 50)),
+                    ]),
+                ]);
+                if ($notified) {
+                    pusher_trigger_notification([$post->creator]);
                 }
             }
 
@@ -287,7 +290,7 @@ class Newsfeed_model extends CRM_Model
     {
         $this->db->where('userid', get_staff_user_id());
         $this->db->where('postid', $id);
-        $this->db->delete('tblpostlikes');
+        $this->db->delete(db_prefix() . 'newsfeed_post_likes');
         if ($this->db->affected_rows() > 0) {
             return true;
         }
@@ -306,7 +309,7 @@ class Newsfeed_model extends CRM_Model
         $this->db->where('userid', get_staff_user_id());
         $this->db->where('commentid', $id);
         $this->db->where('postid', $postid);
-        $this->db->delete('tblcommentlikes');
+        $this->db->delete(db_prefix() . 'newsfeed_comment_likes');
         if ($this->db->affected_rows() > 0) {
             return true;
         }
@@ -324,7 +327,7 @@ class Newsfeed_model extends CRM_Model
         $this->db->where('userid', get_staff_user_id());
         $this->db->where('postid', $id);
 
-        return $this->db->get('tblpostlikes')->row();
+        return $this->db->get(db_prefix() . 'newsfeed_post_likes')->row();
     }
 
     /**
@@ -337,7 +340,7 @@ class Newsfeed_model extends CRM_Model
         $this->db->where('userid', get_staff_user_id());
         $this->db->where('commentid', $id);
 
-        return $this->db->get('tblcommentlikes')->row();
+        return $this->db->get(db_prefix() . 'newsfeed_comment_likes')->row();
     }
 
     /**
@@ -349,22 +352,22 @@ class Newsfeed_model extends CRM_Model
         $data['dateadded'] = date('Y-m-d H:i:s');
         $data['userid']    = get_staff_user_id();
         $data['content']   = nl2br($data['content']);
-        $this->db->insert('tblpostcomments', $data);
+        $this->db->insert(db_prefix() . 'newsfeed_post_comments', $data);
         $insert_id = $this->db->insert_id();
         if ($insert_id) {
             $post = $this->get_post($data['postid']);
             if ($post->creator != get_staff_user_id()) {
-                $notified = add_notification(array(
-                    'description' => 'not_commented_your_post',
-                    'touserid' => $post->creator,
-                    'link' => '#postid=' . $data['postid'],
-                    'additional_data' => serialize(array(
+                $notified = add_notification([
+                    'description'     => 'not_commented_your_post',
+                    'touserid'        => $post->creator,
+                    'link'            => '#postid=' . $data['postid'],
+                    'additional_data' => serialize([
                         get_staff_full_name(get_staff_user_id()),
-                        substr($post->content, 0, 50)
-                    ))
-                ));
-                if($notified){
-                    pusher_trigger_notification(array($post->creator));
+                        substr($post->content, 0, 50),
+                    ]),
+                ]);
+                if ($notified) {
+                    pusher_trigger_notification([$post->creator]);
                 }
             }
 
@@ -389,21 +392,21 @@ class Newsfeed_model extends CRM_Model
         $data['userid']    = get_staff_user_id();
         $data['commentid'] = $id;
         $data['postid']    = $postid;
-        $this->db->insert('tblcommentlikes', $data);
+        $this->db->insert(db_prefix() . 'newsfeed_comment_likes', $data);
         if ($this->db->affected_rows() > 0) {
             $comment = $this->get_comment($id);
             if ($comment->userid != get_staff_user_id()) {
-                $notified = add_notification(array(
-                    'description' => 'not_liked_your_comment',
-                    'touserid' => $comment->userid,
-                    'link' => '#postid=' . $postid,
-                    'additional_data' => serialize(array(
+                $notified = add_notification([
+                    'description'     => 'not_liked_your_comment',
+                    'touserid'        => $comment->userid,
+                    'link'            => '#postid=' . $postid,
+                    'additional_data' => serialize([
                         get_staff_full_name(get_staff_user_id()),
-                        substr($comment->content, 0, 50)
-                    ))
-                ));
-                if($notified){
-                    pusher_trigger_notification(array($comment->userid));
+                        substr($comment->content, 0, 50),
+                    ]),
+                ]);
+                if ($notified) {
+                    pusher_trigger_notification([$comment->userid]);
                 }
             }
 
@@ -422,15 +425,15 @@ class Newsfeed_model extends CRM_Model
     public function remove_post_comment($id, $postid)
     {
         // First check if this user created the comment
-        if (total_rows('tblpostcomments', array(
+        if (total_rows(db_prefix() . 'newsfeed_post_comments', [
             'postid' => $postid,
             'userid' => get_staff_user_id(),
-            'id' => $id
-        )) > 0) {
+            'id' => $id,
+        ]) > 0) {
             $this->db->where('id', $id);
             $this->db->where('postid', $postid);
             $this->db->where('userid', get_staff_user_id());
-            $this->db->delete('tblpostcomments');
+            $this->db->delete(db_prefix() . 'newsfeed_post_comments');
             if ($this->db->affected_rows() > 0) {
                 return true;
             }
@@ -449,25 +452,25 @@ class Newsfeed_model extends CRM_Model
     public function delete_post($postid)
     {
         // First check if this user creator of the post
-        if (total_rows('tblposts', array(
+        if (total_rows(db_prefix() . 'newsfeed_posts', [
             'postid' => $postid,
-            'creator' => get_staff_user_id()
-        )) > 0 || is_admin()) {
+            'creator' => get_staff_user_id(),
+        ]) > 0 || is_admin()) {
             $this->db->where('postid', $postid);
-            $this->db->delete('tblposts');
+            $this->db->delete(db_prefix() . 'newsfeed_posts');
             if ($this->db->affected_rows() > 0) {
                 $this->db->where('postid', $postid);
-                $this->db->delete('tblpostlikes');
+                $this->db->delete(db_prefix() . 'newsfeed_post_likes');
 
                 $this->db->where('postid', $postid);
-                $this->db->delete('tblpostcomments');
+                $this->db->delete(db_prefix() . 'newsfeed_post_comments');
 
                 $this->db->where('postid', $postid);
-                $this->db->delete('tblcommentlikes');
+                $this->db->delete(db_prefix() . 'newsfeed_comment_likes');
 
                 $this->db->where('rel_id', $postid);
                 $this->db->where('rel_type', 'newsfeed_post');
-                $this->db->delete('tblfiles');
+                $this->db->delete(db_prefix() . 'files');
 
                 if (is_dir(get_upload_path_by_type('newsfeed') . $postid)) {
                     delete_dir(get_upload_path_by_type('newsfeed') . $postid);
@@ -493,6 +496,6 @@ class Newsfeed_model extends CRM_Model
         $offset = ($offset * $this->post_comments_limit);
         $this->db->limit($this->post_comments_limit, $offset);
 
-        return $this->db->get('tblpostcomments')->result_array();
+        return $this->db->get(db_prefix() . 'newsfeed_post_comments')->result_array();
     }
 }

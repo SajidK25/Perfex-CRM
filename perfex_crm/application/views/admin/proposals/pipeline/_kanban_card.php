@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php if ($proposal['status'] == $status) { ?>
 <li data-proposal-id="<?php echo $proposal['id']; ?>" class="<?php if($proposal['invoice_id'] != NULL || $proposal['estimate_id'] != NULL){echo 'not-sortable';} ?>">
    <div class="panel-body">
@@ -22,8 +23,11 @@
          <div class="col-md-12">
             <div class="row">
                <div class="col-md-8">
-                  <?php if($proposal['total'] != 0){ ?>
-                  <span class="bold"><?php echo _l('proposal_total'); ?>: <?php echo format_money($proposal['total'],$this->currencies_model->get($proposal['currency'])->symbol); ?></span>
+                  <?php if($proposal['total'] != 0){
+                     ?>
+                  <span class="bold"><?php echo _l('proposal_total'); ?>:
+                     <?php echo app_format_money($proposal['total'], get_currency($proposal['currency'])); ?>
+                  </span>
                   <br />
                   <?php } ?>
                   <?php echo _l('proposal_date'); ?>: <?php echo _d($proposal['date']); ?>
@@ -34,7 +38,7 @@
                   <br />
                </div>
                <div class="col-md-4 text-right">
-                  <small><i class="fa fa-comments" aria-hidden="true"></i> <?php echo _l('proposal_comments'); ?>: <?php echo total_rows('tblproposalcomments', array(
+                  <small><i class="fa fa-comments" aria-hidden="true"></i> <?php echo _l('proposal_comments'); ?>: <?php echo total_rows(db_prefix().'proposal_comments', array(
                      'proposalid' => $proposal['id']
                      )); ?></small>
                </div>

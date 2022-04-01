@@ -1,6 +1,8 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Knowledge_base extends Admin_controller
+
+class Knowledge_base extends AdminController
 {
     public function __construct()
     {
@@ -30,8 +32,8 @@ class Knowledge_base extends Admin_controller
             access_denied('knowledge_base');
         }
         if ($this->input->post()) {
-             $data                = $this->input->post();
-             $data['description'] = $this->input->post('description', false);
+            $data                = $this->input->post();
+            $data['description'] = html_purify($this->input->post('description', false));
 
             if ($id == '') {
                 if (!has_permission('knowledge_base', '', 'create')) {
@@ -60,8 +62,11 @@ class Knowledge_base extends Admin_controller
             $data['article'] = $article;
             $title           = _l('edit', _l('kb_article')) . ' ' . $article->subject;
         }
+
+        $this->app_scripts->add('tinymce-stickytoolbar',site_url('assets/plugins/tinymce-stickytoolbar/stickytoolbar.js'));
+
         $data['bodyclass'] = 'kb-article';
-        $data['title'] = $title;
+        $data['title']     = $title;
         $this->load->view('admin/knowledge_base/article', $data);
     }
 
@@ -88,7 +93,7 @@ class Knowledge_base extends Admin_controller
     {
         // This is for did you find this answer useful
         if (($this->input->post() && $this->input->is_ajax_request())) {
-            echo json_encode($this->knowledge_base_model->add_article_answer($this->input->post()));
+            echo json_encode($this->knowledge_base_model->add_article_answer($this->input->post('articleid'), $this->input->post('answer')));
             die();
         }
     }
@@ -112,10 +117,10 @@ class Knowledge_base extends Admin_controller
                 if ($success) {
                     $message = _l('updated_successfully', _l('kb_article'));
                 }
-                echo json_encode(array(
+                echo json_encode([
                     'success' => $success,
-                    'message' => $message
-                ));
+                    'message' => $message,
+                ]);
                 die();
             }
         }
@@ -166,9 +171,9 @@ class Knowledge_base extends Admin_controller
             access_denied('knowledge_base');
         }
         if ($this->input->post()) {
-            $post_data = $this->input->post();
+            $post_data        = $this->input->post();
             $article_add_edit = isset($post_data['article_add_edit']);
-            if(isset($post_data['article_add_edit'])) {
+            if (isset($post_data['article_add_edit'])) {
                 unset($post_data['article_add_edit']);
             }
             if (!$this->input->post('id')) {
@@ -176,22 +181,21 @@ class Knowledge_base extends Admin_controller
                     access_denied('knowledge_base');
                 }
                 $id = $this->knowledge_base_model->add_group($post_data);
-                if(!$article_add_edit && $id) {
+                if (!$article_add_edit && $id) {
                     set_alert('success', _l('added_successfully', _l('kb_dt_group_name')));
                 } else {
-                    echo json_encode(array(
-                        'id'=>$id,
-                        'success'=>$id ? true : false,
-                        'name'=>$post_data['name'],
-                    ));
+                    echo json_encode([
+                        'id'      => $id,
+                        'success' => $id ? true : false,
+                        'name'    => $post_data['name'],
+                    ]);
                 }
             } else {
-
                 if (!has_permission('knowledge_base', '', 'edit')) {
                     access_denied('knowledge_base');
                 }
 
-                $id   = $post_data['id'];
+                $id = $post_data['id'];
                 unset($post_data['id']);
                 $success = $this->knowledge_base_model->update_group($post_data, $id);
                 if ($success) {

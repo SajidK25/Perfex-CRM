@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
     <div class="content">
@@ -6,9 +7,11 @@
                 <div class="panel_s">
                     <div class="panel-body tc-content">
                        <h4 class="bold no-margin"><?php echo $article->subject; ?></h4>
-                       <hr />
+                       <hr class="hr-panel-heading" />
                        <div class="clearfix"></div>
-                       <?php echo $article->description; ?>
+                       <div class="kb-article">
+                         <?php echo $article->description; ?>
+                       </div>
                        <hr />
                        <h4 class="mtop20"><?php echo _l('clients_knowledge_base_find_useful'); ?></h4>
                        <div class="answer_response"></div>
@@ -25,7 +28,7 @@
           <div class="panel_s">
               <div class="panel-body">
                 <h4 class="bold no-margin"><?php echo _l('related_knowledgebase_articles'); ?></h4>
-                <hr />
+                 <hr class="hr-panel-heading" />
                 <ul class="mtop10 articles_list">
                 <?php foreach($related_articles as $rel_article_article) { ?>
                     <li>
@@ -46,7 +49,15 @@
 <?php init_tail(); ?>
 <script>
     $(function(){
-       $('.article_useful_buttons button').on('click', function(e) {
+
+      // Lightbox for knowledge base images
+      $.each($('.kb-article').find('img'), function () {
+        if(!$(this).parent().is('a')){
+          $(this).wrap('<a href="'+$(this).attr('src')+'" data-lightbox="kb-attachment"></a>');
+        }
+      });
+
+      $('.article_useful_buttons button').on('click', function(e) {
            e.preventDefault();
            var data = {};
            data.answer = $(this).data('answer');

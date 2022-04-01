@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="panel_s accounting-template estimate">
    <div class="panel-body">
       <?php if(isset($estimate)){ ?>
@@ -5,11 +6,15 @@
       <hr class="hr-panel-heading" />
       <?php } ?>
       <div class="row">
+          <?php if (isset($estimate_request_id) && $estimate_request_id != '') {
+              echo form_hidden('estimate_request_id',$estimate_request_id);
+          }
+          ?>
          <div class="col-md-6">
             <div class="f_client_id">
              <div class="form-group select-placeholder">
                 <label for="clientid" class="control-label"><?php echo _l('estimate_select_customer'); ?></label>
-                <select id="clientid" name="clientid" data-live-search="true" data-width="100%" class="ajax-search" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
+                <select id="clientid" name="clientid" data-live-search="true" data-width="100%" class="ajax-search<?php if(isset($estimate) && empty($estimate->clientid)){echo ' customer-removed';} ?>" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                <?php $selected = (isset($estimate) ? $estimate->clientid : '');
                  if($selected == ''){
                    $selected = (isset($customer_id) ? $customer_id: '');
@@ -188,6 +193,11 @@
             </div>
             <div class="clearfix mbot15"></div>
             <?php $rel_id = (isset($estimate) ? $estimate->id : false); ?>
+            <?php
+                  if(isset($custom_fields_rel_transfer)) {
+                      $rel_id = $custom_fields_rel_transfer;
+                  }
+             ?>
             <?php echo render_custom_fields('estimate',$rel_id); ?>
          </div>
          <div class="col-md-6">
@@ -199,11 +209,12 @@
                <div class="row">
                   <div class="col-md-6">
                      <?php
-                        $s_attrs = array('disabled'=>true,'data-show-subtext'=>true);
-                        $s_attrs = do_action('estimate_currency_disabled',$s_attrs);
+
+                        $currency_attr = array('disabled'=>true,'data-show-subtext'=>true);
+                        $currency_attr = apply_filters_deprecated('estimate_currency_disabled', [$currency_attr], '2.3.0', 'estimate_currency_attributes');
                         foreach($currencies as $currency){
                           if($currency['isdefault'] == 1){
-                            $s_attrs['data-base'] = $currency['id'];
+                            $currency_attr['data-base'] = $currency['id'];
                           }
                           if(isset($estimate)){
                             if($currency['id'] == $estimate->currency){
@@ -215,8 +226,9 @@
                           }
                         }
                         }
+                        $currency_attr = hooks()->apply_filters('estimate_currency_attributes',$currency_attr);
                         ?>
-                     <?php echo render_select('currency',$currencies,array('id','name','symbol'),'estimate_add_edit_currency',$selected,$s_attrs); ?>
+                     <?php echo render_select('currency', $currencies, array('id','name','symbol'), 'estimate_add_edit_currency', $selected, $currency_attr); ?>
                   </div>
                    <div class="col-md-6">
                      <div class="form-group select-placeholder">
@@ -258,7 +270,7 @@
                   </div>
                </div>
                <?php $value = (isset($estimate) ? $estimate->adminnote : ''); ?>
-               <?php echo render_textarea('adminnote','estimate_add_edit_admin_note',$value,array(),array(),'mtop15'); ?>
+               <?php echo render_textarea('adminnote','estimate_add_edit_admin_note',$value); ?>
 
             </div>
          </div>
@@ -266,22 +278,42 @@
    </div>
    <?php $this->load->view('admin/estimates/_add_edit_items'); ?>
    <div class="row">
-      <div class="col-md-12 mtop15">
-         <div class="panel-body bottom-transaction">
-            <?php $value = (isset($estimate) ? $estimate->clientnote : get_option('predefined_clientnote_estimate')); ?>
-            <?php echo render_textarea('clientnote','estimate_add_edit_client_note',$value,array(),array(),'mtop15'); ?>
-            <?php $value = (isset($estimate) ? $estimate->terms : get_option('predefined_terms_estimate')); ?>
-            <?php echo render_textarea('terms','terms_and_conditions',$value,array(),array(),'mtop15'); ?>
-            <div class="btn-bottom-toolbar text-right">
-              <button type="button" class="btn-tr btn btn-info mleft10 estimate-form-submit save-and-send transaction-submit">
-              <?php echo _l('save_and_send'); ?>
-              </button>
-              <button type="button" class="btn-tr btn btn-info mleft10 estimate-form-submit transaction-submit">
+    <div class="col-md-12 mtop15">
+      <div class="panel-body bottom-transaction">
+        <?php $value = (isset($estimate) ? $estimate->clientnote : get_option('predefined_clientnote_estimate')); ?>
+        <?php echo render_textarea('clientnote','estimate_add_edit_client_note',$value,array(),array(),'mtop15'); ?>
+        <?php $value = (isset($estimate) ? $estimate->terms : get_option('predefined_terms_estimate')); ?>
+        <?php echo render_textarea('terms','terms_and_conditions',$value,array(),array(),'mtop15'); ?>
+        <div class="btn-bottom-toolbar text-right">
+          <div class="btn-group dropup">
+            <button type="button" class="btn-tr btn btn-info estimate-form-submit transaction-submit">
               <?php echo _l('submit'); ?>
-              </button>
-            </div>
-         </div>
-           <div class="btn-bottom-pusher"></div>
+            </button>
+          <button type="button"
+            class="btn btn-info dropdown-toggle"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false">
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-right width200">
+            <li>
+              <a href="#" class="estimate-form-submit save-and-send transaction-submit">
+                <?php echo _l('save_and_send'); ?>
+              </a>
+            </li>
+            <?php if(!isset($estimate)) { ?>
+              <li>
+                <a href="#" class="estimate-form-submit save-and-send-later transaction-submit">
+                  <?php echo _l('save_and_send_later'); ?>
+                </a>
+              </li>
+            <?php } ?>
+          </ul>
+        </div>
       </div>
-   </div>
+    </div>
+    <div class="btn-bottom-pusher"></div>
+  </div>
+</div>
 </div>

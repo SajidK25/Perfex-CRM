@@ -2,7 +2,7 @@
 <div class="clearfix"></div>
 <?php
 if(isset($client)){
-    $total_active_contacts = total_rows('tblcontacts',array('active'=>1,'userid'=>$client->userid));
+    $total_active_contacts = total_rows(db_prefix().'contacts',array('active'=>1,'userid'=>$client->userid));
     if(($total_active_contacts > 0)
         && ((get_option('access_tickets_to_none_staff_members') == 1 && !is_staff_member()) || is_staff_member())){
         echo '<div class="btn-group">';

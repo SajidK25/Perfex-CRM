@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
 	<div class="content">
@@ -31,7 +32,7 @@
 <?php init_tail(); ?>
 <script>
 	$(function(){
-		_validate_form($('form'),{name:'required'});
+		appValidateForm($('form'),{name:'required'});
 	});
 </script>
 </body>

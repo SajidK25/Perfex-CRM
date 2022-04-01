@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
 	<div class="content">
@@ -14,7 +15,7 @@
 						<hr class="hr-panel-heading" />
 						<?php if(count($statuses) > 0){ ?>
 
-						<table class="table dt-table scroll-responsive">
+						<table class="table dt-table">
 							<thead>
 								<th><?php echo _l('id'); ?></th>
 								<th><?php echo _l('ticket_statuses_dt_name'); ?></th>
@@ -25,7 +26,7 @@
 								<tr>
 									<td><?php echo $status['ticketstatusid']; ?></td>
 									<td><a href="#" onclick="edit_status(this,<?php echo $status['ticketstatusid']; ?>); return false" data-name="<?php echo $status['name']; ?>" data-color="<?php echo $status['statuscolor']; ?>" data-order="<?php echo $status['statusorder']; ?>"><?php echo $status['name']; ?></a><br />
-										<?php echo _l('ticket_statuses_table_total',total_rows('tbltickets',array('status'=>$status['ticketstatusid']))); ?>
+										<?php echo _l('ticket_statuses_table_total',total_rows(db_prefix().'tickets',array('status'=>$status['ticketstatusid']))); ?>
 									</td>
 									<td>
 										<a href="#" onclick="edit_status(this,<?php echo $status['ticketstatusid']; ?>); return false" data-name="<?php echo $status['name']; ?>" data-color="<?php echo $status['statuscolor']; ?>" data-order="<?php echo $status['statusorder']; ?>" class="btn btn-default btn-icon"><i class="fa fa-pencil-square-o"></i></a>
@@ -78,7 +79,7 @@
 <?php init_tail(); ?>
 <script>
 	$(function(){
-		_validate_form($('form'),{name:'required'},manage_ticket_statuses);
+		appValidateForm($('form'),{name:'required'},manage_ticket_statuses);
 		$('#ticket_status').on('hidden.bs.modal', function(event) {
 			$('#additional').html('');
 			$('#ticket_status input[name="name"]').val('');

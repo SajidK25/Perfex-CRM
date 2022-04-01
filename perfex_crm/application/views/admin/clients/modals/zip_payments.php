@@ -1,4 +1,5 @@
-<!-- Modal -->
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<!-- Modal Zip Payments -->
 <div class="modal fade" id="client_zip_payments" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -11,18 +12,12 @@
                 <div class="row">
                     <div class="col-md-12">
                         <?php
-                            if($client->company != ''){
-                                $file_name = slug_it($client->company);
-                            } else {
-                                $file_name = slug_it(get_primary_contact_user_id($client->userid));
-                            }
-                            ?>
-                        <?php
-                            array_unshift($payment_modes,array('id'=>'','name'=>_l('client_zip_status_all')));
-                            echo render_select('paymentmode',$payment_modes,array('id','name'),'client_zip_payment_modes'); ?>
+                        array_unshift($payment_modes,array('id'=>'' ,'name'=>_l('client_zip_status_all')));
+                        echo render_select('paymentmode', $payment_modes, array('id','name'), 'client_zip_payment_modes');
+                        ?>
                         <div class="clearfix mbot15"></div>
-                        <?php include(APPPATH .'views/admin/clients/modals/modal_zip_date_picker.php'); ?>
-                        <?php echo form_hidden('file_name',$file_name); ?>
+                        <?php $this->load->view('admin/clients/modals/modal_zip_date_picker'); ?>
+                        <?php echo form_hidden('file_name', $zip_in_folder); ?>
                     </div>
                 </div>
             </div>

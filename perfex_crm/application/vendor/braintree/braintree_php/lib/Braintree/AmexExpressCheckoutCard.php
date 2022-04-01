@@ -12,19 +12,21 @@ namespace Braintree;
  * @package    Braintree
  * @category   Resources
  *
- * @property-read string $createdAt
- * @property-read string $default
- * @property-read string $updatedAt
- * @property-read string $customerId
- * @property-read string $cardType
  * @property-read string $bin
  * @property-read string $cardMemberExpiryDate
  * @property-read string $cardMemberNumber
- * @property-read string $sourceDescription
- * @property-read string $token
- * @property-read string $imageUrl
+ * @property-read string $cardType
+ * @property-read \DateTime $createdAt
+ * @property-read string $customerId
+ * @property-read boolean $default
  * @property-read string $expirationMonth
  * @property-read string $expirationYear
+ * @property-read string $imageUrl
+ * @property-read string $token
+ * @property-read string $sourceDescription
+ * @property-read \Braintree\Subscription[] $subscriptions
+ * @property-read \DateTime $updatedAt
+ * @deprecated
  */
 class AmexExpressCheckoutCard extends Base
 {
@@ -33,6 +35,7 @@ class AmexExpressCheckoutCard extends Base
      * returns false if default is null or false
      *
      * @return boolean
+     * @deprecated
      */
     public function isDefault()
     {
@@ -45,6 +48,7 @@ class AmexExpressCheckoutCard extends Base
      *
      * @ignore
      * @return AmexExpressCheckoutCard
+     * @deprecated
      */
     public static function factory($attributes)
     {
@@ -60,6 +64,7 @@ class AmexExpressCheckoutCard extends Base
      * @access protected
      * @param array $amexExpressCheckoutCardAttribs array of Amex Express Checkout card properties
      * @return void
+     * @deprecated
      */
     protected function _initialize($amexExpressCheckoutCardAttribs)
     {
@@ -76,4 +81,3 @@ class AmexExpressCheckoutCard extends Base
         $this->_set('subscriptions', $subscriptionArray);
     }
 }
-class_alias('Braintree\AmexExpressCheckoutCard', 'Braintree_AmexExpressCheckoutCard');

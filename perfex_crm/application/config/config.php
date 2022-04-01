@@ -1,24 +1,34 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php
 
-spl_autoload_register(function ($class) {
-    if (strpos($class, 'CRM_') !== 0) {
-        @include_once(APPPATH . 'core/'. $class . '.php');
+defined('BASEPATH') or exit('No direct script access allowed');
+define('APP_MINIMUM_REQUIRED_PHP_VERSION', '7.4');
+
+if (file_exists(APPPATH . 'config/app-config.php')) {
+    if (version_compare(PHP_VERSION, APP_MINIMUM_REQUIRED_PHP_VERSION) === -1) {
+        echo '<h1>Minimum required PHP version is <b>' . APP_MINIMUM_REQUIRED_PHP_VERSION . '</b>. Consider upgrading to a newer PHP version.</h4>';
+        echo '<h3>You are using ' . PHP_VERSION . ', you should consult with your hosting provider to help you to change your PHP version to ' . APP_MINIMUM_REQUIRED_PHP_VERSION . ' or higher, after you upgrade the PHP version this message will disappear.</h3>';
+        exit;
     }
-});
-
-if (file_exists(APPPATH.'config/app-config.php')) {
-    include_once(APPPATH.'config/app-config.php');
+    include_once(APPPATH . 'config/app-config.php');
 } else {
     $install_url = isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on' ? 'https' : 'http';
-    $install_url .= '://'. $_SERVER['HTTP_HOST'];
+    $install_url .= '://' . $_SERVER['HTTP_HOST'];
     $install_url .= str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']);
     $install_url .= 'install';
     echo '<h1>Perfex CRM not installed</h1>';
-    echo '<p>1. To you use the automatic Perfex CRM installation tool click <a href="'.$install_url.'">here ('.$install_url.')</a></p>';
+    echo '<p>1. To you use the automatic Perfex CRM installation tool click <a href="' . $install_url . '">here (' . $install_url . ')</a></p>';
     echo '<p>2. If you are installing manually rename the config file located in application/config/app-config-sample.php to app-config.php and populate the defined fields.</p>';
     die();
 }
 
+/**
+ * Database Tables Prefix
+ * @return string
+ */
+function db_prefix()
+{
+    return defined('APP_DB_PREFIX') ? APP_DB_PREFIX : 'tbl';
+}
 /*
 |--------------------------------------------------------------------------
 | Base Site URL
@@ -27,7 +37,7 @@ if (file_exists(APPPATH.'config/app-config.php')) {
 | URL to your CodeIgniter root. Typically this will be your base URL,
 | WITH a trailing slash:
 |
-|	http://example.com/
+|   http://example.com/
 |
 | If this is not set then CodeIgniter will try guess the protocol, domain
 | and path to your installation. However, you should always configure this
@@ -65,7 +75,7 @@ $config['index_page'] = '';
 |
 | WARNING: If you set this to 'PATH_INFO', URIs will always be URL-decoded!
 */
-$config['uri_protocol']    = 'AUTO';
+$config['uri_protocol'] = 'AUTO';
 
 /*
 |--------------------------------------------------------------------------
@@ -89,7 +99,7 @@ $config['url_suffix'] = '';
 | than english.
 |
 */
-$config['language']    = '';
+$config['language'] = '';
 
 /*
 |--------------------------------------------------------------------------
@@ -113,7 +123,7 @@ $config['charset'] = 'UTF-8';
 | setting this variable to TRUE (boolean).  See the user guide for details.
 |
 */
-$config['enable_hooks'] = (defined('APP_ENABLE_HOOKS') ? APP_ENABLE_HOOKS : false);
+$config['enable_hooks'] = true;
 
 /*
 |--------------------------------------------------------------------------
@@ -127,7 +137,7 @@ $config['enable_hooks'] = (defined('APP_ENABLE_HOOKS') ? APP_ENABLE_HOOKS : fals
 | http://codeigniter.com/user_guide/general/creating_libraries.html
 |
 */
-$config['subclass_prefix'] = 'CRM_';
+$config['subclass_prefix'] = 'App_';
 
 /*
 |--------------------------------------------------------------------------
@@ -137,17 +147,17 @@ $config['subclass_prefix'] = 'CRM_';
 | Enabling this setting will tell CodeIgniter to look for a Composer
 | package auto-loader script in application/vendor/autoload.php.
 |
-|	$config['composer_autoload'] = TRUE;
+|   $config['composer_autoload'] = TRUE;
 |
 | Or if you have your vendor/ directory located somewhere else, you
 | can opt to set a specific path as well:
 |
-|	$config['composer_autoload'] = '/path/to/vendor/autoload.php';
+|   $config['composer_autoload'] = '/path/to/vendor/autoload.php';
 |
 | For more information about Composer, please visit http://getcomposer.org/
 |
 | Note: This will NOT disable or override the CodeIgniter-specific
-|	autoloading (application/config/autoload.php)
+|   autoloading (application/config/autoload.php)
 */
 $config['composer_autoload'] = true;
 
@@ -172,6 +182,7 @@ $config['composer_autoload'] = true;
 |
 */
 $config['permitted_uri_chars'] = (defined('APP_PERMITTED_URI_CHARS') ? APP_PERMITTED_URI_CHARS : 'a-z 0-9~%.:_\-@');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -198,11 +209,11 @@ $config['permitted_uri_chars'] = (defined('APP_PERMITTED_URI_CHARS') ? APP_PERMI
 | use segment based URLs.
 |
 */
-$config['allow_get_array'] = true;
+$config['allow_get_array']      = true;
 $config['enable_query_strings'] = false;
-$config['controller_trigger'] = 'c';
-$config['function_trigger'] = 'm';
-$config['directory_trigger'] = 'd';
+$config['controller_trigger']   = 'c';
+$config['function_trigger']     = 'm';
+$config['directory_trigger']    = 'd';
 
 /*
 |--------------------------------------------------------------------------
@@ -212,15 +223,15 @@ $config['directory_trigger'] = 'd';
 | You can enable error logging by setting a threshold over zero. The
 | threshold determines what gets logged. Threshold options are:
 |
-|	0 = Disables logging, Error logging TURNED OFF
-|	1 = Error Messages (including PHP errors)
-|	2 = Debug Messages
-|	3 = Informational Messages
-|	4 = All Messages
+|   0 = Disables logging, Error logging TURNED OFF
+|   1 = Error Messages (including PHP errors)
+|   2 = Debug Messages
+|   3 = Informational Messages
+|   4 = All Messages
 |
 | You can also pass an array with threshold levels to show individual error types
 |
-| 	array(2) = Debug Messages, without Error Messages
+|   array(2) = Debug Messages, without Error Messages
 |
 | For a live site you'll usually only enable Errors (1) to be logged otherwise
 | your log files will fill up very fast.
@@ -310,12 +321,12 @@ $config['cache_path'] = '';
 | Whether to take the URL query string into consideration when generating
 | output cache files. Valid options are:
 |
-|	FALSE      = Disabled
-|	TRUE       = Enabled, take all query parameters into account.
-|	             Please be aware that this may result in numerous cache
-|	             files generated for the same page over and over again.
-|	array('q') = Enabled, but only take into account the specified list
-|	             of query parameters.
+|   FALSE      = Disabled
+|   TRUE       = Enabled, take all query parameters into account.
+|                Please be aware that this may result in numerous cache
+|                files generated for the same page over and over again.
+|   array('q') = Enabled, but only take into account the specified list
+|                of query parameters.
 |
 */
 $config['cache_query_string'] = false;
@@ -340,57 +351,71 @@ $config['encryption_key'] = APP_ENC_KEY;
 |
 | 'sess_driver'
 |
-|	The storage driver to use: files, database, redis, memcached
+|   The storage driver to use: files, database, redis, memcached
 |
 | 'sess_cookie_name'
 |
-|	The session cookie name, must contain only [0-9a-z_-] characters
+|   The session cookie name, must contain only [0-9a-z_-] characters
 |
 | 'sess_expiration'
 |
-|	The number of SECONDS you want the session to last.
-|	Setting to 0 (zero) means expire when the browser is closed.
+|   The number of SECONDS you want the session to last.
+|   Setting to 0 (zero) means expire when the browser is closed.
 |
 | 'sess_save_path'
 |
-|	The location to save sessions to, driver dependent.
+|   The location to save sessions to, driver dependent.
 |
-|	For the 'files' driver, it's a path to a writable directory.
-|	WARNING: Only absolute paths are supported!
+|   For the 'files' driver, it's a path to a writable directory.
+|   WARNING: Only absolute paths are supported!
 |
-|	For the 'database' driver, it's a table name.
-|	Please read up the manual for the format with other session drivers.
+|   For the 'database' driver, it's a table name.
+|   Please read up the manual for the format with other session drivers.
 |
-|	IMPORTANT: You are REQUIRED to set a valid save path!
+|   IMPORTANT: You are REQUIRED to set a valid save path!
 |
 | 'sess_match_ip'
 |
-|	Whether to match the user's IP address when reading the session data.
+|   Whether to match the user's IP address when reading the session data.
 |
-|	WARNING: If you're using the database driver, don't forget to update
-|	         your session table's PRIMARY KEY when changing this setting.
+|   WARNING: If you're using the database driver, don't forget to update
+|            your session table's PRIMARY KEY when changing this setting.
 |
 | 'sess_time_to_update'
 |
-|	How many seconds between CI regenerating the session ID.
+|   How many seconds between CI regenerating the session ID.
 |
 | 'sess_regenerate_destroy'
 |
-|	Whether to destroy session data associated with the old session ID
-|	when auto-regenerating the session ID. When set to FALSE, the data
-|	will be later deleted by the garbage collector.
+|   Whether to destroy session data associated with the old session ID
+|   when auto-regenerating the session ID. When set to FALSE, the data
+|   will be later deleted by the garbage collector.
 |
 | Other session cookie settings are shared with the rest of the application,
 | except for 'cookie_prefix' and 'cookie_httponly', which are ignored here.
+
+| 'sess_cookie_samesite'
+|
+| SameSite prevents the browser from sending this cookie along with cross-site requests.
+| There are three possible values for the same-site attribute:
+
+| 'Lax'
+|           -   Some cross-site usage is allowed.
+| 'Strict'
+|           -   The cookie is withheld with any cross-site usage.
+| 'None'
+|           -   Clearly communicate you intentionally want the cookie sent in a third-party context.
 |
 */
-$config['sess_driver'] = SESS_DRIVER;
-$config['sess_cookie_name'] = (defined('APP_SESSION_COOKIE_NAME') ? APP_SESSION_COOKIE_NAME : 'sp_session');
-$config['sess_expiration'] = (defined('APP_SESSION_EXPIRATION') ? APP_SESSION_EXPIRATION : 28800);
-$config['sess_save_path'] = SESS_SAVE_PATH;
-$config['sess_match_ip'] = (defined('APP_SESSION_MATCH_IP') ? APP_SESSION_MATCH_IP : false);
-$config['sess_time_to_update'] = (defined('APP_SESSION_TIME_TO_UPDATE') ? APP_SESSION_TIME_TO_UPDATE : 300);
+$config['sess_driver']             = SESS_DRIVER;
+$config['sess_cookie_name']        = (defined('APP_SESSION_COOKIE_NAME') ? APP_SESSION_COOKIE_NAME : 'sp_session');
+$config['sess_expiration']         = (defined('APP_SESSION_EXPIRATION') ? APP_SESSION_EXPIRATION : 28800);
+$config['sess_save_path']          = SESS_SAVE_PATH;
+$config['sess_match_ip']           = (defined('APP_SESSION_MATCH_IP') ? APP_SESSION_MATCH_IP : false);
+$config['sess_time_to_update']     = (defined('APP_SESSION_TIME_TO_UPDATE') ? APP_SESSION_TIME_TO_UPDATE : 300);
 $config['sess_regenerate_destroy'] = (defined('APP_SESSION_REGENERATE_DESTROY') ? APP_SESSION_REGENERATE_DESTROY : false);
+// Work only on php 7.3 or later
+$config['sess_cookie_samesite'] = (defined('APP_SESSION_COOKIE_SAME_SITE') ? APP_SESSION_COOKIE_SAME_SITE : '');
 
 /*
 |--------------------------------------------------------------------------
@@ -407,11 +432,11 @@ $config['sess_regenerate_destroy'] = (defined('APP_SESSION_REGENERATE_DESTROY') 
 |       'cookie_httponly') will also affect sessions.
 |
 */
-$config['cookie_prefix']    = (defined('APP_COOKIE_PREFIX') ? APP_COOKIE_PREFIX : '');
-$config['cookie_domain']    = (defined('APP_COOKIE_DOMAIN') ? APP_COOKIE_DOMAIN : '');
-$config['cookie_path']      = (defined('APP_COOKIE_PATH') ? APP_COOKIE_PATH : '/');
-$config['cookie_secure']    = (defined('APP_COOKIE_SECURE') ? APP_COOKIE_SECURE : false);
-$config['cookie_httponly']  = (defined('APP_COOKIE_HTTPONLY') ? APP_COOKIE_HTTPONLY : false);
+$config['cookie_prefix']   = (defined('APP_COOKIE_PREFIX') ? APP_COOKIE_PREFIX : '');
+$config['cookie_domain']   = (defined('APP_COOKIE_DOMAIN') ? APP_COOKIE_DOMAIN : '');
+$config['cookie_path']     = (defined('APP_COOKIE_PATH') ? APP_COOKIE_PATH : '/');
+$config['cookie_secure']   = (defined('APP_COOKIE_SECURE') ? APP_COOKIE_SECURE : false);
+$config['cookie_httponly'] = (defined('APP_COOKIE_HTTPONLY') ? APP_COOKIE_HTTPONLY : false);
 
 /*
 |--------------------------------------------------------------------------
@@ -455,18 +480,21 @@ $config['global_xss_filtering'] = true;
 | 'csrf_regenerate' = Regenerate token on every submission
 | 'csrf_exclude_uris' = Array of URIs which ignore CSRF checks
 */
-$config['csrf_protection'] = defined('APP_CSRF_PROTECTION') ? APP_CSRF_PROTECTION : false;
-$config['csrf_token_name'] = defined('APP_CSRF_TOKEN_NAME') ? APP_CSRF_TOKEN_NAME : 'csrf_token_name';
-$config['csrf_cookie_name'] = defined('APP_CSRF_COOKIE_NAME') ? APP_CSRF_COOKIE_NAME : 'csrf_cookie_name';
-$config['csrf_expire'] = defined('APP_CSRF_EXPIRE') ? APP_CSRF_EXPIRE : 3600;
-$config['csrf_regenerate'] = false;
-$config['csrf_exclude_uris'] = array();
+$config['csrf_protection']   = defined('APP_CSRF_PROTECTION') ? APP_CSRF_PROTECTION : false;
+$config['csrf_token_name']   = defined('APP_CSRF_TOKEN_NAME') ? APP_CSRF_TOKEN_NAME : 'csrf_token_name';
+$config['csrf_cookie_name']  = defined('APP_CSRF_COOKIE_NAME') ? APP_CSRF_COOKIE_NAME : 'csrf_cookie_name';
+$config['csrf_expire']       = defined('APP_CSRF_EXPIRE') ? APP_CSRF_EXPIRE : 3660;
+$config['csrf_regenerate']   = false;
+$config['csrf_exclude_uris'] = ['forms/wtl/[0-9a-z]+', 'forms/ticket', 'forms/quote/[0-9a-z]+', 'admin/tasks/timer_tracking', 'api\/.+'];
 
 if (isset($app_csrf_exclude_uris)) {
     $config['csrf_exclude_uris'] = array_merge($config['csrf_exclude_uris'], $app_csrf_exclude_uris);
+    $config['csrf_exclude_uris'] = array_unique($config['csrf_exclude_uris']);
 }
 
-if($config['csrf_protection'] == true && isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'],'gateways/') !== FALSE){
+if ($config['csrf_protection'] == true
+    && isset($_SERVER['REQUEST_URI'])
+    && strpos($_SERVER['REQUEST_URI'], 'gateways/') !== false) {
     $config['csrf_protection'] = false;
 }
 
@@ -532,8 +560,8 @@ $config['rewrite_short_tags'] = false;
 | You can use both an array or a comma-separated list of proxy addresses,
 | as well as specifying whole subnets. Here are a few examples:
 |
-| Comma-separated:	'10.0.1.200,192.168.5.0/24'
-| Array:		array('10.0.1.200', '192.168.5.0/24')
+| Comma-separated:  '10.0.1.200,192.168.5.0/24'
+| Array:        array('10.0.1.200', '192.168.5.0/24')
 */
 $config['proxy_ips'] = '';
 
@@ -543,7 +571,16 @@ $config['proxy_ips'] = '';
 |--------------------------------------------------------------------------
 |
 | APP_MEMORY_LIMIT should be defined in app-config.php file.
+| For example: define('APP_MEMORY_LIMIT', '256m');
 */
 if (defined('APP_MEMORY_LIMIT')) {
     @ini_set('memory_limit', APP_MEMORY_LIMIT);
 }
+
+/**
+* Modules path
+* Do not change this code
+*/
+$config['modules_locations'] = [
+    APP_MODULES_PATH => '../../modules/',
+];

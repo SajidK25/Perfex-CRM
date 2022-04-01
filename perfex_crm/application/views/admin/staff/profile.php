@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
     <div class="content">
@@ -10,14 +11,6 @@
                        </h4>
                        <hr class="hr-panel-heading" />
                        <?php echo form_open_multipart($this->uri->uri_string(),array('id'=>'staff_profile_table','autocomplete'=>'off')); ?>
-                       <?php if(total_rows('tblemailtemplates',array('slug'=>'two-factor-authentication','active'=>0)) == 0){ ?>
-                       <div class="checkbox checkbox-primary">
-                         <input type="checkbox" value="1" name="two_factor_auth_enabled" id="two_factor_auth_enabled"<?php if($current_user->two_factor_auth_enabled == 1){echo ' checked';} ?>>
-                         <label for="two_factor_auth_enabled"><i class="fa fa-question-circle" data-placement="right" data-toggle="tooltip" data-title="<?php echo _l('two_factor_authentication_info'); ?>"></i>
-                         <?php echo _l('enable_two_factor_authentication'); ?></label>
-                     </div>
-                     <hr />
-                     <?php } ?>
                      <?php if($current_user->profile_image == NULL){ ?>
                      <div class="form-group">
                         <label for="profile_image" class="profile-image"><?php echo _l('staff_edit_profile_image'); ?></label>
@@ -50,20 +43,20 @@
                     </div>
                     <?php $value = (isset($member) ? $member->phonenumber : ''); ?>
                     <?php echo render_input('phonenumber','staff_add_edit_phonenumber',$value); ?>
-                    <?php if(get_option('disable_language') == 0){ ?>
+                    <?php if(!is_language_disabled()){ ?>
                     <div class="form-group select-placeholder">
                         <label for="default_language" class="control-label"><?php echo _l('localization_default_language'); ?></label>
                         <select name="default_language" data-live-search="true" id="default_language" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                             <option value=""><?php echo _l('system_default_string'); ?></option>
-                            <?php foreach(list_folders(APPPATH .'language') as $language){
+                            <?php foreach($this->app->get_available_languages() as $availableLanguage){
                                 $selected = '';
                                 if(isset($member)){
-                                   if($member->default_language == $language){
+                                   if($member->default_language == $availableLanguage){
                                       $selected = 'selected';
                                   }
                               }
                               ?>
-                              <option value="<?php echo $language; ?>" <?php echo $selected; ?>><?php echo ucfirst($language); ?></option>
+                              <option value="<?php echo $availableLanguage; ?>" <?php echo $selected; ?>><?php echo ucfirst($availableLanguage); ?></option>
                               <?php } ?>
                           </select>
                       </div>
@@ -90,7 +83,7 @@
                 </div>
                 <i class="fa fa-question-circle" data-toggle="tooltip" data-title="<?php echo _l('staff_email_signature_help'); ?>"></i>
                 <?php $value = (isset($member) ? $member->email_signature : ''); ?>
-                <?php echo render_textarea('email_signature','settings_email_signature',$value); ?>
+                <?php echo render_textarea('email_signature','settings_email_signature',$value, ['data-entities-encode'=>'true']); ?>
                 <?php if(count($staff_departments) > 0){ ?>
                 <div class="form-group">
                     <label for="departments"><?php echo _l('staff_edit_profile_your_departments'); ?></label>
@@ -145,6 +138,35 @@
       </span>
     </div>
     <?php } ?>
+    <div class="panel_s mtop10  ">
+        <div class="panel-body">
+           <h4 class="no-margin">
+            <?php echo _l('staff_two_factor_authentication'); ?>
+        </h4>
+        <hr class="hr-panel-heading" />
+        <?php echo form_open('admin/staff/update_two_factor',array('id'=>'two_factor_auth_form')); ?>
+        <div class="radio radio-primary">
+            <input type="radio" id="two_factor_auth_disabled" name="two_factor_auth" value="off" class="custom-control-input"<?php echo ($current_user->two_factor_auth_enabled == 0) ? 'checked' : '' ?>>
+            <label class="custom-control-label" for="two_factor_auth_disabled"><?php echo _l('two_factor_authentication_disabed'); ?></label>
+        </div>
+        <?php if(is_email_template_active('two-factor-authentication')){ ?>
+        <div class="radio radio-primary">
+            <input type="radio" id="two_factor_auth_enabled" name="two_factor_auth" value="email" class="custom-control-input"<?php echo ($current_user->two_factor_auth_enabled == 1) ? 'checked' : '' ?>>
+            <label for="two_factor_auth_enabled">
+                <i class="fa fa-question-circle" data-placement="right" data-toggle="tooltip" data-title="<?php echo _l('two_factor_authentication_info'); ?>"></i>
+                <?php echo _l('enable_two_factor_authentication'); ?>
+            </label>
+        </div>
+        <?php } ?>
+        <div class="radio radio-primary">
+            <input type="radio" id="google_two_factor_auth_enabled" name="two_factor_auth" value="google" class="custom-control-input"<?php echo ($current_user->two_factor_auth_enabled == 2) ? 'checked' : '' ?>>
+            <label class="custom-control-label" for="google_two_factor_auth_enabled"><?php echo _l('enable_google_two_factor_authentication'); ?></label>
+        </div>
+        <div id="qr_image" class=" mtop30 card">
+        </div>
+        <button id="submit_2fa" type="submit" class="btn btn-info pull-right"><?php echo _l('submit'); ?></button>
+        <?php echo form_close(); ?>
+    </div>
 </div>
 </div>
 </div>
@@ -153,8 +175,31 @@
 <?php init_tail(); ?>
 <script>
  $(function(){
-   _validate_form($('#staff_profile_table'),{firstname:'required',lastname:'required',email:'required'});
-   _validate_form($('#staff_password_change_form'),{oldpassword:'required',newpassword:'required',newpasswordr: { equalTo: "#newpassword"}});
+     var qr_loaded = 0;
+     var is_g2fa_enabled = "<?php echo $current_user->two_factor_auth_enabled ?>"
+    $('input[type=radio][name="two_factor_auth"]').change(function() {
+        if (this.value == 'google') {
+            if (is_g2fa_enabled == 2) {
+                return;
+            }
+
+            if (qr_loaded == 0) {
+                $('#qr_image').load(admin_url + 'authentication/get_qr', {}, function (response, status) {
+                    qr_loaded = 1;
+                    $('#qr_image').show();
+                });
+            } else {
+                $('#qr_image').show();
+            }
+            $('#submit_2fa').prop("disabled",true);
+        } else {
+            $('#qr_image').hide();
+            $('#submit_2fa').prop("disabled",false);
+        }
+    });
+    appValidateForm($('#staff_profile_table'),{firstname:'required',lastname:'required',email:'required'});
+    appValidateForm($('#staff_password_change_form'),{oldpassword:'required',newpassword:'required',newpasswordr: { equalTo: "#newpassword"}});
+    appValidateForm($('#two_factor_auth_form'),{two_factor_auth:'required'});
  });
 </script>
 </body>

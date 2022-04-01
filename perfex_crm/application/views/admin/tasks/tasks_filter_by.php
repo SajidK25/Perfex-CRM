@@ -1,7 +1,8 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="_hidden_inputs _filters _tasks_filters">
     <?php
     $tasks_filter_assignees = $this->misc_model->get_tasks_distinct_assignees();
-    do_action('tasks_filters_hidden_html');
+    hooks()->do_action('tasks_filters_hidden_html');
     echo form_hidden('my_tasks',(!has_permission('tasks','','view') ? 'true' : ''));
     echo form_hidden('my_following_tasks');
     echo form_hidden('billable');

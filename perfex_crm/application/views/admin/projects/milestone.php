@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!-- Miles Stones -->
 <div class="modal fade" id="milestone" tabindex="-1" role="dialog">
     <div class="modal-dialog">
@@ -16,13 +17,23 @@
                         <?php echo form_hidden('project_id',$project->id); ?>
                         <div id="additional_milestone"></div>
                         <?php echo render_input('name','milestone_name'); ?>
-                        <?php echo render_date_input('due_date','milestone_due_date','',($project->deadline) ? array('data-date-end-date'=>$project->deadline) : array()); ?>
+                        <?php echo render_date_input('start_date', 'milestone_start_date', _d(date('Y-m-d')), ['data-date-min-date' => $project->start_date]); ?>
+                        <?php echo render_date_input('due_date','milestone_due_date','',array_merge(['data-date-min-date' => $project->start_date], ($project->deadline) ? array('data-date-end-date'=>$project->deadline) : array())); ?>
                         <?php echo render_textarea('description','milestone_description'); ?>
                         <div class="checkbox">
                             <input type="checkbox" id="description_visible_to_customer" name="description_visible_to_customer">
                             <label for="description_visible_to_customer"><?php echo _l('description_visible_to_customer'); ?></label>
                         </div>
-                        <?php echo render_input('milestone_order','project_milestone_order',total_rows('tblmilestones',array('project_id'=>$project->id)) + 1,'number'); ?>
+                        <?php if ($project->settings->view_milestones == 1) {?>
+                        <div class="checkbox">
+                            <input type="checkbox" id="hide_from_customer" name="hide_from_customer" >
+                            <label for="hide_from_customer">
+                            <i class="fa fa-question-circle" data-toggle="tooltip" title="<?php echo _l('hide_milestone_from_customer_help') ?>"></i>
+                                <?php echo _l('hide_milestone_from_customer'); ?>
+                            </label>
+                        </div>
+                        <?php } ?>
+                        <?php echo render_input('milestone_order','project_milestone_order',total_rows(db_prefix().'milestones',array('project_id'=>$project->id)) + 1,'number'); ?>
                     </div>
                 </div>
             </div>

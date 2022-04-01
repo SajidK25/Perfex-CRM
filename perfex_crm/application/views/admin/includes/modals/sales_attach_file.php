@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" tabindex="-1" id="sales_attach_file" role="dialog">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -13,11 +14,14 @@
                         <?php echo form_close(); ?>
                         <div class="row mtop15" id="sales_uploaded_files_preview">
                         </div>
-                        <div class="text-center">
+                        <div class="text-right">
+                        <button class="gpicker" data-on-pick="salesGoogleDriveSave">
+                            <i class="fa fa-google" aria-hidden="true"></i>
+                            <?php echo _l('choose_from_google_drive'); ?>
+                        </button>
                         <div id="dropbox-chooser-sales"></div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

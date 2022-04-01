@@ -1,7 +1,220 @@
+## 5.5.0
+* Add `scaExemption` to Transaction sale
+* Deprecate `deviceSessionId` and `fraudMerchantId` in `CreditCardGateway`, `CustomerGateway`, `PaymentMethodGateway`, and `TransactionGateway` classes
+* Add `installments` to Transaction sale
+* Add `count` to `installments`
+
+## 5.4.0
+* Add `AcquirerReferenceNumber` to `Transaction`
+* Add `billingAgreementId` to `PayPalDetails`
+* Deprecate `recurring` in Transaction sale
+* Deprecate `tag` in Dispute add text evidence
+
+## 5.3.1
+* Deprecate `masterpassCard` and `amexExpressCheckoutCard` payment methods
+* Deprecate `amexExpressCheckoutCardDetails`
+
+## 5.3.0
+* Add `RISK_THRESHOLD` to `GatewayRejectionReason` constants
+* Add `networkTransactionId` to `CreditCardVerification`
+* Add `processedWithNetworkToken` to `Transaction`
+* Add `isNetworkTokenized` to `CreditCard`
+* Add `productSku` to `Transaction`
+* Add `phoneNumber` and `shippingMethod` to `Address`
+* Add `customerDeviceId`, `customerLocationZip`, and `customerTenure` to `RiskData`
+* Add error codes
+  * `TRANSACTION_PRODUCT_SKU_IS_INVALID`
+  * `TRANSACTION_SHIPPING_METHOD_IS_INVALID`
+  * `TRANSACTION_SHIPPING_PHONE_NUMBER_IS_INVALID`
+  * `TRANSACTION_BILLING_PHONE_NUMBER_IS_INVALID`
+  * `RISK_DATA_CUSTOMER_BROWSER_IS_TOO_LONG`
+  * `RISK_DATA_CUSTOMER_DEVICE_ID_IS_TOO_LONG`
+  * `RISK_DATA_CUSTOMER_LOCATION_ZIP_INVALID_CHARACTERS`
+  * `RISK_DATA_CUSTOMER_LOCATION_ZIP_IS_INVALID`
+  * `RISK_DATA_CUSTOMER_LOCATION_ZIP_IS_TOO_LONG`
+  * `RISK_DATA_CUSTOMER_TENURE_IS_TOO_LONG`
+  * `RISK_DATA_CUSTOMER_TENURE_IS_INVALID`
+
+## 5.2.0
+* Add `retrieval_reference_number` to `Transaction`
+* Fix class alias issue where Exceptions could not be thrown for missing libraries or older PHP versions.
+* Fix issue where `proxyHost`, `proxyPort`, `proxyType`, `proxyUser`, `proxyPassword`, and `sslVersion` were not being set on Gateway or Configuration objects.
+
+## 5.1.0
+* Add `threeDSecurePassThru` parameters to `Customer.create`, `PaymentMethod.create`, `CreditCard.create`, `Customer.update`, `PaymentMethod.update` and `CreditCard.update` 
+* Add `recurringCustomerConsent` and `recurringMaxAmount` to `authenticationInsightOptions` for `PaymentMethodNonce.create`
+* Add `DOCUMENT_UPLOAD_FILE_IS_EMPTY` error code
+* phpDocs fixes (thanks @pupitooo)
+
+## 5.0.0
+* Add `DISPUTE_ACCEPTED`, `DISPUTE_DISPUTED`, and `DISPUTE_EXPIRED` webhook constants
+* Breaking Changes:
+  * Upgrade API version to retrieve declined refund transactions
+  * Throw `RequestTimeout` instead of `Timeout` for transaction search
+  * Drop PSR-0 Support and remove class aliases
+  * Remove EuropeBankAccount and IbanBankAccount modules
+  * Remove deprecated SEPA error codes
+  * Remove `paypalVaultWithoutUpgrade`
+  * Invalid transaction IDs are validated by the gateway and not the SDK
+
+## 4.8.0
+* Add `Authentication Insight` to payment method nonce create
+* Add `threeDSecureAuthenticationId` support to transaction sale
+* Add ThreeDSecure test payment method nonces
+* Add test `AuthenticationId`s
+
+## 4.7.0
+* Add `RefundAuthHardDeclined` and `RefundAuthSoftDeclined` to validation errors
+* Add level 2 processing options `purchaseOrderNumber`, `taxAmount`, and `taxExempt` to Transaction submit for settlement
+* Add level 3 processing options `discountAmount`, `shippingAmount`, `shipsFromPostalCode`, and `lineItems` to Transaction submit for settlement
+
+## 4.6.0
+* Add `isNetworkTokenized` to `AndroidPayCard` and `AndroidPayCardDetails`
+* Add GraphQL ID to `CreditCardVerification`, `Customer`, `Dispute`, and `Transaction`
+* Add support for PHP 7.4 (#262 thanks @slt)
+* Add `threeDSecurePassThru` params to PaymentMethod update
+
+## 4.5.0
+* Add `PROCESSOR_DOES_NOT_SUPPORT_MOTO_FOR_CARD_TYPE` to validation errors
+* Make errors JSON serializable (#256 thanks @sebdesign)
+
+## 4.4.0
+* Add `AMOUNT_NOT_SUPPORTED_BY_PROCESSOR` to validation errors
+* Forward `forwardedComments` to `processorComments`
+
+## 4.3.0
+* Add `PayPalHereDetails` to transactions
+* Add `network_response_code` and `network_response_text` to `Transaction` and `CreditCardVerification`
+* Add `xid`, `cavv`, `eciFlag`, `dsTransactionId`, and `threeDSecureVersion` to `ThreeDSecureInfo`
+* Add `threeDSecureInfo` to `CreditCardVerification`
+* Add `GraphQLClient` to `BraintreeGateway` class
+
+## 4.2.0
+* Add `captureId` to `LocalPaymentDetails`
+* Add `debugId` to `LocalPaymentDetails`
+* Add `refundId` to `LocalPaymentDetails`
+* Add `transactionFeeAmount` to `LocalPaymentDetails`
+* Add `transactionFeeCurrencyIsoCode` to `LocalPaymentDetails`
+* Add `refundFromTransactionFeeAmount` to `LocalPaymentDetails`
+* Add `refundFromTransactionFeeCurrencyIsoCode` to `LocalPaymentDetails`
+* Add `threeDSecureVersion`, `authenticationResponse`, `directoryResponse`, `cavvAlgorithm` and `dsTransactionId` to 3DS pass thru fields
+* Add `payerInfo` to `PaymentMethodNonce` details
+* Add `roomTax` field to Transaction sale
+* Add `noShow` field to Transaction sale
+* Add `advancedDeposit` field to Transaction sale
+* Add `fireSafe` field to Transaction sale
+* Add `propertyPhone` field to Transaction sale
+* Add `additionalCharges` field to Transaction sale
+* Add `PostalCodeIsRequiredForCardBrandAndProcessor` to validation errors
+
+## 4.1.0
+* Add `revokedAt` field to `PayPalAccount`
+* Add support for `PAYMENT_METHOD_REVOKED_BY_CUSTOMER` webhook
+* Add `payment_method_nonce` field to `LocalPaymentCompleted` webhook
+* Add `transaction` field to `LocalPaymentCompleted` webhook
+* Add `localPaymentDetail` to transactions
+* Add `TOKEN_ISSUANCE` gatewayRejectionReason enum to `Transaction`
+
+## 4.0.0
+* Add support for PHP 7 (Thanks to @briandotdev)
+* Require PHP 7.2 or higher
+* Remove support for HHVM and PHP 5
+* Update to PHPUnit 7
+* Remove deprecated `GRANTED_PAYMENT_INSTRUMENT_UPDATE`
+* Remove deprecated Coinbase payment method
+* Remove deprecated iDEAL payment method
+* Remove deprecated `MerchantAccountGateway` creation with `applicantDetails`. Please use `individual`, `business`, and `funding`.
+* When a `Customer` is created, the `customFields` property is always an array rather than potentially `null`.
+* Remove Transparent Redirect
+* Remove `riskData`, `applePay`, `applePayCard`, `threeDSecure`, and `venmo.profileId` snakecase attributes
+* HTTPS requests throw an `SSLCertificate` exception when related to SSL, otherwise a `Connection` exception is thrown.
+* Rename `DownForMaintence` Exception to `ServiceUnavailable`. Throw `Timeout` exception for transaction search errors instead of `DownForMaintenance`.
+* Add `RequestTimeout` and `GatewayTimeout` exceptions.
+* Add `revokedAt` field to `PayPalAccount`
+* Add support for `PAYMENT_METHOD_REVOKED_BY_CUSTOMER` webhook
+
+## 3.40.0
+* Deprecate `GRANTED_PAYMENT_INSTRUMENT_UPDATE` and add `GRANTOR_UPDATED_GRANTED_PAYMENT_METHOD` and `RECIPIENT_UPDATED_GRANTED_PAYMENT_METHOD`
+* Add `accountType` field to `TransactionGateway`, `CreditCardGateway`, `PaymentMethodGateway`, and `CreditCardVerification`.
+* Add Hiper and Hipercard test numbers.
+* Add `refundFromTransactionFeeAmount` field to `PayPalDetails`
+* Add `refundFromTransactionFeeCurrencyIsoCode` field to `PayPalDetails`
+
+## 3.39.0
+* Add `bin` field to `paymentMethodNonceDetails`
+* Add Error indicating pdf uploads too long for dispute evidence.
+* Add `GrantedPaymentMethodRevoked` webhook response objects
+
+## 3.38.0
+* Add `fraudServiceProvider` field in `riskData`
+* Fix issue where merchant reporting calls would throw an exception in PHP 7 (#236)
+
+## 3.37.0
+* Add `processorResponseType` to `Transaction`, `AuthorizationAdjustment`, and `CreditCardVerification`.
+* Add `authorizationExpiresAt` to `Transaction`
+* Add support for additional PayPal options when vaulting a PayPal Order during customer update
+* Allow PayPal payment ID and payer ID to be passed during transaction create
+* Add `travel_flight` support to industry-specific data
+
+## 3.36.0
+* Fix dispute results in transactions not showing the correct status sometimes
+* Add `externalVault` option to transaction sale
+* Add `LocalPaymentCompleted` webhook
+
+## 3.35.0
+* Add subscription charged unsuccessfully sample webhook to webhook testing gateway
+* Add `processor_response_code` and `processor_response_text` to authorization adjustments subfield in transaction response.
+* Fix issue where result objects could not be printed with `echo` (thanks @cmeon)
+* Add Samsung Pay support
+
+## 3.34.0
+* Allow payee ID to be passed in options params for transaction create
+* Add `merchant_id` to `ConnectedMerchantStatusTransitioned` and `ConnectedMerchantPayPalStatusChanged` Auth webhooks
+* Fix webhook testing sample xml for dispute webhooks to include `amount-won` and `amount-disputed` (closes #225)
+
+## 3.33.0
+* Fix WebhookTestingGateway to use local configuration
+* Add Disbursement type field and methods
+
+## 3.32.0
+* Add support for US Bank Account verifications API
+
+## 3.31.0
+* Fix issue where webhook verification would fail due to missing global public key configuration value
+* Fix issue where webhook testing did not work on instantiated gateway
+* Add support for VCR compelling evidence dispute representment
+
+## 3.30.0
+* Add `oauthAccessRevocation` to `WebhookNotification`s
+* Add support for `profileId` in Transaction#create options for VenmoAccounts
+* Add support for dispute search by `customerId`, `disbursementDate`, and `effectiveDate`
+* Make `CustomerGateway::find` backward compatible
+* Remove `sepaMandateType` and `sepaMandateAcceptanceLocation` params from `ClientTokenGateway`
+
+## 3.29.0
+* Add support for `association_filter_id` in `Customer#find`
+* Add support for setting `timeout` and `acceptGzipEncoding` values on construction of `Configuration` instances
+
+## 3.28.0
+* Add support for Level 3 summary parameters: `shippingAmount`, `discountAmount`, and `shipsFromPostalCode`
+* Add support for `tax_amount` field on transaction `line_items`
+* Add `sourceMerchantId` property to `WebhookNotification`s if present
+* Deprecate `TRANSACTION_LINE_ITEM_DISCOUNT_AMOUNT_MUST_BE_GREATER_THAN_ZERO` error in favor of `TRANSACTION_LINE_ITEM_DISCOUNT_AMOUNT_CANNOT_BE_NEGATIVE`.
+* Deprecate `TRANSACTION_LINE_ITEM_UNIT_TAX_AMOUNT_MUST_BE_GREATER_THAN_ZERO` error in favor of `TRANSACTION_LINE_ITEM_UNIT_TAX_AMOUNT_CANNOT_BE_NEGATIVE`.
+* Deprecate `Braintree\Transaction\LineItem` in favor of `Braintree\TransactionLineItem`.
+* Add `findAll` static method to `TransactionLineItem` class
+* Add support for `profile_id` in Transaction#create options for VenmoAccounts
+
+## 3.27.0
+* Add support for Level 3 summary parameters: `shippingAmount`, `discountAmount`, and `shipsFromPostalCode`
+* Add support for transaction line items
+* Add support for tagged evidence in `DisputeGateway::addTextEvidence` (Beta release)
+* Update https certificate bundle
+
 ## 3.26.1
-* Deprecate `OAuthGateway::computeSignature` (TODO FOR RELEASER: update version in `lib/Braintree/OAuthGateway.php`)
+* Deprecate `OAuthGateway::computeSignature`
 * Fix spec to expect PayPal transactions to move to settling rather than settled
-* Fix AchMandate accetedAt attribute parsing
+* Fix AchMandate acceptedAt attribute parsing
 
 ## 3.26.0
 * Add support for upgrading a PayPal future payment refresh token to a billing agreement
@@ -223,7 +436,7 @@
 * Allow payee_email to be passed in options params for Transaction create
 
 ## 2.31.0
-* Added paypal specific fields to transaction calls               
+* Added paypal specific fields to transaction calls
 * Added SettlementPending, SettlementDeclined transaction statuses
 
 ## 2.30.0
@@ -442,7 +655,7 @@
 
 ## 2.4.0
 
-* Added ability to specify country using countryName, countryCodeAlpha2, countryCodeAlpha3, or countryCodeNumeric (see [ISO_3166-1](http://en.wikipedia.org/wiki/ISO_3166-1))
+* Added ability to specify country using countryName, countryCodeAlpha2, countryCodeAlpha3, or countryCodeNumeric (see [ISO_3166-1](https://en.wikipedia.org/wiki/ISO_3166-1))
 * Added gatewayRejectionReason to Braintree_Transaction and Braintree_Verification
 * Added unified message to result objects
 
@@ -477,7 +690,7 @@
 
 * Updated success? on transaction responses to return false on declined transactions
 * Search results now include Enumerable and will automatically paginate data
-* Added credit_card[cardholder_name] to allowed transaction params and CreditCardDetails (thanks [chrismcc](http://github.com/chrismcc))
+* Added credit_card[cardholder_name] to allowed transaction params and CreditCardDetails (thanks [chrismcc](https://github.com/chrismcc))
 * Fixed a bug with Customer::all
 * Added constants for error codes
 

@@ -73,7 +73,7 @@ class Migration_Version_107 extends CI_Migration
         }
 
         if (!is_dir(CLIENT_ATTACHMENTS_FOLDER)) {
-            mkdir(CLIENT_ATTACHMENTS_FOLDER);
+            mkdir(CLIENT_ATTACHMENTS_FOLDER, 0755);
             fopen(CLIENT_ATTACHMENTS_FOLDER . '.htaccess', 'w');
             $fp = fopen(CLIENT_ATTACHMENTS_FOLDER . '.htaccess', 'a+');
             if ($fp) {
@@ -92,12 +92,12 @@ class Migration_Version_107 extends CI_Migration
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;");
 
-        $customers   = $this->db->get('tblclients')->result_array();
+        $customers   = $this->db->get(db_prefix().'clients')->result_array();
         $permissions = get_contact_permissions();
 
         foreach ($customers as $customer) {
             foreach ($permissions as $permission) {
-                $this->db->insert('tblcustomerpermissions', array(
+                $this->db->insert(db_prefix().'customerpermissions', array(
                     'permission_id' => $permission['id'],
                     'userid' => $customer['userid']
                 ));
@@ -105,11 +105,11 @@ class Migration_Version_107 extends CI_Migration
         }
 
         $this->db->where('type', 'editor');
-        $editor_fields = $this->db->get('tblcustomfields')->result_array();
+        $editor_fields = $this->db->get(db_prefix().'customfields')->result_array();
 
         foreach ($editor_fields as $field) {
             $this->db->where('id', $field['id']);
-            $this->db->update('tblcustomfields', array(
+            $this->db->update(db_prefix().'customfields', array(
                 'type' => 'textarea'
             ));
         }
@@ -246,18 +246,18 @@ class Migration_Version_107 extends CI_Migration
         $this->db->query("ALTER TABLE `tblestimates` ADD `hash` VARCHAR(32) NULL AFTER `year`;");
 
         // get all estimates and insert hash
-        $estimates = $this->db->get('tblestimates')->result_array();
+        $estimates = $this->db->get(db_prefix().'estimates')->result_array();
         foreach ($estimates as $estimate) {
             $hash = md5(rand() . microtime());
             // Check if the key exists
             $this->db->where('hash', $hash);
-            $exists = $this->db->get('tblinvoices')->row();
+            $exists = $this->db->get(db_prefix().'invoices')->row();
             if ($exists) {
                 $hash = md5(rand() . microtime());
             }
 
             $this->db->where('id', $estimate['id']);
-            $this->db->update('tblestimates', array(
+            $this->db->update(db_prefix().'estimates', array(
                 'hash' => $hash
             ));
         }
@@ -271,10 +271,10 @@ class Migration_Version_107 extends CI_Migration
     PRIMARY KEY (`id`)
     ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;");
         // Get all reminders and set rel_type to client
-        $reminders = $this->db->get('tblreminders')->result_array();
+        $reminders = $this->db->get(db_prefix().'reminders')->result_array();
         foreach ($reminders as $reminder) {
             $this->db->where('id', $reminder['id']);
-            $this->db->update('tblreminders', array(
+            $this->db->update(db_prefix().'reminders', array(
                 'rel_type' => 'customer'
             ));
         }

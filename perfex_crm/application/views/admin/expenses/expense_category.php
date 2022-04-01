@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="expense-category-modal" tabindex="-1" role="dialog">
     <div class="modal-dialog">
         <?php echo form_open(admin_url('expenses/category'),array('id'=>'expense-category-form')); ?>
@@ -28,7 +29,7 @@
 </div><!-- /.modal -->
 <script>
   window.addEventListener('load',function(){
-     _validate_form($('#expense-category-form'),{name:'required'},manage_categories);
+     appValidateForm($('#expense-category-form'),{name:'required'},manage_categories);
         $('#expense-category-modal').on('hidden.bs.modal', function(event) {
             $('#additional').html('');
             $('#expense-category-modal input[name="name"]').val('');

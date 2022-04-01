@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
   <div class="content">
@@ -11,6 +12,7 @@
        </div>
      </div>
      <?php } ?>
+     <?php hooks()->do_action('before_staff_myprofile'); ?>
      <div class="col-md-5<?php if($this->input->get('notifications')){echo ' hide';} ?>">
       <div class="panel_s">
 
@@ -25,13 +27,13 @@
           <?php } ?>
           <div class="button-group mtop10 pull-right">
            <?php if(!empty($staff_p->facebook)){ ?>
-            <a href="<?php echo $staff_p->facebook; ?>" target="_blank" class="btn btn-default btn-icon"><i class="fa fa-facebook"></i></a>
+            <a href="<?php echo html_escape($staff_p->facebook); ?>" target="_blank" class="btn btn-default btn-icon"><i class="fa fa-facebook"></i></a>
             <?php } ?>
             <?php if(!empty($staff_p->linkedin)){ ?>
-            <a href="<?php echo $staff_p->linkedin; ?>" class="btn btn-default btn-icon"><i class="fa fa-linkedin"></i></a>
+            <a href="<?php echo html_escape($staff_p->linkedin); ?>" class="btn btn-default btn-icon"><i class="fa fa-linkedin"></i></a>
             <?php } ?>
             <?php if(!empty($staff_p->skype)){ ?>
-            <a href="skype:<?php echo $staff_p->skype; ?>" data-toggle="tooltip" title="<?php echo $staff_p->skype; ?>" target="_blank" class="btn btn-default btn-icon"><i class="fa fa-skype"></i></a>
+            <a href="skype:<?php echo html_escape($staff_p->skype); ?>" data-toggle="tooltip" title="<?php echo html_escape($staff_p->skype); ?>" target="_blank" class="btn btn-default btn-icon"><i class="fa fa-skype"></i></a>
             <?php } ?>
             <?php if(has_permission('staff','','edit') && has_permission('staff','','view')){ ?>
             <a href="<?php echo admin_url('staff/member/'.$staff_p->staffid); ?>" class="btn btn-default btn-icon"><i class="fa fa-pencil-square"></i></a>
@@ -76,6 +78,28 @@
          </div>
        </div>
      </div>
+     <?php if(($staff_p->staffid == get_staff_user_id() || is_admin()) && !$this->input->get('notifications')) { ?>
+       <div class="panel_s">
+        <div class="panel-body">
+         <h4 class="no-margin">
+          <?php echo _l('projects'); ?>
+        </h4>
+        <hr class="hr-panel-heading" />
+        <div class="_filters _hidden_inputs hidden staff_projects_filter">
+          <?php echo form_hidden('staff_id',$staff_p->staffid); ?>
+        </div>
+        <?php render_datatable(array(
+          _l('project_name'),
+          _l('project_start_date'),
+          _l('project_deadline'),
+          _l('project_status'),
+          ),'staff-projects',[], [
+              'data-last-order-identifier' => 'my-projects',
+              'data-default-order'  => get_table_last_order('my-projects'),
+          ]); ?>
+        </div>
+      </div>
+     <?php } ?>
    </div>
    <?php if ($staff_p->staffid == get_staff_user_id()){ ?>
    <div class="col-md-7<?php if($this->input->get('notifications')){echo ' col-md-offset-2';} ?>">
@@ -127,7 +151,7 @@
       }
       notifications += obj.description;
       notifications += '</div>';
-      notifications += '<small class="text-muted text-right text-has-action" data-toggle="tooltip" data-title="'+obj.full_date+'">' + obj.date + '</small>';
+      notifications += '<small class="text-muted text-right text-has-action" data-placement="right" data-toggle="tooltip" data-title="'+obj.full_date+'">' + obj.date + '</small>';
       if(obj.isread_inline == 0){
        notifications += '<a href="#" class="text-muted pull-right not-mark-as-read-inline notification-profile" onclick="set_notification_read_inline('+obj.id+')" data-placement="left" data-toggle="tooltip" data-title="<?php echo _l('mark_as_read'); ?>"><small><i class="fa fa-circle-thin" aria-hidden="true"></i></a></small>';
       }

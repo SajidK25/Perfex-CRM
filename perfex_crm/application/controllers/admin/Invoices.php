@@ -1,6 +1,8 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Invoices extends Admin_controller
+
+class Invoices extends AdminController
 {
     public function __construct()
     {
@@ -18,62 +20,84 @@ class Invoices extends Admin_controller
     /* List all invoices datatables */
     public function list_invoices($id = '')
     {
-        if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own')) {
+        if (!has_permission('invoices', '', 'view')
+            && !has_permission('invoices', '', 'view_own')
+            && get_option('allow_staff_view_invoices_assigned') == '0') {
             access_denied('invoices');
         }
 
         close_setup_menu();
 
         $this->load->model('payment_modes_model');
-        $data['payment_modes'] = $this->payment_modes_model->get('', array(), true);
-        $data['invoiceid'] = $id;
+        $data['payment_modes']        = $this->payment_modes_model->get('', [], true);
+        $data['invoiceid']            = $id;
         $data['title']                = _l('invoices');
         $data['invoices_years']       = $this->invoices_model->get_invoices_years();
         $data['invoices_sale_agents'] = $this->invoices_model->get_sale_agents();
         $data['invoices_statuses']    = $this->invoices_model->get_statuses();
-        $data['bodyclass']            = 'invoices_total_manual';
+        $data['bodyclass']            = 'invoices-total-manual';
         $this->load->view('admin/invoices/manage', $data);
+    }
+
+    /* List all recurring invoices */
+    public function recurring($id = '')
+    {
+        if (!has_permission('invoices', '', 'view')
+            && !has_permission('invoices', '', 'view_own')
+            && get_option('allow_staff_view_invoices_assigned') == '0') {
+            access_denied('invoices');
+        }
+
+        close_setup_menu();
+
+        $data['invoiceid']            = $id;
+        $data['title']                = _l('invoices_list_recurring');
+        $data['invoices_years']       = $this->invoices_model->get_invoices_years();
+        $data['invoices_sale_agents'] = $this->invoices_model->get_sale_agents();
+        $this->load->view('admin/invoices/recurring/list', $data);
     }
 
     public function table($clientid = '')
     {
-        if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own')) {
+        if (!has_permission('invoices', '', 'view')
+            && !has_permission('invoices', '', 'view_own')
+            && get_option('allow_staff_view_invoices_assigned') == '0') {
             ajax_access_denied();
         }
 
         $this->load->model('payment_modes_model');
-        $data['payment_modes'] = $this->payment_modes_model->get('', array(), true);
+        $data['payment_modes'] = $this->payment_modes_model->get('', [], true);
 
-        $this->app->get_table_data('invoices', array(
+        $this->app->get_table_data(($this->input->get('recurring') ? 'recurring_invoices' : 'invoices'), [
             'clientid' => $clientid,
-            'data' => $data,
-        ));
+            'data'     => $data,
+        ]);
     }
 
     public function client_change_data($customer_id, $current_invoice = '')
     {
         if ($this->input->is_ajax_request()) {
             $this->load->model('projects_model');
-            $data                     = array();
+            $data                     = [];
             $data['billing_shipping'] = $this->clients_model->get_customer_billing_and_shipping_details($customer_id);
             $data['client_currency']  = $this->clients_model->get_customer_default_currency($customer_id);
 
             $data['customer_has_projects'] = customer_has_projects($customer_id);
-            $data['billable_tasks']     = $this->tasks_model->get_billable_tasks($customer_id);
+            $data['billable_tasks']        = $this->tasks_model->get_billable_tasks($customer_id);
 
             if ($current_invoice != '') {
                 $this->db->select('status');
                 $this->db->where('id', $current_invoice);
-                $current_invoice_status = $this->db->get('tblinvoices')->row()->status;
+                $current_invoice_status = $this->db->get(db_prefix() . 'invoices')->row()->status;
             }
 
-            $_data['invoices_to_merge'] = !isset($current_invoice_status) || (isset($current_invoice_status) && $current_invoice_status != 5) ? $this->invoices_model->check_for_merge_invoice($customer_id, $current_invoice) : array();
+            $_data['invoices_to_merge'] = !isset($current_invoice_status) || (isset($current_invoice_status) && $current_invoice_status != Invoices_model::STATUS_CANCELLED) ? $this->invoices_model->check_for_merge_invoice($customer_id, $current_invoice) : [];
 
-            $data['merge_info']         = $this->load->view('admin/invoices/merge_invoice', $_data, true);
+            $data['merge_info'] = $this->load->view('admin/invoices/merge_invoice', $_data, true);
 
             $this->load->model('currencies_model');
 
-            $__data['expenses_to_bill'] = !isset($current_invoice_status) || (isset($current_invoice_status) && $current_invoice_status != 5) ? $this->invoices_model->get_expenses_to_bill($customer_id) : array();
+            $__data['expenses_to_bill'] = !isset($current_invoice_status) || (isset($current_invoice_status) && $current_invoice_status != Invoices_model::STATUS_CANCELLED) ? $this->invoices_model->get_expenses_to_bill($customer_id) : [];
 
             $data['expenses_bill_info'] = $this->load->view('admin/invoices/bill_expenses', $__data, true);
             echo json_encode($data);
@@ -82,17 +106,17 @@ class Invoices extends Admin_controller
 
     public function update_number_settings($id)
     {
-        $response = array(
+        $response = [
             'success' => false,
             'message' => '',
-        );
+        ];
         if (has_permission('invoices', '', 'edit')) {
             $affected_rows = 0;
 
             $this->db->where('id', $id);
-            $this->db->update('tblinvoices', array(
+            $this->db->update(db_prefix() . 'invoices', [
                 'prefix' => $this->input->post('prefix'),
-            ));
+            ]);
             if ($this->db->affected_rows() > 0) {
                 $affected_rows++;
             }
@@ -114,16 +138,19 @@ class Invoices extends Admin_controller
         $original_number = $this->input->post('original_number');
         $number          = trim($number);
         $number          = ltrim($number, '0');
+
         if ($isedit == 'true') {
             if ($number == $original_number) {
                 echo json_encode(true);
                 die;
             }
         }
-        if (total_rows('tblinvoices', array(
+
+        if (total_rows(db_prefix() . 'invoices', [
             'YEAR(date)' => date('Y', strtotime(to_sql_date($date))),
             'number' => $number,
-        )) > 0) {
+            'status !=' => Invoices_model::STATUS_DRAFT,
+        ]) > 0) {
             echo 'false';
         } else {
             echo 'true';
@@ -132,7 +159,7 @@ class Invoices extends Admin_controller
 
     public function add_note($rel_id)
     {
-        if ($this->input->post() && has_permission('invoices', '', 'view') || has_permission('invoices', '', 'view_own')) {
+        if ($this->input->post() && user_can_view_invoice($rel_id)) {
             $this->misc_model->add_note($this->input->post(), 'invoice', $rel_id);
             echo $rel_id;
         }
@@ -140,7 +167,7 @@ class Invoices extends Admin_controller
 
     public function get_notes($id)
     {
-        if (has_permission('invoices', '', 'view') || has_permission('invoices', '', 'view_own')) {
+        if (user_can_view_invoice($id)) {
             $data['notes'] = $this->misc_model->get_notes($id, 'invoice');
             $this->load->view('admin/includes/sales_notes_template', $data);
         }
@@ -150,18 +177,18 @@ class Invoices extends Admin_controller
     {
         if (has_permission('invoices', '', 'edit')) {
             $this->db->where('id', $id);
-            $this->db->update('tblinvoices', array('cancel_overdue_reminders'=> 1));
+            $this->db->update(db_prefix() . 'invoices', ['cancel_overdue_reminders' => 1]);
         }
-        redirect(admin_url('invoices/list_invoices/'.$id));
+        redirect(admin_url('invoices/list_invoices/' . $id));
     }
 
     public function resume_overdue_reminders($id)
     {
         if (has_permission('invoices', '', 'edit')) {
             $this->db->where('id', $id);
-            $this->db->update('tblinvoices', array('cancel_overdue_reminders'=> 0));
+            $this->db->update(db_prefix() . 'invoices', ['cancel_overdue_reminders' => 0]);
         }
-        redirect(admin_url('invoices/list_invoices/'.$id));
+        redirect(admin_url('invoices/list_invoices/' . $id));
     }
 
     public function mark_as_cancelled($id)
@@ -169,10 +196,13 @@ class Invoices extends Admin_controller
         if (!has_permission('invoices', '', 'edit') && !has_permission('invoices', '', 'create')) {
             access_denied('invoices');
         }
+
         $success = $this->invoices_model->mark_as_cancelled($id);
+
         if ($success) {
             set_alert('success', _l('invoice_marked_as_cancelled_successfully'));
         }
+
         redirect(admin_url('invoices/list_invoices/' . $id));
     }
 
@@ -209,15 +239,15 @@ class Invoices extends Admin_controller
     public function get_merge_data($id)
     {
         $invoice = $this->invoices_model->get($id);
-        $cf = get_custom_fields('items');
+        $cf      = get_custom_fields('items');
 
-        $i       = 0;
+        $i = 0;
 
         foreach ($invoice->items as $item) {
             $invoice->items[$i]['taxname']          = get_invoice_item_taxes($item['id']);
             $invoice->items[$i]['long_description'] = clear_textarea_breaks($item['long_description']);
             $this->db->where('item_id', $item['id']);
-            $rel              = $this->db->get('tblitemsrelated')->result_array();
+            $rel              = $this->db->get(db_prefix() . 'related_items')->result_array();
             $item_related_val = '';
             $rel_type         = '';
             foreach ($rel as $item_related) {
@@ -228,12 +258,12 @@ class Invoices extends Admin_controller
                 $item_related_val = substr($item_related_val, 0, -1);
             }
             $invoice->items[$i]['item_related_formatted_for_input'] = $item_related_val;
-            $invoice->items[$i]['rel_type']                        = $rel_type;
+            $invoice->items[$i]['rel_type']                         = $rel_type;
 
-            $invoice->items[$i]['custom_fields'] = array();
+            $invoice->items[$i]['custom_fields'] = [];
 
             foreach ($cf as $custom_field) {
-                $custom_field['value'] = get_custom_field_value($item['id'], $custom_field['id'], 'items');
+                $custom_field['value']                 = get_custom_field_value($item['id'], $custom_field['id'], 'items');
                 $invoice->items[$i]['custom_fields'][] = $custom_field;
             }
             $i++;
@@ -251,7 +281,7 @@ class Invoices extends Admin_controller
         $expense->description      = $expense->name;
         $expense->rate             = $expense->amount;
         if ($expense->tax != 0) {
-            $expense->taxname = array();
+            $expense->taxname = [];
             array_push($expense->taxname, $expense->tax_name . '|' . $expense->taxrate);
         }
         if ($expense->tax2 != 0) {
@@ -263,9 +293,6 @@ class Invoices extends Admin_controller
     /* Add new invoice or update existing */
     public function invoice($id = '')
     {
-        if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own')) {
-            access_denied('invoices');
-        }
         if ($this->input->post()) {
             $invoice_data = $this->input->post();
             if ($id == '') {
@@ -275,7 +302,15 @@ class Invoices extends Admin_controller
                 $id = $this->invoices_model->add($invoice_data);
                 if ($id) {
                     set_alert('success', _l('added_successfully', _l('invoice')));
-                    redirect(admin_url('invoices/list_invoices/' . $id));
+                    $redUrl = admin_url('invoices/list_invoices/' . $id);
+
+                    if (isset($invoice_data['save_and_record_payment'])) {
+                        $this->session->set_userdata('record_payment', true);
+                    } elseif (isset($invoice_data['save_and_send_later'])) {
+                        $this->session->set_userdata('send_later', true);
+                    }
+
+                    redirect($redUrl);
                 }
             } else {
                 if (!has_permission('invoices', '', 'edit')) {
@@ -290,42 +325,42 @@ class Invoices extends Admin_controller
         }
         if ($id == '') {
             $title                  = _l('create_new_invoice');
-            $data['billable_tasks'] = array();
+            $data['billable_tasks'] = [];
         } else {
             $invoice = $this->invoices_model->get($id);
 
-            if (!$invoice || (!has_permission('invoices', '', 'view') && $invoice->addedfrom != get_staff_user_id())) {
-                blank_page(_l('invoice_not_found'), 'danger');
+            if (!$invoice || !user_can_view_invoice($id)) {
+                blank_page(_l('invoice_not_found'));
             }
 
-            $data['invoices_to_merge']          = $this->invoices_model->check_for_merge_invoice($invoice->clientid, $invoice->id);
-            $data['expenses_to_bill']           = $this->invoices_model->get_expenses_to_bill($invoice->clientid);
+            $data['invoices_to_merge'] = $this->invoices_model->check_for_merge_invoice($invoice->clientid, $invoice->id);
+            $data['expenses_to_bill']  = $this->invoices_model->get_expenses_to_bill($invoice->clientid);
 
             $data['invoice']        = $invoice;
             $data['edit']           = true;
-            $data['billable_tasks'] = $this->tasks_model->get_billable_tasks($invoice->clientid,!empty($invoice->project_id) ? $invoice->project_id : '');
+            $data['billable_tasks'] = $this->tasks_model->get_billable_tasks($invoice->clientid, !empty($invoice->project_id) ? $invoice->project_id : '');
 
-            $title                  = _l('edit', _l('invoice_lowercase')) . ' - ' . format_invoice_number($invoice->id);
+            $title = _l('edit', _l('invoice_lowercase')) . ' - ' . format_invoice_number($invoice->id);
         }
 
         if ($this->input->get('customer_id')) {
-            $data['customer_id']        = $this->input->get('customer_id');
+            $data['customer_id'] = $this->input->get('customer_id');
         }
 
         $this->load->model('payment_modes_model');
-        $data['payment_modes'] = $this->payment_modes_model->get('', array(
+        $data['payment_modes'] = $this->payment_modes_model->get('', [
             'expenses_only !=' => 1,
-        ));
+        ]);
 
         $this->load->model('taxes_model');
         $data['taxes'] = $this->taxes_model->get();
         $this->load->model('invoice_items_model');
 
         $data['ajaxItems'] = false;
-        if (total_rows('tblitems') <= ajax_on_total_items()) {
-            $data['items']        = $this->invoice_items_model->get_grouped();
+        if (total_rows(db_prefix() . 'items') <= ajax_on_total_items()) {
+            $data['items'] = $this->invoice_items_model->get_grouped();
         } else {
-            $data['items'] = array();
+            $data['items']     = [];
             $data['ajaxItems'] = true;
         }
         $data['items_groups'] = $this->invoice_items_model->get_groups();
@@ -335,64 +370,48 @@ class Invoices extends Admin_controller
 
         $data['base_currency'] = $this->currencies_model->get_base_currency();
 
-        $data['staff']             = $this->staff_model->get('', 1);
-        $data['title']             = $title;
-        $data['bodyclass']         = 'invoice';
+        $data['staff']     = $this->staff_model->get('', ['active' => 1]);
+        $data['title']     = $title;
+        $data['bodyclass'] = 'invoice';
         $this->load->view('admin/invoices/invoice', $data);
     }
 
     /* Get all invoice data used when user click on invoiec number in a datatable left side*/
     public function get_invoice_data_ajax($id)
     {
-        if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own')) {
+        if (!has_permission('invoices', '', 'view')
+            && !has_permission('invoices', '', 'view_own')
+            && get_option('allow_staff_view_invoices_assigned') == '0') {
             echo _l('access_denied');
             die;
         }
+
         if (!$id) {
             die(_l('invoice_not_found'));
         }
+
         $invoice = $this->invoices_model->get($id);
 
-        if (!$invoice || (!has_permission('invoices', '', 'view') && $invoice->addedfrom != get_staff_user_id())) {
+        if (!$invoice || !user_can_view_invoice($id)) {
             echo _l('invoice_not_found');
             die;
         }
-        $invoice->date    = _d($invoice->date);
-        $invoice->duedate = _d($invoice->duedate);
-        $template_name    = 'invoice-send-to-client';
+
+        $template_name = 'invoice_send_to_customer';
+
         if ($invoice->sent == 1) {
-            $template_name = 'invoice-already-send';
+            $template_name = 'invoice_send_to_customer_already_sent';
         }
 
-        $template_name = do_action('after_invoice_sent_template_statement', $template_name);
+        $data = prepare_mail_preview_data($template_name, $invoice->clientid);
 
-        $contact = $this->clients_model->get_contact(get_primary_contact_user_id($invoice->clientid));
-        $email   = '';
-        if ($contact) {
-            $email = $contact->email;
-        }
-
-        $data['template'] = get_email_template_for_sending($template_name, $email);
-
-        $data['invoices_to_merge'] = $this->invoices_model->check_for_merge_invoice($invoice->clientid, $id);
-        $data['template_name']     = $template_name;
-        $this->db->where('slug', $template_name);
-        $this->db->where('language', 'english');
-        $template_result = $this->db->get('tblemailtemplates')->row();
-
-        $data['template_system_name'] = $template_result->name;
-        $data['template_id'] = $template_result->emailtemplateid;
-
-        $data['template_disabled'] = false;
-        if (total_rows('tblemailtemplates', array('slug'=>$data['template_name'], 'active'=>0)) > 0) {
-            $data['template_disabled'] = true;
-        }
         // Check for recorded payments
         $this->load->model('payments_model');
-        $data['members']  = $this->staff_model->get('', 1);
-        $data['payments'] = $this->payments_model->get_invoice_payments($id);
-        $data['activity'] = $this->invoices_model->get_invoice_activity($id);
-        $data['totalNotes'] = total_rows('tblnotes', array('rel_id'=>$id, 'rel_type'=>'invoice'));
+        $data['invoices_to_merge']          = $this->invoices_model->check_for_merge_invoice($invoice->clientid, $id);
+        $data['members']                    = $this->staff_model->get('', ['active' => 1]);
+        $data['payments']                   = $this->payments_model->get_invoice_payments($id);
+        $data['activity']                   = $this->invoices_model->get_invoice_activity($id);
+        $data['totalNotes']                 = total_rows(db_prefix() . 'notes', ['rel_id' => $id, 'rel_type' => 'invoice']);
         $data['invoice_recurring_invoices'] = $this->invoices_model->get_invoice_recurring_invoices($id);
 
         $data['applied_credits'] = $this->credit_notes_model->get_applied_invoice_credits($id);
@@ -415,17 +434,29 @@ class Invoices extends Admin_controller
         }
 
         $data['invoice'] = $invoice;
+
+        $data['record_payment'] = false;
+        $data['send_later']     = false;
+
+        if ($this->session->has_userdata('record_payment')) {
+            $data['record_payment'] = true;
+            $this->session->unset_userdata('record_payment');
+        } elseif ($this->session->has_userdata('send_later')) {
+            $data['send_later'] = true;
+            $this->session->unset_userdata('send_later');
+        }
+
         $this->load->view('admin/invoices/invoice_preview_template', $data);
     }
 
     public function apply_credits($invoice_id)
     {
         $total_credits_applied = 0;
-        foreach ($this->input->post('amount') as $credit_id=>$amount) {
-            $success = $this->credit_notes_model->apply_credits($credit_id, array(
-            'invoice_id'=>$invoice_id,
-            'amount'=>$amount,
-        ));
+        foreach ($this->input->post('amount') as $credit_id => $amount) {
+            $success = $this->credit_notes_model->apply_credits($credit_id, [
+            'invoice_id' => $invoice_id,
+            'amount'     => $amount,
+        ]);
             if ($success) {
                 $total_credits_applied++;
             }
@@ -435,7 +466,7 @@ class Invoices extends Admin_controller
             update_invoice_status($invoice_id, true);
             set_alert('success', _l('invoice_credits_applied'));
         }
-        redirect(admin_url('invoices/list_invoices/'.$invoice_id));
+        redirect(admin_url('invoices/list_invoices/' . $invoice_id));
     }
 
     public function get_invoices_total()
@@ -450,11 +481,11 @@ class Invoices extends Admin_controller
     {
         $this->load->model('payment_modes_model');
         $this->load->model('payments_model');
-        $data['payment_modes'] = $this->payment_modes_model->get('', array(
+        $data['payment_modes'] = $this->payment_modes_model->get('', [
             'expenses_only !=' => 1,
-        ));
-        $data['invoice']       = $invoice = $this->invoices_model->get($id);
-        $data['payments']      = $this->payments_model->get_invoice_payments($id);
+        ]);
+        $data['invoice']  = $this->invoices_model->get($id);
+        $data['payments'] = $this->payments_model->get_invoice_payments($id);
         $this->load->view('admin/invoices/record_payment_template', $data);
     }
 
@@ -477,13 +508,43 @@ class Invoices extends Admin_controller
         }
     }
 
-    /* Send invoiece to email */
+    /* Send invoice to email */
     public function send_to_email($id)
     {
-        if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own')) {
-            access_denied('invoices');
+        $canView = user_can_view_invoice($id);
+        if (!$canView) {
+            access_denied('Invoices');
+        } else {
+            if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own') && $canView == false) {
+                access_denied('Invoices');
+            }
         }
-        $success = $this->invoices_model->send_invoice_to_client($id, '', $this->input->post('attach_pdf'), $this->input->post('cc'));
+
+        try {
+            $statementData = [];
+            if ($this->input->post('attach_statement')) {
+                $statementData['attach'] = true;
+                $statementData['from']   = to_sql_date($this->input->post('statement_from'));
+                $statementData['to']     = to_sql_date($this->input->post('statement_to'));
+            }
+
+            $success = $this->invoices_model->send_invoice_to_client(
+                $id,
+                '',
+                $this->input->post('attach_pdf'),
+                $this->input->post('cc'),
+                false,
+                $statementData
+            );
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            echo $message;
+            if (strpos($message, 'Unable to get the size of the image') !== false) {
+                show_pdf_unable_to_get_image_size_error();
+            }
+            die;
+        }
+
         // In case client use another language
         load_admin_language();
         if ($success) {
@@ -551,9 +612,15 @@ class Invoices extends Admin_controller
     /* Will send overdue notice to client */
     public function send_overdue_notice($id)
     {
-        if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own')) {
-            access_denied('invoices');
+        $canView = user_can_view_invoice($id);
+        if (!$canView) {
+            access_denied('Invoices');
+        } else {
+            if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own') && $canView == false) {
+                access_denied('Invoices');
+            }
         }
+
         $send = $this->invoices_model->send_invoice_overdue_notice($id);
         if ($send) {
             set_alert('success', _l('invoice_overdue_reminder_sent'));
@@ -566,18 +633,25 @@ class Invoices extends Admin_controller
     /* Generates invoice PDF and senting to email of $send_to_email = true is passed */
     public function pdf($id)
     {
-        if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own')) {
-            access_denied('invoices');
-        }
         if (!$id) {
             redirect(admin_url('invoices/list_invoices'));
         }
+
+        $canView = user_can_view_invoice($id);
+        if (!$canView) {
+            access_denied('Invoices');
+        } else {
+            if (!has_permission('invoices', '', 'view') && !has_permission('invoices', '', 'view_own') && $canView == false) {
+                access_denied('Invoices');
+            }
+        }
+
         $invoice        = $this->invoices_model->get($id);
-        $invoice = do_action('before_admin_view_invoice_pdf', $invoice);
+        $invoice        = hooks()->apply_filters('before_admin_view_invoice_pdf', $invoice);
         $invoice_number = format_invoice_number($invoice->id);
 
         try {
-            $pdf            = invoice_pdf($invoice);
+            $pdf = invoice_pdf($invoice);
         } catch (Exception $e) {
             $message = $e->getMessage();
             echo $message;
@@ -587,7 +661,12 @@ class Invoices extends Admin_controller
             die;
         }
 
-        $type           = 'D';
+        $type = 'D';
+
+        if ($this->input->get('output_type')) {
+            $type = $this->input->get('output_type');
+        }
+
         if ($this->input->get('print')) {
             $type = 'I';
         }
@@ -600,12 +679,18 @@ class Invoices extends Admin_controller
         if (!$id) {
             redirect(admin_url('invoices/list_invoices'));
         }
+        if (!user_can_view_invoice($id)) {
+            access_denied('Invoice Mark As Sent');
+        }
+
         $success = $this->invoices_model->set_invoice_sent($id, true);
+
         if ($success) {
             set_alert('success', _l('invoice_marked_as_sent'));
         } else {
             set_alert('warning', _l('invoice_marked_as_sent_failed'));
         }
+
         redirect(admin_url('invoices/list_invoices/' . $id));
     }
 

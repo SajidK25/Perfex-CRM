@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
     <div class="content">
@@ -5,7 +6,13 @@
             <div class="col-md-7">
                 <div class="panel_s">
                     <div class="panel-body tc-content">
-                      <h4 class="bold no-margin"><?php echo $announcement->name; ?></h4>
+                      <h4 class="bold no-margin"><?php echo $announcement->name; ?>
+                        <?php if (is_admin()) { ?>
+                          <a href="<?php echo admin_url('announcements/announcement/' . $announcement->announcementid); ?>" class="pull-right">
+                            <small><?php echo _l('edit'); ?></small>
+                          </a>
+                        <?php } ?>
+                      </h4>
                       <p class="text-muted mtop10 no-mbot"><?php echo _l('announcement_date',_dt($announcement->dateadded)); ?></p>
                       <?php if($announcement->showname == 1){ ?>
                       <p class="text-muted no-margin"><?php echo _l('announcement_from') . ' ' . $announcement->userid; ?></p>

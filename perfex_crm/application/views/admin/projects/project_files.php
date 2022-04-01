@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php echo form_open_multipart(admin_url('projects/upload_file/'.$project->id),array('class'=>'dropzone','id'=>'project-files-upload')); ?>
 <input type="file" name="file" multiple />
 <?php echo form_close(); ?>
@@ -6,10 +7,15 @@
   <input type="checkbox" name="visible_to_customer" id="pf_visible_to_customer" class="onoffswitch-checkbox">
   <label class="onoffswitch-label" for="pf_visible_to_customer"></label>
 </div>
-<div class="text-right pull-right">
-  <div id="dropbox-chooser" style="margin-top:-25px;"></div>
+<div class="text-right" style="margin-top:-25px;">
+   <button class="gpicker" data-on-pick="projectFileGoogleDriveSave">
+    <i class="fa fa-google" aria-hidden="true"></i>
+    <?php echo _l('choose_from_google_drive'); ?>
+  </button>
+  <div id="dropbox-chooser"></div>
 </div>
-<div class="clearfix mtop25"></div>
+<div class="clearfix"></div>
+<div class="mtop25"></div>
 <div class="modal fade bulk_actions" id="project_files_bulk_actions" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -47,7 +53,7 @@
 </a>
 <a href="#" onclick="window.location.href = '<?php echo admin_url('projects/download_all_files/'.$project->id); ?>'; return false;" class="table-btn hide" data-table=".table-project-files"><?php echo _l('download_all'); ?></a>
 <div class="clearfix"></div>
-<table class="table dt-table scroll-responsive table-project-files" data-order-col="7" data-order-type="desc">
+<table class="table dt-table table-project-files" data-order-col="7" data-order-type="desc">
   <thead>
     <tr>
       <th data-orderable="false"><span class="hide"> - </span><div class="checkbox mass_select_all_wrap"><input type="checkbox" id="mass_select_all" data-to-table="project-files"><label></label></div></th>
@@ -90,7 +96,7 @@
             }
             ?>
           </td>
-          <?php $total_file_comments = total_rows('tblprojectdiscussioncomments',array('discussion_id'=>$file['id'],'discussion_type'=>'file')); ?>
+          <?php $total_file_comments = total_rows(db_prefix().'projectdiscussioncomments',array('discussion_id'=>$file['id'],'discussion_type'=>'file')); ?>
           <td data-order="<?php echo $total_file_comments; ?>">
             <?php echo $total_file_comments; ?>
           </td>
@@ -122,8 +128,14 @@
          </td>
          <td data-order="<?php echo $file['dateadded']; ?>"><?php echo _dt($file['dateadded']); ?></td>
          <td>
-           <?php if(empty($file['external'])){ ?>
-           <button type="button" data-toggle="modal" data-original-file-name="<?php echo $file['file_name']; ?>" data-filetype="<?php echo $file['filetype']; ?>" data-path="<?php echo PROJECT_ATTACHMENTS_FOLDER .$project->id.'/'.$file['file_name']; ?>" data-target="#send_file" class="btn btn-info btn-icon"><i class="fa fa-envelope"></i></button>
+           <?php if(empty($file['external'])){
+               $file_name = $file['original_file_name'] != '' ? $file['original_file_name'] : $file['file_name'];
+               ?>
+           <button type="button" data-toggle="modal"
+                   data-original-file-name="<?php echo $file_name; ?>"
+                   data-filetype="<?php echo $file['filetype']; ?>"
+                   data-path="<?php echo PROJECT_ATTACHMENTS_FOLDER .$project->id.'/'.$file['file_name']; ?>"
+                   data-target="#send_file" class="btn btn-info btn-icon"><i class="fa fa-envelope"></i></button>
            <?php } ?>
            <?php if($file['staffid'] == get_staff_user_id() || has_permission('projects','','delete')){ ?>
            <a href="<?php echo admin_url('projects/remove_file/'.$project->id.'/'.$file['id']); ?>" class="btn btn-danger btn-icon _delete"><i class="fa fa-remove"></i></a>

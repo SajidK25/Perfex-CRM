@@ -49,19 +49,19 @@ class Migration_Version_195 extends CI_Migration
 
         $this->db->where('language', 'english');
         $this->db->where('slug', 'task-added-attachment');
-        $this->db->update('tblemailtemplates', array('name'=>'New Attachment(s) on Task (Sent to Staff)'));
+        $this->db->update(db_prefix().'emailtemplates', array('name'=>'New Attachment(s) on Task (Sent to Staff)'));
 
         $this->db->where('language', 'english');
         $this->db->where('slug', 'new-project-file-uploaded-to-customer');
-        $this->db->update('tblemailtemplates', array('name'=>'New Project File(s) Uploaded (Sent to Customer Contacts)'));
+        $this->db->update(db_prefix().'emailtemplates', array('name'=>'New Project File(s) Uploaded (Sent to Customer Contacts)'));
 
         $this->db->where('language', 'english');
         $this->db->where('slug', 'new-project-file-uploaded-to-staff');
-        $this->db->update('tblemailtemplates', array('name'=>'New Project File(s) Uploaded (Sent to Project Members)'));
+        $this->db->update(db_prefix().'emailtemplates', array('name'=>'New Project File(s) Uploaded (Sent to Project Members)'));
 
         $this->db->where('language', 'english');
         $this->db->where('slug', 'task-added-attachment-to-contacts');
-        $this->db->update('tblemailtemplates', array('name'=>'New Attachment(s) on Task (Sent to Customer Contacts)'));
+        $this->db->update(db_prefix().'emailtemplates', array('name'=>'New Attachment(s) on Task (Sent to Customer Contacts)'));
 
         $this->db->query("INSERT INTO `tblemailtemplates` (`type`, `slug`, `language`, `name`, `subject`, `message`, `fromname`, `fromemail`, `plaintext`, `active`, `order`) VALUES
 ('credit_note', 'credit-note-send-to-client', 'english', 'Send Credit Note To Email', 'Credit Note With Number #{credit_note_number} Created', 'Dear&nbsp;{contact_firstname}&nbsp;{contact_lastname}<br /><br />We have attached the credit note with number <strong>#{credit_note_number} </strong>for your reference.<br /><br /><strong>Date:</strong>&nbsp;{credit_note_date}<br /><strong>Total Amount:</strong>&nbsp;{credit_note_total}<br /><br /><span style=\"font-size: 12pt;\">Please contact us for more information.</span><br /> <br /><span style=\"font-size: 12pt;\">Kind Regards,</span><br /><span style=\"font-size: 12pt;\">{email_signature}</span>', '{companyname} | CRM', '', 0, 1, 1);");
@@ -138,7 +138,7 @@ class Migration_Version_195 extends CI_Migration
         ), 'sales');
 
         if (!is_dir(CREDIT_NOTES_ATTACHMENTS_FOLDER)) {
-            mkdir(CREDIT_NOTES_ATTACHMENTS_FOLDER);
+            mkdir(CREDIT_NOTES_ATTACHMENTS_FOLDER, 0755);
             fopen(CREDIT_NOTES_ATTACHMENTS_FOLDER . '.htaccess', 'w');
             $fp = fopen(CREDIT_NOTES_ATTACHMENTS_FOLDER.'.htaccess', 'a+');
             if ($fp) {

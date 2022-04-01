@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="task-tracking-stats-modal" tabindex="-1" role="dialog">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -17,5 +18,5 @@
 </div>
 <!-- /.modal -->
 <script>
-    task_tracking_stats_data = <?php echo $stats; ?>;
+    taskTrackingStatsData = <?php echo $stats; ?>;
 </script>

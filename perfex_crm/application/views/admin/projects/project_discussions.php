@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php if(!isset($discussion)){ ?>
 <a href="#" onclick="new_discussion();return false;" class="btn btn-info mbot25"><?php echo _l('new_project_discussion'); ?></a>
 <?php
@@ -7,7 +8,6 @@
      _l('project_discussion_last_activity'),
      _l('project_discussion_total_comments'),
      _l('project_discussion_show_to_customer'),
-     _l('options'),
      ),'project-discussions'); ?>
 <?php } else { ?>
 <h3 class="bold no-margin"><?php echo $discussion->subject; ?></h3>
@@ -21,8 +21,8 @@
         }
         ?>
 </p>
-<p><?php echo _l('project_discussion_total_comments'); ?>: <?php echo total_rows('tblprojectdiscussioncomments',array('discussion_id'=>$discussion->id)); ?>
+<p><?php echo _l('project_discussion_total_comments'); ?>: <?php echo total_rows(db_prefix().'projectdiscussioncomments',array('discussion_id'=>$discussion->id, 'discussion_type'=>'regular')); ?></p>
 <p class="text-muted"><?php echo $discussion->description; ?></p>
 <hr />
-<div id="discussion-comments"></div>
+<div id="discussion-comments" class="tc-content"></div>
 <?php } ?>

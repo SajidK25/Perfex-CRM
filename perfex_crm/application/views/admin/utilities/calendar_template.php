@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade _event" id="newEventModal">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -11,9 +12,10 @@
           <div class="col-md-12">
             <?php echo render_input('title','utility_calendar_new_event_placeholder'); ?>
             <?php echo render_textarea('description','event_description','',array('rows'=>5)); ?>
-            <?php echo render_datetime_input('start','utility_calendar_new_event_start_date'); ?>
+            <?php echo render_datetime_input('start','utility_calendar_new_event_start_date', '', ['data-step' => 30]); ?>
             <div class="clearfix mtop15"></div>
-            <?php echo render_datetime_input('end','utility_calendar_new_event_end_date'); ?>
+            <?php echo render_datetime_input('end','utility_calendar_new_event_end_date', '', ['data-step' => 30]); ?>
+             <?php if(is_email_template_active('event-notification-to-staff')){ ?>
             <div class="form-group">
              <div class="row">
               <div class="col-md-12">
@@ -35,6 +37,7 @@
              </div>
            </div>
          </div>
+       <?php } ?>
          <hr />
          <p class="bold"><?php echo _l('event_color'); ?></p>
          <?php

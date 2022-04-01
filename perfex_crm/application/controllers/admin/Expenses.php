@@ -1,6 +1,8 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Expenses extends Admin_controller
+
+class Expenses extends AdminController
 {
     public function __construct()
     {
@@ -21,23 +23,28 @@ class Expenses extends Admin_controller
             access_denied('expenses');
         }
 
-        $data['expenseid'] = $id;
-        $data['categories'] = $this->expenses_model->get_category();
-        $data['years']      = $this->expenses_model->get_expenses_years();
-        $data['title']      = _l('expenses');
+        $this->load->model('payment_modes_model');
+        $data['payment_modes'] = $this->payment_modes_model->get('', [], true);
+        $data['expenseid']     = $id;
+        $data['categories']    = $this->expenses_model->get_category();
+        $data['years']         = $this->expenses_model->get_expenses_years();
+        $data['title']         = _l('expenses');
 
         $this->load->view('admin/expenses/manage', $data);
     }
 
-    public function table($clientid = ''){
-
-       if (!has_permission('expenses', '', 'view') && !has_permission('expenses', '', 'view_own')) {
-             ajax_access_denied();
+    public function table($clientid = '')
+    {
+        if (!has_permission('expenses', '', 'view') && !has_permission('expenses', '', 'view_own')) {
+            ajax_access_denied();
         }
 
-        $this->app->get_table_data('expenses', array(
-            'clientid' => $clientid
-        ));
+        $this->load->model('payment_modes_model');
+        $data['payment_modes'] = $this->payment_modes_model->get('', [], true);
+        $this->app->get_table_data('expenses', [
+            'clientid' => $clientid,
+            'data'     => $data,
+        ]);
     }
 
     public function expense($id = '')
@@ -46,42 +53,41 @@ class Expenses extends Admin_controller
             if ($id == '') {
                 if (!has_permission('expenses', '', 'create')) {
                     set_alert('danger', _l('access_denied'));
-                    echo json_encode(array(
-                        'url' => admin_url('expenses/expense')
-                    ));
+                    echo json_encode([
+                        'url' => admin_url('expenses/expense'),
+                    ]);
                     die;
                 }
                 $id = $this->expenses_model->add($this->input->post());
                 if ($id) {
                     set_alert('success', _l('added_successfully', _l('expense')));
-                    echo json_encode(array(
-                        'url' => admin_url('expenses/list_expenses/' . $id),
-                        'expenseid' => $id
-                    ));
+                    echo json_encode([
+                        'url'       => admin_url('expenses/list_expenses/' . $id),
+                        'expenseid' => $id,
+                    ]);
                     die;
                 }
-                echo json_encode(array(
-                    'url' => admin_url('expenses/expense')
-                ));
-                die;
-            } else {
-                if (!has_permission('expenses', '', 'edit')) {
-                    set_alert('danger', _l('access_denied'));
-                    echo json_encode(array(
-                        'url' => admin_url('expenses/expense/' . $id)
-                    ));
-                    die;
-                }
-                $success = $this->expenses_model->update($this->input->post(), $id);
-                if ($success) {
-                    set_alert('success', _l('updated_successfully', _l('expense')));
-                }
-                echo json_encode(array(
-                    'url' => admin_url('expenses/list_expenses/' . $id),
-                    'expenseid' => $id
-                ));
+                echo json_encode([
+                    'url' => admin_url('expenses/expense'),
+                ]);
                 die;
             }
+            if (!has_permission('expenses', '', 'edit')) {
+                set_alert('danger', _l('access_denied'));
+                echo json_encode([
+                        'url' => admin_url('expenses/expense/' . $id),
+                    ]);
+                die;
+            }
+            $success = $this->expenses_model->update($this->input->post(), $id);
+            if ($success) {
+                set_alert('success', _l('updated_successfully', _l('expense')));
+            }
+            echo json_encode([
+                    'url'       => admin_url('expenses/list_expenses/' . $id),
+                    'expenseid' => $id,
+                ]);
+            die;
         }
         if ($id == '') {
             $title = _l('add_new', _l('expense_lowercase'));
@@ -96,7 +102,7 @@ class Expenses extends Admin_controller
         }
 
         if ($this->input->get('customer_id')) {
-            $data['customer_id']        = $this->input->get('customer_id');
+            $data['customer_id'] = $this->input->get('customer_id');
         }
 
         $this->load->model('taxes_model');
@@ -105,13 +111,60 @@ class Expenses extends Admin_controller
 
         $data['taxes']         = $this->taxes_model->get();
         $data['categories']    = $this->expenses_model->get_category();
-        $data['payment_modes'] = $this->payment_modes_model->get('', array(
-            'invoices_only !=' => 1
-        ));
-        $data['bodyclass'] = 'expense';
-        $data['currencies']    = $this->currencies_model->get();
-        $data['title']         = $title;
+        $data['payment_modes'] = $this->payment_modes_model->get('', [
+            'invoices_only !=' => 1,
+        ]);
+        $data['bodyclass']  = 'expense';
+        $data['currencies'] = $this->currencies_model->get();
+        $data['title']      = $title;
         $this->load->view('admin/expenses/expense', $data);
+    }
+
+    public function bulk_action()
+    {
+        hooks()->do_action('before_do_bulk_action_for_expenses');
+        $total_deleted = 0;
+        $total_updated = 0;
+
+        if ($this->input->post()) {
+            $ids         = $this->input->post('ids');
+            $amount      = $this->input->post('amount');
+            $date        = $this->input->post('date');
+            $category    = $this->input->post('category');
+            $paymentmode = $this->input->post('paymentmode');
+
+            if (is_array($ids)) {
+                foreach ($ids as $id) {
+                    if ($this->input->post('mass_delete')) {
+                        if (staff_can('delete', 'expenses')) {
+                            if ($this->expenses_model->delete($id)) {
+                                $total_deleted++;
+                            }
+                        }
+                    } else {
+                        if (staff_can('edit', 'expenses')) {
+                            $this->db->where('id', $id);
+                            $this->db->update('expenses', array_filter([
+                                'paymentmode' => $paymentmode ?: null,
+                                'category'    => $category ?: null,
+                                'date'        => $date ? to_sql_date($date) : null,
+                                'amount'      => $amount ?: null,
+                            ]));
+
+                            if ($this->db->affected_rows() > 0) {
+                                $total_updated++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($total_updated > 0) {
+                set_alert('success', _l('updated_successfully', _l('expenses')));
+            } elseif ($this->input->post('mass_delete')) {
+                set_alert('success', _l('total_expenses_deleted', $total_deleted));
+            }
+        }
     }
 
     public function get_expenses_total()
@@ -124,15 +177,29 @@ class Expenses extends Admin_controller
                 $data['currencies'] = $this->currencies_model->get();
             }
 
-            $data['expenses_years']      = $this->expenses_model->get_expenses_years();
+            $data['expenses_years'] = $this->expenses_model->get_expenses_years();
 
-            if(count($data['expenses_years']) >= 1 && $data['expenses_years'][0]['year'] != date('Y')) {
-                 array_unshift($data['expenses_years'], array('year'=>date('Y')));
+            if (count($data['expenses_years']) >= 1 && $data['expenses_years'][0]['year'] != date('Y')) {
+                array_unshift($data['expenses_years'], ['year' => date('Y')]);
             }
 
             $data['_currency'] = $data['totals']['currencyid'];
             $this->load->view('admin/expenses/expenses_total_template', $data);
         }
+    }
+
+    // Not used at this time
+    public function pdf($id)
+    {
+        $expense = $this->expenses_model->get($id);
+
+        if (!has_permission('expenses', '', 'view') && $expense->addedfrom != get_staff_user_id()) {
+            access_denied();
+        }
+
+        $pdf = app_pdf('expense', LIBSPATH . 'pdf/Expense_pdf', $expense);
+        // Output PDF to user
+        $pdf->output('#' . slug_it($expense->category_name) . '_' . _d($expense->date) . '.pdf', 'I');
     }
 
     public function delete($id)
@@ -153,7 +220,12 @@ class Expenses extends Admin_controller
                 set_alert('warning', _l('problem_deleting', _l('expense_lowercase')));
             }
         }
-        redirect(admin_url('expenses/list_expenses'));
+
+        if (strpos($_SERVER['HTTP_REFERER'], 'expenses/') !== false) {
+            redirect(admin_url('expenses/list_expenses'));
+        } else {
+            redirect($_SERVER['HTTP_REFERER']);
+        }
     }
 
     public function copy($id)
@@ -184,7 +256,7 @@ class Expenses extends Admin_controller
             $draft_invoice = true;
         }
 
-        $params = array();
+        $params = [];
         if ($this->input->get('include_note') == 'true') {
             $params['include_note'] = true;
         }
@@ -225,16 +297,16 @@ class Expenses extends Admin_controller
         }
 
         $data['child_expenses'] = $this->expenses_model->get_child_expenses($id);
-        $data['members'] = $this->staff_model->get('', 1);
+        $data['members']        = $this->staff_model->get('', ['active' => 1]);
         $this->load->view('admin/expenses/expense_preview_template', $data);
     }
 
     public function get_customer_change_data($customer_id = '')
     {
-        echo json_encode(array(
+        echo json_encode([
             'customer_has_projects' => customer_has_projects($customer_id),
-            'client_currency' => $this->clients_model->get_customer_default_currency($customer_id)
-        ));
+            'client_currency'       => $this->clients_model->get_customer_default_currency($customer_id),
+        ]);
     }
 
     public function categories()
@@ -257,19 +329,19 @@ class Expenses extends Admin_controller
         if ($this->input->post()) {
             if (!$this->input->post('id')) {
                 $id = $this->expenses_model->add_category($this->input->post());
-                echo json_encode(array(
-                    'success'=>$id ? true : false,
-                    'message'=>$id ? _l('added_successfully', _l('expense_category')) : '',
-                    'id'=>$id,
-                    'name'=>$this->input->post('name')
-                ));
+                echo json_encode([
+                    'success' => $id ? true : false,
+                    'message' => $id ? _l('added_successfully', _l('expense_category')) : '',
+                    'id'      => $id,
+                    'name'    => $this->input->post('name'),
+                ]);
             } else {
                 $data = $this->input->post();
                 $id   = $data['id'];
                 unset($data['id']);
                 $success = $this->expenses_model->update_category($data, $id);
                 $message = _l('updated_successfully', _l('expense_category'));
-                echo json_encode(array('success'=>$success,'message'=>$message));
+                echo json_encode(['success' => $success, 'message' => $message]);
             }
         }
     }
@@ -296,16 +368,16 @@ class Expenses extends Admin_controller
     public function add_expense_attachment($id)
     {
         handle_expense_attachments($id);
-        echo json_encode(array(
-            'url' => admin_url('expenses/list_expenses/' . $id)
-        ));
+        echo json_encode([
+            'url' => admin_url('expenses/list_expenses/' . $id),
+        ]);
     }
 
     public function delete_expense_attachment($id, $preview = '')
     {
         $this->db->where('rel_id', $id);
         $this->db->where('rel_type', 'expense');
-        $file = $this->db->get('tblfiles')->row();
+        $file = $this->db->get(db_prefix() . 'files')->row();
 
         if ($file->staffid == get_staff_user_id() || is_admin()) {
             $success = $this->expenses_model->delete_expense_attachment($id);

@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 /**
  * Included in application/views/admin/clients/client.php
@@ -9,7 +10,7 @@ var customer_id = $('input[name="userid"]').val();
 $(function() {
 
     if ($('#client-attachments-upload').length > 0) {
-        new Dropzone('#client-attachments-upload',$.extend({},_dropzone_defaults(),{
+        new Dropzone('#client-attachments-upload', appCreateDropzoneOptions({
             paramName: "file",
             accept: function(file, done) {
                 done();
@@ -27,11 +28,11 @@ $(function() {
         $('body').find('.nav-tabs [href="#' + tab_active + '"]').click();
     }
 
-    $('a[href="#contacts"],a[href="#customer_admins"]').on('click', function() {
+    $('a[href="#customer_admins"]').on('click', function() {
         $('.btn-bottom-toolbar').addClass('hide');
     });
 
-    $('.profile-tabs a').not('a[href="#contacts"],a[href="#customer_admins"]').on('click', function() {
+    $('.profile-tabs a').not('a[href="#customer_admins"]').on('click', function() {
         $('.btn-bottom-toolbar').removeClass('hide');
     });
 
@@ -47,7 +48,17 @@ $(function() {
     var contact_id = get_url_param('contactid');
     if (contact_id) {
         contact(customer_id, contact_id);
-        $('a[href="#contacts"]').click();
+    }
+
+    // consents=CONTACT_ID
+    var consents = get_url_param('consents');
+    if(consents){
+        view_contact_consent(consents);
+    }
+
+    // If user clicked save and add new contact
+    if (get_url_param('new_contact')) {
+        contact(customer_id);
     }
 
     $('body').on('change', '.onoffswitch input.customer_file', function(event, state) {
@@ -63,12 +74,7 @@ $(function() {
             }
         }, 200);
     });
-    // If user clicked save and add new contact
-    var new_contact = get_url_param('new_contact');
-    if (new_contact) {
-        contact(customer_id);
-        $('a[href="#contacts"]').click();
-    }
+
     $('.customer-form-submiter').on('click', function() {
         var form = $('.client-form');
         if (form.valid()) {
@@ -84,90 +90,117 @@ $(function() {
     if (typeof(Dropbox) != 'undefined' && $('#dropbox-chooser').length > 0) {
         document.getElementById("dropbox-chooser").appendChild(Dropbox.createChooseButton({
             success: function(files) {
-                $.post(admin_url + 'clients/add_external_attachment', {
-                    files: files,
-                    clientid: customer_id,
-                    external: 'dropbox'
-                }).done(function() {
-                    window.location.reload();
-                });
+                saveCustomerProfileExternalFile(files, 'dropbox');
             },
             linkType: "preview",
-            extensions: app_allowed_files.split(','),
+            extensions: app.options.allowed_files.split(','),
         }));
     }
 
-    /* Custome profile tickets table */
-    var ticketsNotSortable = $('.table-tickets-single').find('th').length - 1;
-    _table_api = initDataTable('.table-tickets-single', admin_url + 'tickets/index/false/' + customer_id, [ticketsNotSortable], [ticketsNotSortable], 'undefined', [$('table thead .ticket_created_column').index(), 'DESC'])
-    if (_table_api) {
-        _table_api.column(5).visible(false, false).columns.adjust();
+    /* Customer profile tickets table */
+    $('.table-tickets-single').find('#th-submitter').removeClass('toggleable');
+
+    initDataTable('.table-tickets-single', admin_url + 'tickets/index/false/' + customer_id, undefined, undefined, 'undefined', [$('table thead .ticket_created_column').index(), 'desc']);
+
+    /* Customer profile contracts table */
+    initDataTable('.table-contracts-single-client', admin_url + 'contracts/table/' + customer_id, undefined,undefined, 'undefined', [6, 'desc']);
+
+    /* Custome profile contacts table */
+    var contactsNotSortable = [];
+    <?php if(is_gdpr() && get_option('gdpr_enable_consent_for_contacts') == '1'){ ?>
+        contactsNotSortable.push($('#th-consent').index());
+    <?php } ?>
+    _table_api = initDataTable('.table-contacts', admin_url + 'clients/contacts/' + customer_id, contactsNotSortable, contactsNotSortable);
+    if(_table_api) {
+          <?php if(is_gdpr() && get_option('gdpr_enable_consent_for_contacts') == '1'){ ?>
+        _table_api.on('draw', function () {
+            var tableData = $('.table-contacts').find('tbody tr');
+            $.each(tableData, function() {
+                $(this).find('td:eq(1)').addClass('bg-light-gray');
+            });
+        });
+        <?php } ?>
     }
-    /* Custome profile contacts table */
-    var contractsNotSortable = $('.table-contracts-single-client').find('th').length - 1;
-    _table_api = initDataTable('.table-contracts-single-client', admin_url + 'contracts/table/' + customer_id, [contractsNotSortable], [contractsNotSortable], 'undefined', [3, 'DESC']);
-
-    /* Custome profile contacts table */
-    var contactsNotSortable = $('.table-contacts').find('th').length - 1;
-    initDataTable('.table-contacts', admin_url + 'clients/contacts/' + customer_id, [contactsNotSortable], [contactsNotSortable]);
-
     /* Customer profile invoices table */
     initDataTable('.table-invoices-single-client',
         admin_url + 'invoices/table/' + customer_id,
         'undefined',
         'undefined',
         'undefined', [
-            [3, 'DESC'],
-            [0, 'DESC']
+            [3, 'desc'],
+            [0, 'desc']
         ]);
 
-   initDataTable('.table-credit-notes', admin_url+'credit_notes/table/'+customer_id, ['undefined'], ['undefined'], undefined, [0, 'DESC']);
+   initDataTable('.table-credit-notes', admin_url+'credit_notes/table/'+customer_id, ['undefined'], ['undefined'], undefined, [0, 'desc']);
 
-    /* Custome profile Estimates table */
+    /* Customer profile Estimates table */
     initDataTable('.table-estimates-single-client',
         admin_url + 'estimates/table/' + customer_id,
         'undefined',
         'undefined',
         'undefined', [
-            [3, 'DESC'],
-            [0, 'DESC']
+            [3, 'desc'],
+            [0, 'desc']
         ]);
 
-
-
-    /* Custome profile payments table */
+    /* Customer profile payments table */
     initDataTable('.table-payments-single-client',
-        admin_url + 'payments/table/' + customer_id, [7], [7],
-        'undefined', [6, 'DESC']);
+        admin_url + 'payments/table/' + customer_id, undefined, undefined,
+        'undefined', [0, 'desc']);
 
-    /* Custome profile reminders table */
-    initDataTable('.table-reminders', admin_url + 'misc/get_reminders/' + customer_id + '/' + 'customer', [4], [4], undefined, [1, 'ASC']);
+    /* Customer profile reminders table */
+    initDataTable('.table-reminders', admin_url + 'misc/get_reminders/' + customer_id + '/' + 'customer', undefined, undefined, undefined, [1, 'asc']);
 
-    /* Custome profile expenses table */
+    /* Customer profile expenses table */
     initDataTable('.table-expenses-single-client',
         admin_url + 'expenses/table/' + customer_id,
         'undefined',
         'undefined',
-        'undefined', [5, 'DESC']);
+        'undefined', [6, 'desc']);
 
-    /* Custome profile proposals table */
+    /* Customer profile proposals table */
     initDataTable('.table-proposals-client-profile',
         admin_url + 'proposals/proposal_relations/' + customer_id + '/customer',
         'undefined',
         'undefined',
-        'undefined', [6, 'DESC']);
+        'undefined', [6, 'desc']);
 
     /* Custome profile projects table */
-    var notSortableProjects = $('.table-projects-single-client').find('th').length - 1;
-    initDataTable('.table-projects-single-client', admin_url + 'projects/table/' + customer_id, [notSortableProjects], [notSortableProjects], 'undefined', <?php echo do_action('projects_table_default_order',json_encode(array(5,'ASC'))); ?>);
+    initDataTable('.table-projects-single-client', admin_url + 'projects/table/' + customer_id, undefined, undefined, 'undefined', <?php echo hooks()->apply_filters('projects_table_default_order', json_encode(array(5,'asc'))); ?>);
 
     var vRules = {};
-    if (app_company_is_required == 1) {
+    if (app.options.company_is_required == 1) {
         vRules = {
             company: 'required',
         }
     }
-    _validate_form($('.client-form'), vRules);
+
+    appValidateForm($('.client-form'), vRules);
+
+    if(typeof(customer_id) == 'undefined'){
+        $('#company').on('blur', function() {
+            var company = $(this).val();
+            var $companyExistsDiv = $('#company_exists_info');
+
+            if(company == '') {
+                $companyExistsDiv.addClass('hide');
+                return;
+            }
+
+            $.post(admin_url+'clients/check_duplicate_customer_name', {company:company})
+            .done(function(response) {
+                if(response) {
+                    response = JSON.parse(response);
+                    if(response.exists == true) {
+                        $companyExistsDiv.removeClass('hide');
+                        $companyExistsDiv.html('<div class="info-block mbot15">'+response.message+'</div>');
+                    } else {
+                        $companyExistsDiv.addClass('hide');
+                    }
+                }
+            });
+        });
+    }
 
     $('.billing-same-as-customer').on('click', function(e) {
         e.preventDefault();
@@ -205,27 +238,43 @@ function delete_contact_profile_image(contact_id) {
     });
 }
 
+function customerGoogleDriveSave(pickData) {
+    saveCustomerProfileExternalFile(pickData, 'gdrive');
+}
+
+function saveCustomerProfileExternalFile(files, externalType) {
+    $.post(admin_url + 'clients/add_external_attachment', {
+        files: files,
+        clientid: customer_id,
+        external: externalType
+    }).done(function() {
+        window.location.reload();
+    });
+}
+
 function validate_contact_form() {
-    _validate_form('#contact-form', {
+    appValidateForm('#contact-form', {
         firstname: 'required',
         lastname: 'required',
         password: {
             required: {
                 depends: function(element) {
-                    var sent_set_password = $('input[name="send_set_password_email"]');
-                    if ($('#contact input[name="contactid"]').val() == '' && sent_set_password.prop('checked') == false) {
+
+                    var $sentSetPassword = $('input[name="send_set_password_email"]');
+
+                    if ($('#contact input[name="contactid"]').val() == '' && $sentSetPassword.prop('checked') == false) {
                         return true;
                     }
                 }
             }
         },
         email: {
-            <?php if(do_action('contact_email_required',"true") === "true"){ ?>
+            <?php if(hooks()->apply_filters('contact_email_required', "true") === "true"){ ?>
             required: true,
             <?php } ?>
             email: true,
             // Use this hook only if the contacts are not logging into the customers area and you are not using support tickets piping.
-            <?php if(do_action('contact_email_unique',"true") === "true"){ ?>
+            <?php if(hooks()->apply_filters('contact_email_unique', "true") === "true"){ ?>
             remote: {
                 url: admin_url + "misc/contact_email_exists",
                 type: 'post',
@@ -245,8 +294,16 @@ function validate_contact_form() {
 
 function contactFormHandler(form) {
     $('#contact input[name="is_primary"]').prop('disabled', false);
+
+    $("#contact input[type=file]").each(function() {
+        if($(this).val() === "") {
+            $(this).prop('disabled', true);
+        }
+    });
+
     var formURL = $(form).attr("action");
     var formData = new FormData($(form)[0]);
+
     $.ajax({
         type: 'POST',
         data: formData,
@@ -256,7 +313,7 @@ function contactFormHandler(form) {
         processData: false,
         url: formURL
     }).done(function(response){
-             response = JSON.parse(response);
+           response = JSON.parse(response);
             if (response.success) {
                 alert_float('success', response.message);
                 if(typeof(response.is_individual) != 'undefined' && response.is_individual) {
@@ -266,9 +323,13 @@ function contactFormHandler(form) {
                     }
                 }
             }
+
             if ($.fn.DataTable.isDataTable('.table-contacts')) {
                 $('.table-contacts').DataTable().ajax.reload(null,false);
+            } else if ($.fn.DataTable.isDataTable('.table-all-contacts')) {
+                $('.table-all-contacts').DataTable().ajax.reload(null,false);
             }
+
             if (response.proposal_warning && response.proposal_warning != false) {
                 $('body').find('#contact_proposal_warning').removeClass('hide');
                 $('body').find('#contact_update_proposals_emails').attr('data-original-email', response.original_email);
@@ -277,9 +338,6 @@ function contactFormHandler(form) {
                 }, 800);
             } else {
                 $('#contact').modal('hide');
-            }
-            if(response.has_primary_contact == true){
-                $('#client-show-primary-contact-wrapper').removeClass('hide');
             }
     }).fail(function(error){
         alert_float('danger', JSON.parse(error.responseText));
@@ -291,7 +349,7 @@ function contact(client_id, contact_id) {
     if (typeof(contact_id) == 'undefined') {
         contact_id = '';
     }
-    $.post(admin_url + 'clients/contact/' + client_id + '/' + contact_id).done(function(response) {
+    requestGet('clients/form_contact/' + client_id + '/' + contact_id).done(function(response) {
         $('#contact_data').html(response);
         $('#contact').modal({
             show: true,
@@ -312,6 +370,7 @@ function contact(client_id, contact_id) {
         alert_float('danger', response.message);
     });
 }
+
 
 function update_all_proposal_emails_linked_to_contact(contact_id) {
     var data = {};
@@ -382,7 +441,7 @@ function fetch_lat_long_from_google_cprofile() {
             if (data.response.status == 'ZERO_RESULTS') {
                 alert_float('warning', "<?php echo _l('g_search_address_not_found'); ?>");
             } else {
-                alert_float('danger', data.response.status);
+                alert_float('danger', data.response.status + ' - ' + data.response.error_message);
             }
         }
     });

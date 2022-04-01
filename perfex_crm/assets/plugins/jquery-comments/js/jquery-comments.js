@@ -1,9 +1,10 @@
-//     jquery-comments.js 1.2.0
-
-//     (c) 2017 Joona Tykkyläinen, Viima Solutions Oy
-//     jquery-comments may be freely distributed under the MIT license.
-//     For all details and documentation:
-//     http://viima.github.io/jquery-comments/
+/*!     jquery-comments.js 1.4.0
+ *
+ *     (c) 2017 Joona Tykkyläinen, Viima Solutions Oy
+ *     jquery-comments may be freely distributed under the MIT license.
+ *     For all details and documentation:
+ *     http://viima.github.io/jquery-comments/
+ */
 
 (function (factory) {
     if (typeof define === 'function' && define.amd) {
@@ -11,13 +12,13 @@
         define(['jquery'], factory);
     } else if (typeof module === 'object' && module.exports) {
         // Node/CommonJS
-        module.exports = function( root, jQuery ) {
-            if ( jQuery === undefined ) {
+        module.exports = function(root, jQuery) {
+            if (jQuery === undefined) {
                 // require('jQuery') returns a factory that requires window to
                 // build a jQuery instance, we normalize how we use modules
                 // that require this pattern but the window provided is a noop
                 // if it's defined (how jquery works)
-                if ( typeof window !== 'undefined' ) {
+                if (typeof window !== 'undefined') {
                     jQuery = require('jquery');
                 }
                 else {
@@ -40,7 +41,6 @@
 
         $el: null,
         commentsById: {},
-        usersById: {},
         dataFetched: false,
         currentSortKey: '',
         options: {},
@@ -112,95 +112,117 @@
         getDefaultOptions: function() {
             return {
 
-                // User        
-                profilePictureURL: '',        
-                currentUserIsAdmin: false,        
-                currentUserId: null,        
-                
-                // Font awesome icon overrides        
-                spinnerIconURL: '',       
-                upvoteIconURL: '',        
-                replyIconURL: '',     
-                uploadIconURL: '',        
-                attachmentIconURL: '',        
-                fileIconURL: '',      
-                noCommentsIconURL: '',        
-                
-                // Strings to be formatted (for example localization)     
-                textareaPlaceholderText: 'Add a comment',     
-                newestText: 'Newest',     
-                oldestText: 'Oldest',     
-                popularText: 'Popular',       
-                attachmentsText: 'Attachments',       
-                sendText: 'Send',     
-                replyText: 'Reply',       
-                editText: 'Edit',     
-                editedText: 'Edited',     
-                youText: 'You',       
-                saveText: 'Save',     
-                deleteText: 'Delete',     
-                viewAllRepliesText: 'View all __replyCount__ replies',        
-                hideRepliesText: 'Hide replies',      
-                noCommentsText: 'No comments',        
-                noAttachmentsText: 'No attachments',      
-                attachmentDropText: 'Drop files here',        
-                textFormatter: function(text) {return text},        
-                
-                // Functionalities        
-                enableReplying: true,     
-                enableEditing: true,      
-                enableUpvoting: true,     
-                enableDeleting: true,     
-                enableAttachments: false,     
-                enableHashtags: false,     
-                enablePinging: false,     
-                enableDeletingCommentWithReplies: false,      
-                enableNavigation: true,       
-                postCommentOnEnter: false,        
-                forceResponsive: false,       
-                readOnly: false,      
-                defaultNavigationSortKey: 'newest',       
-                
-                // Colors     
-                highlightColor: '#2793e6',        
-                deleteButtonColor: '#C9302C',     
-                
-                roundProfilePictures: false,      
-                textareaRows: 2,      
-                textareaRowsOnFocus: 2,       
-                textareaMaxRows: 5,       
-                maxRepliesVisible: 2,     
-                
-                fieldMappings: {      
-                    id: 'id',     
-                    parent: 'parent',     
-                    created: 'created',       
-                    modified: 'modified',     
-                    content: 'content',       
-                    file: 'file',     
-                    fileURL: 'file_url',      
+                // User
+                profilePictureURL: '',
+                currentUserIsAdmin: false,
+                currentUserId: null,
+
+                // Font awesome icon overrides
+                spinnerIconURL: '',
+                upvoteIconURL: '',
+                replyIconURL: '',
+                uploadIconURL: '',
+                attachmentIconURL: '',
+                fileIconURL: '',
+                noCommentsIconURL: '',
+
+                // Strings to be formatted (for example localization)
+                textareaPlaceholderText: 'Add a comment',
+                newestText: 'Newest',
+                oldestText: 'Oldest',
+                popularText: 'Popular',
+                attachmentsText: 'Attachments',
+                sendText: 'Send',
+                replyText: 'Reply',
+                editText: 'Edit',
+                editedText: 'Edited',
+                youText: 'You',
+                saveText: 'Save',
+                deleteText: 'Delete',
+                newText: 'New',
+                viewAllRepliesText: 'View all __replyCount__ replies',
+                hideRepliesText: 'Hide replies',
+                noCommentsText: 'No comments',
+                noAttachmentsText: 'No attachments',
+                attachmentDropText: 'Drop files here',
+                textFormatter: function(text) {return text},
+
+                // Functionalities
+                enableReplying: true,
+                enableEditing: true,
+                enableUpvoting: true,
+                enableDeleting: true,
+                enableAttachments: false,
+                enableHashtags: false,
+                enablePinging: false,
+                enableDeletingCommentWithReplies: false,
+                enableNavigation: true,
+                postCommentOnEnter: false,
+                forceResponsive: false,
+                readOnly: false,
+                defaultNavigationSortKey: 'newest',
+
+                // Colors
+                highlightColor: '#2793e6',
+                deleteButtonColor: '#C9302C',
+
+                scrollContainer: this.$el,
+                roundProfilePictures: false,
+                textareaRows: 2,
+                textareaRowsOnFocus: 2,
+                textareaMaxRows: 5,
+                maxRepliesVisible: 2,
+
+                // wysiwyg-editor interface
+                wysiwyg_editor: {
+                    opts: {
+                        // Whether an external editor is being used.
+                        enable: false,
+                        // Indicates whether comments will be displayed with plain text or rendered as html.
+                        is_html: true
+                    },
+                    // Initializes a new instance of the html editor.
+                    init: function (textarea, html) {},
+                    // jquery object within which the editor will be rendered.
+                    get_container: function(textarea) {},
+                    // Object that returns the html content of the edit (html text).
+                    get_contents: function(editor) {},
+                    // Call of events.
+                    on_post_comment: function(editor, evt, status) {},
+                    on_put_comment: function(editor, evt, status) {},
+                    on_close_button: function (editor, evt) {}
+                },
+                fieldMappings: {
+                    id: 'id',
+                    parent: 'parent',
+                    created: 'created',
+                    modified: 'modified',
+                    content: 'content',
+                    file: 'file',
+                    fileURL: 'file_url',
                     fileMimeType: 'file_mime_type',
-                    pings: 'pings',       
-                    creator: 'creator',     
-                    fullname: 'fullname',     
-                    profileURL: 'profile_url',        
-                    profilePictureURL: 'profile_picture_url',     
-                    createdByAdmin: 'created_by_admin',       
-                    createdByCurrentUser: 'created_by_current_user',      
-                    upvoteCount: 'upvote_count',      
-                    userHasUpvoted: 'user_has_upvoted'        
-                },        
-                
-                getUsers: function(success, error) {success([])},
-                getComments: function(success, error) {success([])},      
-                postComment: function(commentJSON, success, error) {success(commentJSON)},        
-                putComment: function(commentJSON, success, error) {success(commentJSON)},     
-                deleteComment: function(commentJSON, success, error) {success()},     
-                upvoteComment: function(commentJSON, success, error) {success(commentJSON)},      
-                hashtagClicked: function(hashtag) {},      
-                pingClicked: function(userId) {},      
-                uploadAttachments: function(commentArray, success, error) {success(commentArray)},        
-                refresh: function() {},       
+                    pings: 'pings',
+                    creator: 'creator',
+                    fullname: 'fullname',
+                    profileURL: 'profile_url',
+                    profilePictureURL: 'profile_picture_url',
+                    isNew: 'is_new',
+                    createdByAdmin: 'created_by_admin',
+                    createdByCurrentUser: 'created_by_current_user',
+                    upvoteCount: 'upvote_count',
+                    userHasUpvoted: 'user_has_upvoted'
+                },
+
+                searchUsers: function(term, success, error) {success([])},
+                getComments: function(success, error) {success([])},
+                postComment: function(commentJSON, success, error) {success(commentJSON)},
+                putComment: function(commentJSON, success, error) {success(commentJSON)},
+                deleteComment: function(commentJSON, success, error) {success()},
+                upvoteComment: function(commentJSON, success, error) {success(commentJSON)},
+                hashtagClicked: function(hashtag) {},
+                pingClicked: function(userId) {},
+                uploadAttachments: function(commentArray, success, error) {success(commentArray)},
+                refresh: function() {},
                 timeFormatter: function(time) {return new Date(time).toLocaleDateString()}
             }
         },
@@ -220,7 +242,7 @@
             if($.browser.mobile) this.$el.addClass('mobile');
 
             // Init options
-            this.options = $.extend(true, {}, this.getDefaultOptions(), options);;
+            this.options = $.extend(true, {}, this.getDefaultOptions(), options);
 
             // Read-only mode
             if(this.options.readOnly) this.$el.addClass('read-only');
@@ -275,21 +297,15 @@
             var self = this;
 
             this.commentsById = {};
-            this.usersById = {};
 
             this.$el.empty();
             this.createHTML();
 
-            // Render after data has been fetched
-            var dataFetched = this.after(this.options.enablePinging ? 2 : 1, function() {
-                self.dataFetched = true;
-                self.render();
-            });
-
             // Comments
             // ========
 
-            var commentsFetched = function(commentsArray) {
+            this.options.getComments(function(commentsArray) {
+
                 // Convert comments to custom data model
                 var commentModels = commentsArray.map(function(commentsJSON){
                     return self.createCommentModel(commentsJSON)
@@ -303,23 +319,12 @@
                     self.addCommentToDataModel(commentModel);
                 });
 
-                dataFetched();
-            };
-            this.options.getComments(commentsFetched, dataFetched);
+                // Mark data as fetched
+                self.dataFetched = true;
 
-            // Users
-            // =====
-
-            if(this.options.enablePinging) {
-                var usersFetched = function(userArray) {
-                    $(userArray).each(function(index, user) {
-                        self.usersById[user.id] = user;
-                    });
-
-                    dataFetched();
-                }
-                this.options.getUsers(usersFetched, dataFetched);
-            }
+                // Render
+                self.render();
+            });
         },
 
         fetchNext: function() {
@@ -378,7 +383,7 @@
             this.createComments();
 
             // Create attachments if enabled
-            if(this.options.enableAttachments) this.createAttachments(); 
+            if(this.options.enableAttachments) this.createAttachments();
 
             // Remove spinner
             this.$el.find('> .spinner').remove();
@@ -482,7 +487,11 @@
 
             // Case: main level comment
             } else {
-                commentList.prepend(commentEl);
+                if(this.currentSortKey == 'newest') {
+                    commentList.prepend(commentEl);
+                } else {
+                    commentList.append(commentEl);
+                }
             }
         },
 
@@ -525,11 +534,11 @@
         uploadAttachments: function(files, commentingField) {
             var self = this;
             if(!commentingField) commentingField = this.$el.find('.commenting-field.main');
+            var uploadButton = commentingField.find('.upload');
             var isReply = !commentingField.hasClass('main');
             var fileCount = files.length;
 
             if(fileCount) {
-                var uploadButton = commentingField.find('.upload');
                 var textarea = commentingField.find('.textarea');
 
                 // Disable upload button and append spinners while request is pending
@@ -594,18 +603,27 @@
         },
 
         updateToggleAllButton: function(parentEl) {
+            // Don't hide replies if maxRepliesVisible is null or undefined
+            if (this.options.maxRepliesVisible == null) return;
+
             var childCommentsEl = parentEl.find('.child-comments');
-            var childComments = childCommentsEl.find('.comment');
+            var childComments = childCommentsEl.find('.comment').not('.hidden');
             var toggleAllButton = childCommentsEl.find('li.toggle-all');
-            childComments.removeClass('hidden-reply');
+            childComments.removeClass('togglable-reply');
+
+            // Select replies to be hidden
+            if (this.options.maxRepliesVisible === 0) {
+                var togglableReplies = childComments;
+            } else {
+                var togglableReplies = childComments.slice(0, -this.options.maxRepliesVisible);
+            }
 
             // Add identifying class for hidden replies so they can be toggled
-            var hiddenReplies = childComments.slice(0, -this.options.maxRepliesVisible);
-            hiddenReplies.addClass('hidden-reply');
+            togglableReplies.addClass('togglable-reply');
 
             // Show all replies if replies are expanded
             if(toggleAllButton.find('span.text').text() == this.options.textFormatter(this.options.hideRepliesText)) {
-                hiddenReplies.addClass('visible');
+                togglableReplies.addClass('visible');
             }
 
             // Make sure that toggle all button is present
@@ -636,6 +654,17 @@
             } else {
                 toggleAllButton.remove();
             }
+        },
+
+        updateToggleAllButtons: function() {
+            var self = this;
+            var commentList = this.$el.find('#comment-list');
+
+            // Fold comments, find first level children and update toggle buttons
+            commentList.find('.comment').removeClass('visible');
+            commentList.children('.comment').each(function(index, el) {
+                self.updateToggleAllButton($(el));
+            });
         },
 
         sortComments: function (comments, sortKey) {
@@ -677,16 +706,6 @@
             }
         },
 
-        sortUsers: function(users) {
-            users.sort(function(a,b) {
-                var nameA = a.fullname.toLowerCase().trim();
-                var nameB = b.fullname.toLowerCase().trim();
-                if(nameA < nameB) return -1;
-                if(nameA > nameB) return 1;
-                return 0;
-            });
-        },
-
         sortAndReArrangeComments: function(sortKey) {
             var commentList = this.$el.find('#comment-list');
 
@@ -716,7 +735,7 @@
              } else {
                 var defaultDropdownEl = this.$el.find('.navigation ul.dropdown').children().first();
                 titleEl.find('header').html(defaultDropdownEl.html());
-             } 
+             }
 
             // Show active container
             this.showActiveContainer();
@@ -737,7 +756,7 @@
             // Save comment on cmd/ctrl + enter
             if(ev.keyCode == 13) {
                 var metaKey = ev.metaKey || ev.ctrlKey;
-                if(this.options.postCommentOnEnter || metaKey) {                
+                if(this.options.postCommentOnEnter || metaKey) {
                     var el = $(ev.currentTarget);
                     el.siblings('.control-row').find('.save').trigger('click');
                     ev.stopPropagation();
@@ -753,6 +772,12 @@
 
         checkEditableContentForChange: function(ev) {
             var el = $(ev.currentTarget);
+
+            // Fix jquery-textcomplete on IE, empty text nodes will break up the autocomplete feature
+            $(el[0].childNodes).each(function() {
+                if(this.nodeType == Node.TEXT_NODE && this.length == 0 && this.removeNode) this.removeNode();
+            });
+
             if (el.data('before') != el.html()) {
                 el.data('before', el.html());
                 el.trigger('change');
@@ -785,6 +810,7 @@
             var mainTextarea = $(ev.currentTarget);
             mainTextarea.siblings('.control-row').show();
             mainTextarea.parent().find('.close').show();
+            mainTextarea.parent().find('.upload.inline-button').hide();
             mainTextarea.focus();
         },
 
@@ -792,12 +818,17 @@
             var closeButton = $(ev.currentTarget);
             var mainTextarea = this.$el.find('.commenting-field.main .textarea');
             var mainControlRow = this.$el.find('.commenting-field.main .control-row');
+            var wysiwyg_editor = mainTextarea.data('wysiwyg_editor');
 
+            if (wysiwyg_editor && this.options.wysiwyg_editor.opts.enable) {
+                this.options.wysiwyg_editor.on_close_button(wysiwyg_editor, ev);
+            }
             this.clearTextarea(mainTextarea);
             this.adjustTextareaHeight(mainTextarea, false);
 
             mainControlRow.hide();
             closeButton.hide();
+            mainTextarea.parent().find('.upload.inline-button').show();
             mainTextarea.blur();
         },
 
@@ -808,6 +839,7 @@
 
         textareaContentChanged: function(ev) {
             var textarea = $(ev.currentTarget);
+            var wysiwyg_editor = textarea.data('wysiwyg_editor');
             var saveButton = textarea.siblings('.control-row').find('.save');
 
             // Update parent id if reply-to tag was removed
@@ -832,19 +864,24 @@
             // Move close button if scrollbar is visible
             var commentingField = textarea.parents('.commenting-field').first();
             if(textarea[0].scrollHeight > textarea.outerHeight()) {
-                commentingField.addClass('scrollable');
+                commentingField.addClass('commenting-field-scrollable');
             } else {
-                commentingField.removeClass('scrollable');
+                commentingField.removeClass('commenting-field-scrollable');
             }
 
             // Check if content or parent has changed if editing
             var contentOrParentChangedIfEditing = true;
-            var content = this.getTextareaContent(textarea, true);
-            if(commentId = textarea.attr('data-comment')) {
-                var contentChanged = content != this.commentsById[commentId].content;
+            var content;
+            if (wysiwyg_editor && this.options.wysiwyg_editor.opts.enable) {
+                content = this.options.wysiwyg_editor.get_contents(wysiwyg_editor);
+            } else {
+                content = this.getTextareaContent(textarea, true);
+            }
+            if(commentModel = this.commentsById[textarea.attr('data-comment')]) {
+                var contentChanged = content != commentModel.content;
                 var parentFromModel;
-                if(this.commentsById[commentId].parent) {
-                    parentFromModel = this.commentsById[commentId].parent.toString();
+                if(commentModel.parent) {
+                    parentFromModel = commentModel.parent.toString();
                 }
                 var parentChanged = textarea.attr('data-parent') != parentFromModel;
                 contentOrParentChangedIfEditing = contentChanged || parentChanged;
@@ -877,6 +914,7 @@
             var sendButton = $(ev.currentTarget);
             var commentingField = sendButton.parents('.commenting-field').first();
             var textarea = commentingField.find('.textarea');
+            var wysiwyg_editor = textarea.data('wysiwyg_editor');
 
             // Disable send button while request is pending
             sendButton.removeClass('enabled');
@@ -887,16 +925,27 @@
             // Reverse mapping
             commentJSON = this.applyExternalMappings(commentJSON);
 
+            // Notify event to external editor
+            var editor_event_post_comment = function (status) {
+                if (wysiwyg_editor && self.options.wysiwyg_editor.opts.enable) {
+                    self.options.wysiwyg_editor.on_post_comment(wysiwyg_editor, ev, status);
+                }
+            };
+
             var success = function(commentJSON) {
+                editor_event_post_comment('success');
                 self.createComment(commentJSON);
                 commentingField.find('.close').trigger('click');
             };
 
             var error = function() {
+                editor_event_post_comment('error');
                 sendButton.addClass('enabled');
             };
 
+
             this.options.postComment(commentJSON, success, error);
+            editor_event_post_comment();
         },
 
         createComment: function(commentJSON) {
@@ -910,6 +959,7 @@
             var saveButton = $(ev.currentTarget);
             var commentingField = saveButton.parents('.commenting-field').first();
             var textarea = commentingField.find('.textarea');
+            var wysiwyg_editor = textarea.data('wysiwyg_editor');
 
             // Disable send button while request is pending
             saveButton.removeClass('enabled');
@@ -926,7 +976,15 @@
             // Reverse mapping
             commentJSON = this.applyExternalMappings(commentJSON);
 
+            // Notify event to external editor
+            var editor_event_put_comment = function (status) {
+                if (wysiwyg_editor && self.options.wysiwyg_editor.opts.enable) {
+                    self.options.wysiwyg_editor.on_put_comment(wysiwyg_editor, ev, status);
+                }
+            };
             var success = function(commentJSON) {
+                editor_event_put_comment('success');
+
                 // The outermost parent can not be changed by editing the comment so the childs array
                 // of parent does not require an update
 
@@ -944,10 +1002,13 @@
             };
 
             var error = function() {
+                editor_event_put_comment('error');
                 saveButton.addClass('enabled');
             };
 
             this.options.putComment(commentJSON, success, error);
+            // Notify event to external editor
+            editor_event_put_comment();
         },
 
         deleteComment: function(ev) {
@@ -1008,7 +1069,7 @@
                 newUpvoteCount = previousUpvoteCount + 1;
             }
 
-            // Show changes immediatelly
+            // Show changes immediately
             commentModel.userHasUpvoted = !commentModel.userHasUpvoted;
             commentModel.upvoteCount = newUpvoteCount;
             this.reRenderUpvotes(commentModel.id);
@@ -1036,7 +1097,7 @@
 
         toggleReplies: function(ev) {
             var el = $(ev.currentTarget);
-            el.siblings('.hidden-reply').toggleClass('visible');
+            el.siblings('.togglable-reply').toggleClass('visible');
             this.setToggleAllButtonText(el, true);
         },
 
@@ -1058,7 +1119,22 @@
 
                 // Move cursor to end
                 var textarea = replyField.find('.textarea');
-                this.moveCursorToEnd(textarea)
+
+                // starts new editor instance (before cursor change).
+                // textarea saves the reference to the editor that will be used later.
+                if (this.options.wysiwyg_editor.opts.enable) {
+                    textarea.data('wysiwyg_editor', this.options.wysiwyg_editor.init(textarea));
+                }
+                this.moveCursorToEnd(textarea);
+
+                // Make sure the reply field will be displayed
+                var scrollTop = this.options.scrollContainer.scrollTop();
+                var endOfReply = scrollTop + replyField.position().top + replyField.outerHeight();
+                var endOfScrollable = scrollTop + this.options.scrollContainer.outerHeight();
+                if(endOfReply > endOfScrollable) {
+                    var newScrollTop = scrollTop + (endOfReply - endOfScrollable);
+                    this.options.scrollContainer.scrollTop(newScrollTop);
+                }
             }
         },
 
@@ -1079,6 +1155,14 @@
             // Escaping HTML
             textarea.append(this.getFormattedCommentContent(commentModel, true));
 
+            // starts new editor instance.
+            // textarea saves the reference to the editor that will be used later.
+            // In this case the editor starts with the content of the model (raw text).
+            if (this.options.wysiwyg_editor.opts.enable) {
+                textarea.data('wysiwyg_editor', this.options.wysiwyg_editor.init(
+                    textarea, commentModel.content
+                ));
+            }
             // Move cursor to end
             this.moveCursorToEnd(textarea);
         },
@@ -1103,7 +1187,7 @@
             count--;
             $(ev.currentTarget).data('dnd-count', count);
 
-            if(count == 0) {            
+            if(count == 0) {
                 $(ev.currentTarget).removeClass('drag-over');
                 if(callback) callback();
             }
@@ -1154,14 +1238,19 @@
             var self = this;
 
             // Commenting field
-            var mainCommentingField = this.createCommentingFieldElement();
-            mainCommentingField.addClass('main');
+            var mainCommentingField = this.createMainCommentingFieldElement();
             this.$el.append(mainCommentingField);
-
             // Hide control row and close button
             var mainControlRow = mainCommentingField.find('.control-row');
             mainControlRow.hide();
             mainCommentingField.find('.close').hide();
+
+            // Starts a new instance of the editor.
+            // Connects the textarea with the corresponding editor.
+            if (this.options.wysiwyg_editor.opts.enable) {
+                var textarea = mainCommentingField.find('.textarea');
+                textarea.data('wysiwyg_editor', this.options.wysiwyg_editor.init(textarea));
+            }
 
             // Navigation bar
             if (this.options.enableNavigation) {
@@ -1192,7 +1281,7 @@
                 noCommentsIcon.css('background-image', 'url("'+this.options.noCommentsIconURL+'")');
                 noCommentsIcon.addClass('image');
             }
-            noComments.prepend($('<br/>')).prepend(noCommentsIcon);            
+            noComments.prepend($('<br/>')).prepend(noCommentsIcon);
             commentsContainer.append(noComments);
 
             // Attachments
@@ -1235,7 +1324,7 @@
                 });
 
                 var uploadIcon = $('<i/>', {
-                    'class': 'fa fa-upload fa-4x'
+                    'class': 'fa fa-paperclip fa-4x'
                 });
                 if(this.options.uploadIconURL.length) {
                     uploadIcon.css('background-image', 'url("'+this.options.uploadIconURL+'")');
@@ -1253,10 +1342,10 @@
             }
         },
 
-        createProfilePictureElement: function(src) {
+        createProfilePictureElement: function(src, userId) {
             if(src) {
-                var profilePicture = $('<img/>', {
-                    src: src
+              var profilePicture = $('<div/>').css({
+                  'background-image': 'url(' + src + ')'
                 });
             } else {
                 var profilePicture = $('<i/>', {
@@ -1264,25 +1353,36 @@
                 });
             }
             profilePicture.addClass('profile-picture');
+            profilePicture.attr('data-user-id', userId);
             if(this.options.roundProfilePictures) profilePicture.addClass('round');
             return profilePicture;
         },
 
-        createCommentingFieldElement: function(parentId, existingCommentId) {
+        createMainCommentingFieldElement: function() {
+            return this.createCommentingFieldElement(undefined, undefined, true);
+        },
+
+        createCommentingFieldElement: function(parentId, existingCommentId, isMain) {
             var self = this;
 
             // Commenting field
             var commentingField = $('<div/>', {
                 'class': 'commenting-field'
             });
+            if(isMain) commentingField.addClass('main');
 
-            // Profile picture
+            // Comment was modified, use existing data
             if(existingCommentId) {
                 var profilePictureURL = this.commentsById[existingCommentId].profilePictureURL;
+                var userId = this.commentsById[existingCommentId].creator;
+
+            // New comment was created
             } else {
                 var profilePictureURL = this.options.profilePictureURL;
+                var userId = this.options.creator;
             }
-            var profilePicture = this.createProfilePictureElement(profilePictureURL);
+
+            var profilePicture = this.createProfilePictureElement(profilePictureURL, userId);
 
             // New comment
             var textareaWrapper = $('<div/>', {
@@ -1306,7 +1406,7 @@
 
             // Close button
             var closeButton = $('<span/>', {
-                'class': 'close'
+                'class': 'close inline-button'
             }).append($('<span class="left"/>')).append($('<span class="right"/>'));
 
             // Save button text
@@ -1332,7 +1432,7 @@
                         'class': 'enabled upload'
                     });
                     var uploadIcon = $('<i/>', {
-                        'class': 'fa fa-upload'
+                        'class': 'fa fa-paperclip'
                     });
                     var fileInput = $('<input/>', {
                         type: 'file',
@@ -1347,7 +1447,14 @@
                         uploadIcon.addClass('image');
                     }
                     uploadButton.append(uploadIcon).append(fileInput);
-                    controlRow.append(uploadButton);
+
+                    // Main upload button
+                    controlRow.append(uploadButton.clone());
+
+                    // Inline upload button for main commenting field
+                    if(isMain) {
+                        textareaWrapper.append(uploadButton.clone().addClass('inline-button'));
+                    }
                 }
             }
 
@@ -1361,8 +1468,13 @@
             // Populate the element
             controlRow.prepend(saveButton);
             textareaWrapper.append(closeButton).append(textarea).append(controlRow);
+            // controle over external html editor
+            if (this.options.wysiwyg_editor.opts.enable) {
+                // Who assumes here is the external wysiwyg editor but the default api should keep working.
+                textarea.hide();
+                textareaWrapper.append(this.options.wysiwyg_editor.get_container(textarea)).append(controlRow);
+            }
             commentingField.append(profilePicture).append(textareaWrapper);
-
 
             if(parentId) {
 
@@ -1376,7 +1488,9 @@
 
                     // Creating the reply-to tag
                     var replyToName = '@' + parentModel.fullname;
-                    var replyToTag = this.createTagElement(replyToName, 'reply-to', parentModel.creator);
+                    var replyToTag = this.createTagElement(replyToName, 'reply-to', parentModel.creator, {
+                        'data-user-id': parentModel.creator
+                    });
                     textarea.prepend(replyToTag);
                 }
             }
@@ -1384,34 +1498,23 @@
             // Pinging users
             if(this.options.enablePinging) {
                 textarea.textcomplete([{
-                    match: /(^|\s)@(([a-zäöüß]|\s)*)$/im,
+                    match: /(^|\s)@([^@]*)$/i,
+                    index: 2,
                     search: function (term, callback) {
                         term = self.normalizeSpaces(term);
 
-                        // Users excluding self and already pinged users
-                        var pings = self.getPings(textarea);
-                        var users = self.getUsers().filter(function(user) {
-                            var isSelf = user.id == self.options.currentUserId;
-                            var alreadyPinged = pings.indexOf(user.id) != -1;
-                            return !isSelf && !alreadyPinged;
-                        });
+                        // Return empty array on error
+                        var error = function() {
+                            callback([]);
+                        }
 
-                        // Sort users
-                        self.sortUsers(users);
-
-                        callback($.map(users, function (user) {
-                            var lowercaseTerm = term.toLowerCase();
-                            var nameMatch = user.fullname.toLowerCase().indexOf(lowercaseTerm) != -1;
-                            return nameMatch ? user : null;
-                        }));
+                        self.options.searchUsers(term, callback, error);
                     },
                     template: function(user) {
                         var wrapper = $('<div/>');
 
-                        var profilePictureEl = $('<img/>', {
-                            src: user.profile_picture_url,
-                            'class': 'profile-picture round'
-                        });
+                        var profilePictureEl = self.createProfilePictureElement(user.profile_picture_url);
+
                         var detailsEl = $('<div/>', {
                             'class': 'details',
                         });
@@ -1423,12 +1526,20 @@
                             'class': 'email',
                         }).html(user.email);
 
-                        detailsEl.append(nameEl).append(emailEl);
+                        if (user.email) {
+                            detailsEl.append(nameEl).append(emailEl);
+                        } else {
+                            detailsEl.addClass('no-email')
+                            detailsEl.append(nameEl)
+                        }
+
                         wrapper.append(profilePictureEl).append(detailsEl);
                         return wrapper.html();
                     },
                     replace: function (user) {
-                        var tag = self.createTagElement('@' + user.fullname, 'ping', user.id);
+                        var tag = self.createTagElement('@' + user.fullname, 'ping', user.id, {
+                            'data-user-id': user.id
+                        });
                         return ' ' + tag[0].outerHTML + ' ';
                     },
                 }], {
@@ -1436,31 +1547,77 @@
                     dropdownClassName: 'dropdown autocomplete',
                     maxCount: 5,
                     rightEdgeOffset: 0,
+                    debounce: 250
                 });
 
-                // Make sure that the dropdown won't overflow the container
-                textarea.on({
-                    'textComplete:show': function(e) {
-                        var dropdownEl = $(this).data('textComplete').dropdown.$el;
-                        dropdownEl.hide();
 
-                        var condition = function() {
-                            return !dropdownEl.is(':empty');
-                        }
-                        var callback = function() {
-                            var originalLeft = parseInt(dropdownEl.css('left'));
+                // OVERIDE TEXTCOMPLETE DROPDOWN POSITIONING
 
-                            // Position left affects to the width of the element
-                            dropdownEl.css('left', 0);
-
-                            var maxLeft = self.$el.width() - dropdownEl.width();
-                            var left = Math.min(maxLeft, originalLeft);
-                            dropdownEl.css('left', left);
-                            dropdownEl.show();
-                        }
-                        self.waitUntil(condition, callback);
+                $.fn.textcomplete.Dropdown.prototype.render = function(zippedData) {
+                    var contentsHtml = this._buildContents(zippedData);
+                    var unzippedData = $.map(zippedData, function (d) { return d.value; });
+                    if (zippedData.length) {
+                      var strategy = zippedData[0].strategy;
+                      if (strategy.id) {
+                        this.$el.attr('data-strategy', strategy.id);
+                      } else {
+                        this.$el.removeAttr('data-strategy');
+                      }
+                      this._renderHeader(unzippedData);
+                      this._renderFooter(unzippedData);
+                      if (contentsHtml) {
+                        this._renderContents(contentsHtml);
+                        this._fitToBottom();
+                        this._fitToRight();
+                        this._activateIndexedItem();
+                      }
+                      this._setScroll();
+                    } else if (this.noResultsMessage) {
+                      this._renderNoResultsMessage(unzippedData);
+                    } else if (this.shown) {
+                      this.deactivate();
                     }
-                })
+
+                    // CUSTOM CODE
+                    // ===========
+
+                    // Adjust vertical position
+                    var top = parseInt(this.$el.css('top')) + self.options.scrollContainer.scrollTop();
+                    this.$el.css('top', top);
+
+                    // Adjust horizontal position
+                    var originalLeft = this.$el.css('left');
+                    this.$el.css('left', 0);    // Left must be set to 0 in order to get the real width of the el
+                    var maxLeft = self.$el.width() - this.$el.outerWidth();
+                    var left = Math.min(maxLeft, parseInt(originalLeft));
+                    this.$el.css('left', left);
+
+                    // ===========
+                }
+
+
+                // OVERIDE TEXTCOMPLETE CONTENTEDITABLE SKIPSEARCH FUNCTION WHEN USING ALT + backspace
+
+                $.fn.textcomplete.ContentEditable.prototype._skipSearch = function(clickEvent) {
+                    switch (clickEvent.keyCode) {
+                        case 9:  // TAB
+                        case 13: // ENTER
+                        case 16: // SHIFT
+                        case 17: // CTRL
+                        //case 18: // ALT
+                        case 33: // PAGEUP
+                        case 34: // PAGEDOWN
+                        case 40: // DOWN
+                        case 38: // UP
+                        case 27: // ESC
+                            return true;
+                    }
+                    if (clickEvent.ctrlKey) switch (clickEvent.keyCode) {
+                        case 78: // Ctrl-N
+                        case 80: // Ctrl-P
+                            return true;
+                    }
+                }
             }
 
             return commentingField;
@@ -1594,7 +1751,7 @@
             });
 
             // Profile picture
-            var profilePicture = this.createProfilePictureElement(commentModel.profilePictureURL);
+            var profilePicture = this.createProfilePictureElement(commentModel.profilePictureURL, commentModel.creator);
 
             // Time
             var time = $('<time/>', {
@@ -1602,23 +1759,26 @@
                 'data-original': commentModel.created
             });
 
-            // Name
-            var nameText = commentModel.createdByCurrentUser ? this.options.textFormatter(this.options.youText) : commentModel.fullname;
-            var name = $('<div/>', {
-                'class': 'name'
+            // Name element
+            var name = $('<span/>', {
+                'data-user-id': commentModel.creator,
+                'text': commentModel.createdByCurrentUser ? this.options.textFormatter(this.options.youText) : commentModel.fullname
             });
+
             if(commentModel.profileURL) {
-                var link = $('<a/>', {
-                    href: commentModel.profileURL,
-                    text: nameText
+                name = $('<a/>', {
+                    'href': commentModel.profileURL,
+                    'html': name
                 });
-                name.html(link);
-            } else {
-                name.text(nameText);
             }
 
-            // Highlight name for own comments and admin
-            if(commentModel.createdByCurrentUser || commentModel.createdByAdmin) name.addClass('highlight-font-bold');
+            var nameEl = $('<div/>', {
+                'class': 'name',
+                'html': name
+            });
+
+            // Highlight admin names
+            if(commentModel.createdByAdmin) nameEl.addClass('highlight-font-bold');
 
             // Show reply-to name if parent of parent exists
             if(commentModel.parent) {
@@ -1626,7 +1786,8 @@
                 if(parent.parent) {
                     var replyTo = $('<span/>', {
                         'class': 'reply-to',
-                        text: parent.fullname
+                        'text': parent.fullname,
+                        'data-user-id': parent.creator
                     });
 
                     // reply icon
@@ -1639,8 +1800,17 @@
                     }
 
                     replyTo.prepend(replyIcon);
-                    name.append(replyTo);
+                    nameEl.append(replyTo);
                 }
+            }
+
+            // New tag
+            if(commentModel.isNew) {
+                var newTag = $('<span/>', {
+                    'class': 'new highlight-background',
+                    text: this.options.textFormatter(this.options.newText)
+                });
+                nameEl.append(newTag);
             }
 
             // Wrapper
@@ -1697,7 +1867,7 @@
                     // Icon
                     var availableIcons = ['archive', 'audio', 'code', 'excel', 'image', 'movie', 'pdf', 'photo',
                         'picture', 'powerpoint', 'sound', 'video', 'word', 'zip'];
-                    
+
                     var iconClass = 'fa fa-file-o';
                     if(availableIcons.indexOf(format) > 0) {
                         iconClass = 'fa fa-file-' + format + '-o';
@@ -1726,7 +1896,11 @@
 
             // Case: regular comment
             } else {
-                content.html(this.getFormattedCommentContent(commentModel));
+                if (this.options.wysiwyg_editor.opts.is_html) {
+                    content.html(commentModel.content);
+                } else {
+                    content.html(this.getFormattedCommentContent(commentModel));
+                }
             }
 
             // Edited timestamp
@@ -1803,7 +1977,7 @@
 
             wrapper.append(content);
             wrapper.append(actions);
-            commentWrapper.append(profilePicture).append(time).append(name).append(wrapper);
+            commentWrapper.append(profilePicture).append(time).append(nameEl).append(wrapper);
             return commentWrapper;
         },
 
@@ -1828,7 +2002,7 @@
             return upvoteEl;
         },
 
-        createTagElement: function(text, extraClasses, value) {
+        createTagElement: function(text, extraClasses, value, extraAttributes) {
             var tagEl = $('<input/>', {
                 'class': 'tag',
                 'type': 'button',
@@ -1837,6 +2011,7 @@
             if(extraClasses) tagEl.addClass(extraClasses);
             tagEl.val(text);
             tagEl.attr('data-value', value);
+            if (extraAttributes) tagEl.attr(extraAttributes);
             return tagEl;
         },
 
@@ -1925,11 +2100,6 @@
             return Object.keys(this.commentsById).map(function(id){return self.commentsById[id]});
         },
 
-        getUsers: function() {
-            var self = this;
-            return Object.keys(this.usersById).map(function(id){return self.usersById[id]});
-        },
-
         getChildComments: function(parentId) {
             return this.getComments().filter(function(comment){return comment.parent == parentId});
         },
@@ -1985,7 +2155,7 @@
 
             var showExpandingText = function() {
                 var text = self.options.textFormatter(self.options.viewAllRepliesText);
-                var replyCount = toggleAllButton.siblings('.comment').length;
+                var replyCount = toggleAllButton.siblings('.comment').not('.hidden').length;
                 text = text.replace('__replyCount__', replyCount);
                 textContainer.text(text);
             };
@@ -2037,6 +2207,11 @@
         },
 
         getTextareaContent: function(textarea, humanReadable) {
+            var wysiwyg_editor = textarea.data('wysiwyg_editor');
+            if (wysiwyg_editor && this.options.wysiwyg_editor.opts.enable) {
+                return this.options.wysiwyg_editor.get_contents(wysiwyg_editor);
+            }
+            var parentId = textarea.data('parent');
             var textareaClone = textarea.clone();
 
             // Remove reply-to tag
@@ -2055,6 +2230,9 @@
 
             // Trim leading spaces
             var text = ce.text().replace(/^\s+/g, '');
+
+            // Normalize spaces
+            var text = this.normalizeSpaces(text);
             return text;
         },
 
@@ -2066,8 +2244,20 @@
             return html;
         },
 
+        // Return pings in format
+        //  {
+        //      id1: userFullname1,
+        //      id2: userFullname2,
+        //      ...
+        //  }
         getPings: function(textarea) {
-            return $.map(textarea.find('.ping'), function(el){return parseInt($(el).attr('data-value'))});
+            var pings = {};
+            textarea.find('.ping').each(function(index, el){
+                var id = parseInt($(el).attr('data-value'));
+                var value = $(el).val();
+                pings[id] = value.slice(1);
+            });
+            return pings;
         },
 
         moveCursorToEnd: function(el) {
@@ -2103,7 +2293,7 @@
         },
 
         normalizeSpaces: function(inputText) {
-            return inputText.replace('\u00a0', ' ');  // Convert non-breaking spaces to reguar spaces
+            return inputText.replace(new RegExp('\u00a0', 'g'), ' ');   // Convert non-breaking spaces to reguar spaces
         },
 
         after: function(times, func) {
@@ -2145,17 +2335,17 @@
 
             if(html.indexOf('@') != -1) {
 
-                var __createTag = function(user) {
-                    var tag = self.createTagElement('@' + user.fullname, 'ping', user.id);
+                var __createTag = function(pingText, userId) {
+                    var tag = self.createTagElement(pingText, 'ping', userId, {
+                        'data-user-id': userId
+                    });
                     return tag[0].outerHTML;
                 }
 
-                $(commentModel.pings).each(function(index, id) {
-                    if(id in self.usersById) {
-                        var user = self.usersById[id];
-                        var pingText = '@' + user.fullname;
-                        html = html.replace(pingText, __createTag(user))
-                    }
+                $(Object.keys(commentModel.pings)).each(function(index, userId) {
+                    var fullname = commentModel.pings[userId];
+                    var pingText = '@' + fullname;
+                    html = html.replace(new RegExp(pingText, 'g'), __createTag(pingText, userId));
                 });
             }
             return html;
@@ -2164,28 +2354,31 @@
         linkify: function(inputText) {
             var replacedText, replacePattern1, replacePattern2, replacePattern3;
 
-            // URLs starting with http://, https://, file:// or ftp://
-            replacePattern1 = /(^|\s)((https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-            replacedText = inputText.replace(replacePattern1, '$1<a href="$2" target="_blank">$2</a>');
+            // URLs starting with http://, https://, ftp:// or file://
+            replacePattern1 = /(\b(https?|ftp|file):\/\/[-A-ZÄÖÅ0-9+&@#\/%?=~_|!:,.;]*[-A-ZÄÖÅ0-9+&@#\/%=~_|])/gim;
+            replacedText = inputText.replace(replacePattern1, '<a href="$1" target="_blank">$1</a>');
 
-            // URLs starting with "www." (without // before it, or it'd re-link the ones done above).
-            replacePattern2 = /(^|\s)(www\.[\S]+(\b|$))/gim;
-            replacedText = replacedText.replace(replacePattern2, '$1<a href="http://$2" target="_blank">$2</a>');
+            // URLs starting with "www." (without // before it, or it would re-link the ones done above).
+            replacePattern2 = /(^|[^\/f])(www\.[-A-ZÄÖÅ0-9+&@#\/%?=~_|!:,.;]*[-A-ZÄÖÅ0-9+&@#\/%=~_|])/gim;
+            replacedText = replacedText.replace(replacePattern2, '$1<a href="https://$2" target="_blank">$2</a>');
 
-            // Change email addresses to mailto:: links.
-            replacePattern3 = /(^|\s)(([a-zA-Z0-9\-\_\.]+)@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim;
-            replacedText = replacedText.replace(replacePattern3, '$1<a href="mailto:$2">$2</a>');
+            // Change email addresses to mailto: links.
+            replacePattern3 = /(([A-ZÄÖÅ0-9\-\_\.])+@[A-ZÄÖÅ\_]+?(\.[A-ZÄÖÅ]{2,6})+)/gim;
+            replacedText = replacedText.replace(replacePattern3, '<a href="mailto:$1">$1</a>');
 
             // If there are hrefs in the original text, let's split
             // the text up and only work on the parts that don't have urls yet.
             var count = inputText.match(/<a href/g) || [];
 
-            if(count.length > 0){
+            if (count.length > 0) {
                 // Keep delimiter when splitting
                 var splitInput = inputText.split(/(<\/a>)/g);
-                for (var i = 0 ; i < splitInput.length ; i++){
-                    if(splitInput[i].match(/<a href/g) == null){
-                        splitInput[i] = splitInput[i].replace(replacePattern1, '<a href="$1" target="_blank">$1</a>').replace(replacePattern2, '$1<a href="http://$2" target="_blank">$2</a>').replace(replacePattern3, '<a href="mailto:$1">$1</a>');
+                for (var i = 0 ; i < splitInput.length ; i++) {
+                    if (splitInput[i].match(/<a href/g) == null) {
+                        splitInput[i] = splitInput[i]
+                            .replace(replacePattern1, '<a href="$1" target="_blank">$1</a>')
+                            .replace(replacePattern2, '$1<a href="https://$2" target="_blank">$2</a>')
+                            .replace(replacePattern3, '<a href="mailto:$1">$1</a>');
                     }
                 }
                 var combinedReplacedText = splitInput.join('');
@@ -2208,7 +2401,6 @@
         },
 
         applyInternalMappings: function(commentJSON) {
-
             // Inverting field mappings
             var invertedMappings = {};
             var mappings = this.options.fieldMappings;

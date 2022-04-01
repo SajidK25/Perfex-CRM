@@ -23,14 +23,14 @@ class Migration_Version_151 extends CI_Migration
         $this->db->select('rel_id,id');
         $this->db->where('rel_type','customer');
         $this->db->where('visible_to_customer',1);
-        $files = $this->db->get('tblfiles')->result_array();
+        $files = $this->db->get(db_prefix().'files')->result_array();
 
         foreach($files as $file){
             $this->db->select('id');
             $this->db->where('userid',$file['rel_id']);
-            $contacts = $this->db->get('tblcontacts')->result_array();
+            $contacts = $this->db->get(db_prefix().'contacts')->result_array();
             foreach($contacts as $contact){
-             $this->db->insert('tblcustomerfiles_shares',array('file_id'=>$file['id'],'contact_id'=>$contact['id']));
+             $this->db->insert(db_prefix().'customerfiles_shares',array('file_id'=>$file['id'],'contact_id'=>$contact['id']));
          }
      }
     // Nothing to do here only to update database version number

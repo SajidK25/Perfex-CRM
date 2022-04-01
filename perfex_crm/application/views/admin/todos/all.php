@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
 	<div class="content">
@@ -127,7 +128,7 @@
 			todo_finished_class = ' line-throught';
 			checked = 'checked';
 		}
-		return '<li><div class="dragger todo-dragger"></div> <input type="hidden" value="' + finished + '" name="finished"><input type="hidden" value="' + obj.item_order + '" name="todo_order"><div class="checkbox checkbox-default todo-checkbox"><input type="checkbox" name="todo_id" value="' + obj.todoid + '" '+checked+'><label></label></div><span class="todo-description' + todo_finished_class + '">' + obj.description + '<a href="#" onclick="delete_todo_item(this,' + obj.todoid + '); return false;" class="pull-right text-muted"><i class="fa fa-remove"></i></a><a href="#" onclick="edit_todo_item('+obj.todoid+'); return false;" class="pull-right text-muted mright5"><i class="fa fa-pencil-square-o"></i></a></span><small class="todo-date">' + obj.dateadded + '</small></li>';
+		return '<li><div class="media"><div class="media-left no-padding-right"><div class="dragger todo-dragger"></div> <input type="hidden" value="' + finished + '" name="finished"><input type="hidden" value="' + obj.item_order + '" name="todo_order"><div class="checkbox checkbox-default todo-checkbox"><input type="checkbox" name="todo_id" value="' + obj.todoid + '" '+checked+'><label></label></div></div> <div class="media-body"><p class="todo-description' + todo_finished_class + ' no-padding-left">' + obj.description + '<a href="#" onclick="delete_todo_item(this,' + obj.todoid + '); return false;" class="pull-right text-muted"><i class="fa fa-remove"></i></a><a href="#" onclick="edit_todo_item('+obj.todoid+'); return false;" class="pull-right text-muted mright5"><i class="fa fa-pencil-square-o"></i></a></p><small class="todo-date">' + obj.dateadded + '</small></div></div></li>';
 	}
 </script>
 </body>

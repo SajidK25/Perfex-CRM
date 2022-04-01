@@ -16,41 +16,37 @@ class Migration_Version_198 extends CI_Migration
 
         if (get_option('cron_send_invoice_overdue_reminder') == '0') {
             $this->db->where('slug', 'invoice-overdue-notice');
-            $this->db->update('tblemailtemplates', array('active'=>0));
+            $this->db->update(db_prefix().'emailtemplates', array('active'=>0));
         }
 
         $this->db->where('name', 'cron_send_invoice_overdue_reminder');
-        $this->db->delete('tbloptions');
+        $this->db->delete(db_prefix().'options');
 
         if (get_option('estimate_expiry_reminder_enabled') == '0') {
             $this->db->where('slug', 'estimate-expiry-reminder');
-            $this->db->update('tblemailtemplates', array('active'=>0));
+            $this->db->update(db_prefix().'emailtemplates', array('active'=>0));
         }
 
         $this->db->where('name', 'estimate_expiry_reminder_enabled');
-        $this->db->delete('tbloptions');
+        $this->db->delete(db_prefix().'options');
 
         if (get_option('contract_expiry_reminder_enabled') == '0') {
             $this->db->where('slug', 'contract-expiration');
-            $this->db->update('tblemailtemplates', array('active'=>0));
+            $this->db->update(db_prefix().'emailtemplates', array('active'=>0));
         }
 
         $this->db->where('name', 'contract_expiry_reminder_enabled');
-        $this->db->delete('tbloptions');
+        $this->db->delete(db_prefix().'options');
 
         $this->db->where('name', 'auto_check_for_new_notifications');
-        $this->db->delete('tbloptions');
+        $this->db->delete(db_prefix().'options');
 
         $this->db->where('slug', 'contract-expiration');
         $this->db->where('language', 'english');
-        $this->db->update('tblemailtemplates', array('name'=>'Contract Expiration Reminder (Sent to Customer Contacts and Staff)'));
+        $this->db->update(db_prefix().'emailtemplates', array('name'=>'Contract Expiration Reminder (Sent to Customer Contacts and Staff)'));
 
         $this->db->query("INSERT INTO `tblpermissions` (`name`, `shortname`) VALUES ('Leads', 'leads');");
         $this->db->query("ALTER TABLE `tblcreditnotes` ADD `number_format` INT NOT NULL DEFAULT '1' AFTER `prefix`;");
-
-        if(is_dir(APPPATH.'vendor/tecnickcom/tcpdf/fonts/') && is_dir(APPPATH.'third_party/tcpdf/fonts/')){
-            @xcopy(APPPATH.'third_party/tcpdf/fonts/',APPPATH.'vendor/tecnickcom/tcpdf/fonts/');
-        }
 
         if(file_exists(FCPATH.'pipe.php')){
             @chmod(FCPATH.'pipe.php', 0755);

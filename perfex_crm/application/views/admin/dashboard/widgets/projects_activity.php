@@ -1,4 +1,5 @@
-<div class="widget<?php if(count($projects_activity) == 0){echo ' hide';} ?>" id="widget-<?php echo basename(__FILE__,".php"); ?>" data-name="<?php echo _l('home_project_activity'); ?>">
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<div class="widget<?php if(count($projects_activity) == 0){echo ' hide';} ?>" id="widget-<?php echo create_widget_id(); ?>" data-name="<?php echo _l('home_project_activity'); ?>">
   <div class="panel_s projects-activity">
    <div class="panel-body padding-10">
     <div class="widget-dragger"></div>
@@ -32,7 +33,7 @@
        <?php echo _l('project_name'); ?>: <a href="<?php echo admin_url('projects/view/'.$activity['project_id']); ?>"><?php echo $activity['project_name']; ?></a>
      </div>
      <?php if(!empty($activity['additional_data'])){ ?>
-     <p class="text-muted mtop5"><?php echo $activity['additional_data']; ?></p>
+        <p class="text-muted mtop5"><?php echo $activity['additional_data']; ?></p>
      <?php } ?>
    </div>
    <?php } ?>

@@ -1,5 +1,6 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div id="payments-received-report" class="hide">
-      <table class="table table-payments-received-report scroll-responsive">
+      <table class="table table-payments-received-report">
          <thead>
             <tr>
                <th><?php echo _l('payments_table_number_heading'); ?></th>

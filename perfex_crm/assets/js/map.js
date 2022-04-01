@@ -57,7 +57,7 @@ function initMap() {
             "featureType": "water",
             "elementType": "all",
             "stylers": [{
-                    "color": "#28b8da"
+                    "color": "#03a9f4"
                 },
                 {
                     "visibility": "on"
@@ -65,6 +65,10 @@ function initMap() {
             ]
         }
     ];
+
+    var latitude = $('#google-maps-api-js').attr('latitude');
+    var longitude = $('#google-maps-api-js').attr('longitude');
+    var mapMarkerTitle = $('#google-maps-api-js').attr('mapMarkerTitle');
 
     if (latitude == '' || longitude == '') {
         return;

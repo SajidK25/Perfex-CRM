@@ -19,7 +19,7 @@ class Migration_Version_106 extends CI_Migration
             @unlink(APPPATH . 'views/admin/estimates/estimate_activity_log.php');
         }
 
-        if(!is_dir(BACKUPS_FOLDER)){
+/*        if(!is_dir(BACKUPS_FOLDER)){
             mkdir(BACKUPS_FOLDER);
             fopen(BACKUPS_FOLDER . '.htaccess', 'w');
             $fp = fopen(BACKUPS_FOLDER.'.htaccess','a+');
@@ -28,10 +28,10 @@ class Migration_Version_106 extends CI_Migration
                 fwrite($fp,'Order Deny,Allow'.PHP_EOL.'Deny from all');
                 fclose($fp);
             }
-        }
+        }*/
 
         $this->db->where('name','clients_default_theme');
-        $theme = $this->db->get('tbloptions')->row()->value;
+        $theme = $this->db->get(db_prefix().'options')->row()->value;
 
         if($theme != 'perfex'){
             copy(APPPATH . 'views/themes/perfex/template_parts/contract_attachments.php',APPPATH . 'views/themes/' . active_clients_theme() . '/template_parts/contract_attachments.php');
@@ -154,13 +154,13 @@ class Migration_Version_106 extends CI_Migration
         $this->db->query("ALTER TABLE `tblcontractrenewals` CHANGE `new_end_date` `new_end_date` DATE NULL;");
         $this->db->query("ALTER TABLE `tblcontractrenewals` CHANGE `old_end_date` `old_end_date` DATE NULL;");
         // Okey copy the customer contact details into the invoice
-        $invoices = $this->db->get('tblinvoices')->result_array();
+        $invoices = $this->db->get(db_prefix().'invoices')->result_array();
         foreach ($invoices as $invoice) {
             $this->db->where('userid', $invoice['clientid']);
-            $client = $this->db->get('tblclients')->row();
+            $client = $this->db->get(db_prefix().'clients')->row();
 
             $this->db->where('id', $invoice['id']);
-            $this->db->update('tblinvoices', array(
+            $this->db->update(db_prefix().'invoices', array(
                 'billing_street' => $client->address,
                 'billing_city' => $client->city,
                 'billing_state' => $client->state,
@@ -170,13 +170,13 @@ class Migration_Version_106 extends CI_Migration
         }
 
         // Okey copy the customer contact details into the estimate
-        $invoices = $this->db->get('tblestimates')->result_array();
+        $invoices = $this->db->get(db_prefix().'estimates')->result_array();
         foreach ($invoices as $estimate) {
             $this->db->where('userid', $estimate['clientid']);
-            $client = $this->db->get('tblclients')->row();
+            $client = $this->db->get(db_prefix().'clients')->row();
 
             $this->db->where('id', $estimate['id']);
-            $this->db->update('tblestimates', array(
+            $this->db->update(db_prefix().'estimates', array(
                 'billing_street' => $client->address,
                 'billing_city' => $client->city,
                 'billing_state' => $client->state,
@@ -186,10 +186,10 @@ class Migration_Version_106 extends CI_Migration
         }
 
         // Now get all clients and update data for billing
-        $clients = $this->db->get('tblclients')->result_array();
+        $clients = $this->db->get(db_prefix().'clients')->result_array();
         foreach ($clients as $client) {
             $this->db->where('userid', $client['userid']);
-            $this->db->update('tblclients', array(
+            $this->db->update(db_prefix().'clients', array(
                 'billing_street' => $client['address'],
                 'billing_city' => $client['city'],
                 'billing_state' => $client['state'],

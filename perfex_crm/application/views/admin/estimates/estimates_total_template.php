@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="row">
 <?php if(count($estimates_years) > 1 || isset($currencies)){ ?>
   <div class="col-md-12 simple-bootstrap-select mbot5">
@@ -19,7 +20,8 @@
       <?php } ?>
     </select>
     <?php } ?>
-      <?php if(count($estimates_years > 1)){ ?>
+      <?php
+      if(count($estimates_years) > 1){ ?>
       <select data-none-selected-text="<?php echo date('Y'); ?>" data-width="auto" class="selectpicker" multiple name="estimates_total_years" onchange="init_estimates_total();">
          <?php foreach($estimates_years as $year){ ?>
          <option value="<?php echo $year['year']; ?>"<?php if($this->input->post('years') && in_array($year['year'], $this->input->post('years')) || !$this->input->post('years') && date('Y') == $year['year']){echo ' selected'; } ?>><?php echo $year['year']; ?></option>
@@ -36,7 +38,7 @@
       <div class="panel_s">
         <div class="panel-body">
           <h3 class="text-muted _total">
-            <?php echo format_money($data['total'],$data['symbol']); ?>
+            <?php echo app_format_money($data['total'], $data['currency_name']); ?>
           </h3>
           <span class="text-<?php echo $class; ?>"><?php echo $name; ?></span>
         </div>

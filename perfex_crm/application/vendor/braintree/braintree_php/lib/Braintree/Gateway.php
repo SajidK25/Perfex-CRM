@@ -15,12 +15,19 @@ class Gateway
      */
     public $config;
 
+    /**
+     *
+     * @var GraphQLClient
+     */
+    public $graphQLClient;
+
     public function __construct($config)
     {
         if (is_array($config)) {
             $config = new Configuration($config);
         }
         $this->config = $config;
+        $this->graphQLClient = new GraphQLClient($config);
     }
 
     /**
@@ -214,11 +221,11 @@ class Gateway
 
     /**
      *
-     * @return TransparentRedirectGateway
+     * @return TransactionLineItemGateway
      */
-    public function transparentRedirect()
+    public function transactionLineItem()
     {
-        return new TransparentRedirectGateway($this);
+        return new TransactionLineItemGateway($this);
     }
 
     /**
@@ -232,11 +239,11 @@ class Gateway
 
     /**
      *
-     * @return IdealPaymentGateway
+     * @return UsBankAccountVerificationGateway
      */
-    public function idealPayment()
+    public function usBankAccountVerification()
     {
-        return new IdealPaymentGateway($this);
+        return new UsBankAccountVerificationGateway($this);
     }
 
     /**
@@ -247,5 +254,13 @@ class Gateway
     {
         return new WebhookNotificationGateway($this);
     }
+
+    /**
+     *
+     * @return WebhookTestingGateway
+     */
+    public function webhookTesting()
+    {
+        return new WebhookTestingGateway($this);
+    }
 }
-class_alias('Braintree\Gateway', 'Braintree_Gateway');

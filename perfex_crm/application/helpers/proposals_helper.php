@@ -1,5 +1,43 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * Get proposal short_url
+ * @since  Version 2.7.3
+ * @param  object $proposal
+ * @return string Url
+ */
+function get_proposal_shortlink($proposal)
+{
+    $long_url = site_url("proposal/{$proposal->id}/{$proposal->hash}");
+    if (!get_option('bitly_access_token')) {
+        return $long_url;
+    }
+
+    // Check if proposal has short link, if yes return short link
+    if (!empty($proposal->short_link)) {
+        return $proposal->short_link;
+    }
+
+    // Create short link and return the newly created short link
+    $short_link = app_generate_short_link([
+        'long_url' => $long_url,
+        'title'    => format_proposal_number($proposal->id),
+    ]);
+
+    if ($short_link) {
+        $CI = &get_instance();
+        $CI->db->where('id', $proposal->id);
+        $CI->db->update(db_prefix() . 'proposals', [
+            'short_link' => $short_link,
+        ]);
+
+        return $short_link;
+    }
+
+    return $long_url;
+}
 
 /**
  * Check if proposal hash is equal
@@ -9,7 +47,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 function check_proposal_restrictions($id, $hash)
 {
-    $CI =& get_instance();
+    $CI = &get_instance();
     $CI->load->model('proposals_model');
     if (!$hash || !$id) {
         show_404();
@@ -24,8 +62,9 @@ function check_proposal_restrictions($id, $hash)
  * Check if proposal email template for expiry reminders is enabled
  * @return boolean
  */
-function is_proposals_email_expiry_reminder_enabled(){
-    return total_rows('tblemailtemplates',array('slug'=>'proposal-expiry-reminder','active'=>1)) > 0;
+function is_proposals_email_expiry_reminder_enabled()
+{
+    return total_rows(db_prefix() . 'emailtemplates', ['slug' => 'proposal-expiry-reminder', 'active' => 1]) > 0;
 }
 
 /**
@@ -33,7 +72,8 @@ function is_proposals_email_expiry_reminder_enabled(){
  * Will be either email or SMS
  * @return boolean
  */
-function is_proposals_expiry_reminders_enabled(){
+function is_proposals_expiry_reminders_enabled()
+{
     return is_proposals_email_expiry_reminder_enabled() || is_sms_trigger_active(SMS_TRIGGER_PROPOSAL_EXP_REMINDER);
 }
 
@@ -97,9 +137,9 @@ function format_proposal_status($status, $classes = '', $label = true)
 
     if ($label == true) {
         return '<span class="label label-' . $label_class . ' ' . $classes . ' s-status proposal-status-' . $id . '">' . $status . '</span>';
-    } else {
-        return $status;
     }
+
+    return $status;
 }
 
 /**
@@ -109,7 +149,9 @@ function format_proposal_status($status, $classes = '', $label = true)
  */
 function format_proposal_number($id)
 {
-    return get_option('proposal_number_prefix') . str_pad($id, get_option('number_padding_prefixes'), '0', STR_PAD_LEFT);
+    $format = get_option('proposal_number_prefix') . str_pad($id, get_option('number_padding_prefixes'), '0', STR_PAD_LEFT);
+
+    return hooks()->apply_filters('proposal_number_format', $format, $id);
 }
 
 
@@ -120,10 +162,10 @@ function format_proposal_number($id)
  */
 function get_proposal_item_taxes($itemid)
 {
-    $CI =& get_instance();
+    $CI = &get_instance();
     $CI->db->where('itemid', $itemid);
     $CI->db->where('rel_type', 'proposal');
-    $taxes = $CI->db->get('tblitemstax')->result_array();
+    $taxes = $CI->db->get(db_prefix() . 'item_tax')->result_array();
     $i     = 0;
     foreach ($taxes as $tax) {
         $taxes[$i]['taxname'] = $tax['taxname'] . '|' . $tax['taxrate'];
@@ -142,37 +184,37 @@ function get_proposal_item_taxes($itemid)
  */
 function get_proposals_percent_by_status($status, $total_proposals = '')
 {
-    $has_permission_view = has_permission('proposals', '', 'view');
-    $has_permission_view_own = has_permission('proposals', '', 'view_own');
+    $has_permission_view                 = has_permission('proposals', '', 'view');
+    $has_permission_view_own             = has_permission('proposals', '', 'view_own');
     $allow_staff_view_proposals_assigned = get_option('allow_staff_view_proposals_assigned');
-    $staffId = get_staff_user_id();
+    $staffId                             = get_staff_user_id();
 
     $whereUser = '';
     if (!$has_permission_view) {
         if ($has_permission_view_own) {
-            $whereUser = '(addedfrom='.$staffId;
+            $whereUser = '(addedfrom=' . $staffId;
             if ($allow_staff_view_proposals_assigned == 1) {
-                $whereUser .= ' OR assigned='.$staffId;
+                $whereUser .= ' OR assigned=' . $staffId;
             }
             $whereUser .= ')';
         } else {
-            $whereUser .= 'assigned='.$staffId;
+            $whereUser .= 'assigned=' . $staffId;
         }
     }
 
     if (!is_numeric($total_proposals)) {
-        $total_proposals = total_rows('tblproposals', $whereUser);
+        $total_proposals = total_rows(db_prefix() . 'proposals', $whereUser);
     }
 
-    $data            = array();
+    $data            = [];
     $total_by_status = 0;
-    $where           ='status='.$status;
+    $where           = 'status=' . get_instance()->db->escape_str($status);
     if (!$has_permission_view) {
-        $where .= ' AND (' .$whereUser .')';
+        $where .= ' AND (' . $whereUser . ')';
     }
 
-    $total_by_status = total_rows('tblproposals', $where);
-    $percent = ($total_proposals > 0 ? number_format(($total_by_status * 100) / $total_proposals, 2) : 0);
+    $total_by_status = total_rows(db_prefix() . 'proposals', $where);
+    $percent         = ($total_proposals > 0 ? number_format(($total_by_status * 100) / $total_proposals, 2) : 0);
 
     $data['total_by_status'] = $total_by_status;
     $data['percent']         = $percent;
@@ -188,7 +230,7 @@ function get_proposals_percent_by_status($status, $total_proposals = '')
  */
 function get_proposal_templates()
 {
-    $proposal_templates = array();
+    $proposal_templates = [];
     if (is_dir(VIEWPATH . 'admin/proposals/templates')) {
         foreach (list_files(VIEWPATH . 'admin/proposals/templates') as $template) {
             $proposal_templates[] = $template;
@@ -196,4 +238,104 @@ function get_proposal_templates()
     }
 
     return $proposal_templates;
+}
+/**
+ * Check if staff member can view proposal
+ * @param  mixed $id proposal id
+ * @param  mixed $staff_id
+ * @return boolean
+ */
+function user_can_view_proposal($id, $staff_id = false)
+{
+    $CI = &get_instance();
+
+    $staff_id = $staff_id ? $staff_id : get_staff_user_id();
+
+    if (has_permission('proposals', $staff_id, 'view')) {
+        return true;
+    }
+
+    $CI->db->select('id, addedfrom, assigned');
+    $CI->db->from(db_prefix() . 'proposals');
+    $CI->db->where('id', $id);
+    $proposal = $CI->db->get()->row();
+
+    if ((has_permission('proposals', $staff_id, 'view_own') && $proposal->addedfrom == $staff_id)
+        || ($proposal->assigned == $staff_id && get_option('allow_staff_view_proposals_assigned') == 1)
+    ) {
+        return true;
+    }
+
+    return false;
+}
+function parse_proposal_content_merge_fields($proposal)
+{
+    $id = is_array($proposal) ? $proposal['id'] : $proposal->id;
+    $CI = &get_instance();
+
+    $CI->load->library('merge_fields/proposals_merge_fields');
+    $CI->load->library('merge_fields/other_merge_fields');
+
+    $merge_fields = [];
+    $merge_fields = array_merge($merge_fields, $CI->proposals_merge_fields->format($id));
+    $merge_fields = array_merge($merge_fields, $CI->other_merge_fields->format());
+    foreach ($merge_fields as $key => $val) {
+        $content = is_array($proposal) ? $proposal['content'] : $proposal->content;
+
+        if (stripos($content, $key) !== false) {
+            if (is_array($proposal)) {
+                $proposal['content'] = str_ireplace($key, $val, $content);
+            } else {
+                $proposal->content = str_ireplace($key, $val, $content);
+            }
+        } else {
+            if (is_array($proposal)) {
+                $proposal['content'] = str_ireplace($key, '', $content);
+            } else {
+                $proposal->content = str_ireplace($key, '', $content);
+            }
+        }
+    }
+
+    return $proposal;
+}
+
+/**
+ * Check if staff member have assigned proposals / added as sale agent
+ * @param  mixed $staff_id staff id to check
+ * @return boolean
+ */
+function staff_has_assigned_proposals($staff_id = '')
+{
+    $CI       = &get_instance();
+    $staff_id = is_numeric($staff_id) ? $staff_id : get_staff_user_id();
+    $cache    = $CI->app_object_cache->get('staff-total-assigned-proposals-' . $staff_id);
+    if (is_numeric($cache)) {
+        $result = $cache;
+    } else {
+        $result = total_rows(db_prefix() . 'proposals', ['assigned' => $staff_id]);
+        $CI->app_object_cache->add('staff-total-assigned-proposals-' . $staff_id, $result);
+    }
+
+    return $result > 0 ? true : false;
+}
+
+function get_proposals_sql_where_staff($staff_id)
+{
+    $has_permission_view_own            = has_permission('proposals', '', 'view_own');
+    $allow_staff_view_invoices_assigned = get_option('allow_staff_view_proposals_assigned');
+    $CI                                 = &get_instance();
+
+    $whereUser = '';
+    if ($has_permission_view_own) {
+        $whereUser = '((' . db_prefix() . 'proposals.addedfrom=' . $CI->db->escape_str($staff_id) . ' AND ' . db_prefix() . 'proposals.addedfrom IN (SELECT staff_id FROM ' . db_prefix() . 'staff_permissions WHERE feature = "proposals" AND capability="view_own"))';
+        if ($allow_staff_view_invoices_assigned == 1) {
+            $whereUser .= ' OR assigned=' . $CI->db->escape_str($staff_id);
+        }
+        $whereUser .= ')';
+    } else {
+        $whereUser .= 'assigned=' . $CI->db->escape_str($staff_id);
+    }
+
+    return $whereUser;
 }

@@ -1,5 +1,6 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('authentication/includes/head.php'); ?>
-<body class="authentication">
+<body class="authentication forgot-password">
  <div class="container">
   <div class="row">
    <div class="col-md-4 col-md-offset-4 authentication-form-wrapper">

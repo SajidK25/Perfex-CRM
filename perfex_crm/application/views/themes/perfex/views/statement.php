@@ -1,6 +1,7 @@
-<div class="panel_s">
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<div class="panel_s section-statement">
    <div class="panel-body">
-      <h4 class="customer-profile-group-heading"><?php echo _l('customer_statement'); ?></h4>
+      <h4 class="customer-statement-heading"><?php echo _l('customer_statement'); ?></h4>
       <div class="row">
          <div class="col-md-4">
             <div class="form-group">
@@ -78,21 +79,21 @@
                                  <tbody>
                                     <tr>
                                        <td class="text-left"><?php echo _l('statement_beginning_balance'); ?>:</td>
-                                       <td><?php echo format_money($statement['beginning_balance'],$statement['currency']->symbol); ?></td>
+                                       <td><?php echo app_format_money($statement['beginning_balance'], $statement['currency']); ?></td>
                                     </tr>
                                     <tr>
                                        <td class="text-left"><?php echo _l('invoiced_amount'); ?>:</td>
-                                       <td><?php echo format_money($statement['invoiced_amount'],$statement['currency']->symbol); ?></td>
+                                       <td><?php echo app_format_money($statement['invoiced_amount'], $statement['currency']); ?></td>
                                     </tr>
                                     <tr>
                                        <td class="text-left"><?php echo _l('amount_paid'); ?>:</td>
-                                       <td><?php echo format_money($statement['amount_paid'],$statement['currency']->symbol); ?></td>
+                                       <td><?php echo app_format_money($statement['amount_paid'], $statement['currency']); ?></td>
                                     </tr>
                                  </tbody>
                                  <tfoot>
                                     <tr>
                                        <td class="text-left"><b><?php echo _l('balance_due'); ?></b>:</td>
-                                       <td><?php echo format_money($statement['balance_due'],$statement['currency']->symbol); ?></td>
+                                       <td><?php echo app_format_money($statement['balance_due'], $statement['currency']); ?></td>
                                     </tr>
                                  </tfoot>
                               </table>
@@ -117,9 +118,9 @@
                                     <tr>
                                        <td><?php echo $from; ?></td>
                                        <td><?php echo _l('statement_beginning_balance'); ?></td>
-                                       <td class="text-right"><?php echo _format_number($statement['beginning_balance']); ?></td>
+                                       <td class="text-right"><?php echo app_format_money($statement['beginning_balance'], $statement['currency'], true); ?></td>
                                        <td></td>
-                                       <td class="text-right"><?php echo _format_number($statement['beginning_balance']); ?></td>
+                                       <td class="text-right"><?php echo app_format_money($statement['beginning_balance'], $statement['currency'], true); ?></td>
                                     </tr>
                                     <?php
                                     $tmpBeginningBalance = $statement['beginning_balance'];
@@ -129,7 +130,7 @@
                                        <td>
                                           <?php
                                           if(isset($data['invoice_id'])) {
-                                             echo _l('statement_invoice_details',array('<a href="'.site_url('viewinvoice/'.$data['invoice_id']).'/'.$data['hash'].'" target="_blank">'.format_invoice_number($data['invoice_id']).'</a>',_d($data['duedate'])));
+                                             echo _l('statement_invoice_details',array('<a href="'.site_url('invoice/'.$data['invoice_id']).'/'.$data['hash'].'" target="_blank">'.format_invoice_number($data['invoice_id']).'</a>',_d($data['duedate'])));
                                           } else if(isset($data['payment_id'])){
                                              echo _l('statement_payment_details',array('#'.$data['payment_id'],format_invoice_number($data['payment_invoice_id'])));
                                           } else if(isset($data['credit_note_id'])) {
@@ -137,26 +138,30 @@
                                           } else if(isset($data['credit_id'])) {
                                              echo _l('statement_credits_applied_details',array(
                                                format_credit_note_number($data['credit_applied_credit_note_id']),
-                                               _format_number($data['credit_amount']),
+                                               app_format_money($data['credit_amount'], $statement['currency'], true),
                                                format_invoice_number($data['credit_invoice_id'])
                                             )
                                           );
+                                          } else if(isset($data['credit_note_refund_id'])) {
+                                            echo _l('statement_credit_note_refund', format_credit_note_number($data['refund_credit_note_id']));
                                           }
                                           ?>
                                        </td>
                                        <td class="text-right">
                                           <?php
                                           if(isset($data['invoice_id'])) {
-                                           echo _format_number($data['invoice_amount']);
+                                           echo app_format_money($data['invoice_amount'], $statement['currency'], true);
                                           } else if(isset($data['credit_note_id'])) {
-                                           echo _format_number($data['credit_note_amount']);
+                                           echo app_format_money($data['credit_note_amount'], $statement['currency'], true);
                                         }
                                       ?>
                                    </td>
                                    <td class="text-right">
                                     <?php
                                     if(isset($data['payment_id'])) {
-                                     echo _format_number($data['payment_total']);
+                                     echo app_format_money($data['payment_total'], $statement['currency'], true);
+                                  } else if(isset($data['credit_note_refund_id'])) {
+                                      echo app_format_money($data['refund_amount'], $statement['currency'], true);
                                   }
                                   ?>
                                </td>
@@ -165,12 +170,14 @@
                                  if(isset($data['invoice_id'])) {
                                   $tmpBeginningBalance = ($tmpBeginningBalance + $data['invoice_amount']);
                                } else if(isset($data['payment_id'])){
-                                  $tmpBeginningBalance = ($tmpBeginningBalance - $data['payment_total']);
+                                   $tmpBeginningBalance = ($tmpBeginningBalance - $data['payment_total']);
                                } else if(isset($data['credit_note_id'])) {
-                                $tmpBeginningBalance = ($tmpBeginningBalance - $data['credit_note_amount']);
-                             }
+                                  $tmpBeginningBalance = ($tmpBeginningBalance - $data['credit_note_amount']);
+                               } else if(isset($data['credit_note_refund_id'])) {
+                                  $tmpBeginningBalance = ($tmpBeginningBalance + $data['refund_amount']);
+                               }
                               if(!isset($data['credit_id'])){
-                                 echo _format_number($tmpBeginningBalance);
+                                 echo app_format_money($tmpBeginningBalance, $statement['currency'], true);
                               }
                            ?>
                         </td>
@@ -183,7 +190,7 @@
                            <b><?php echo _l('balance_due'); ?></b>
                         </td>
                         <td class="text-right" colspan="2">
-                           <b><?php echo format_money($statement['balance_due'],$statement['currency']->symbol); ?></b>
+                           <b><?php echo app_format_money($statement['balance_due'], $statement['currency']); ?></b>
                         </td>
                      </tr>
                   </tfoot>

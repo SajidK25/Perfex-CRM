@@ -1,4 +1,44 @@
 $(function() {
+    $('#tickets_bulk_actions').on('show.bs.modal', function () {
+        $('#primary_ticket_id').find('option').remove().end().append('<option></option>');
+        $('#merge_tickets').prop("checked", false);
+        $('#merge_tickets').trigger('change');
+    });
+
+    $('#merge_tickets').on('change', function () {
+        var $mergeCheckbox = $(this)
+        var merge_tickets = $mergeCheckbox.prop('checked');
+        var $bulkChange = $('#bulk_change');
+        var $ticketsSelect = $('#primary_ticket_id');
+        var rows = $('.table-tickets').find('tbody tr');
+
+        $ticketsSelect.find('option').remove().end().append('<option></option>');
+        if (merge_tickets) {
+            $('#bulk_change').addClass('hide');
+            $('#merge_tickets_wrapper').removeClass('hide');
+            $('.mass_delete_checkbox').addClass('hide');
+            $('#mass_delete').prop('checked', false);
+            $bulkChange.addClass('hide');
+
+            $.each(rows, function() {
+                var checkbox = $($(this).find('td').eq(0)).find('input');
+                if (checkbox.prop('checked') == true) {
+                    $ticketsSelect.append('<option value="' + checkbox.val() + '" data-status="'+ checkbox.data('status')  +'">'+ checkbox.data('name') +'</option');
+                }
+            });
+            $ticketsSelect.selectpicker('refresh')
+        } else {
+            $('#merge_tickets_wrapper').addClass('hide');
+            $bulkChange.removeClass('hide');
+            $('.mass_delete_checkbox').removeClass('hide');
+        }
+    });
+
+    $('#primary_ticket_id').on('change', function () {
+        var status = $(this).find('option:selected').data('status');
+        $('#primary_ticket_status').selectpicker('val', status);
+    });
+
     // Add predefined reply click
     $('#insert_predefined_reply').on('change', function(e) {
         e.preventDefault();
@@ -12,28 +52,30 @@ $(function() {
         }
     });
 
-    $('#ticket_no_contact').on('click',function(e){
+    $('#ticket_no_contact').on('click', function(e) {
         e.preventDefault();
-        $('#name, #email').prop('disabled',false);
-        $('#name').val('').rules('add',{required:true});
-        $('#email').val('').rules('add',{required:true});
+        validate_new_ticket_form();
+        $('#name, #email').prop('disabled', false);
+        $('#name').val('').rules('add', { required: true });
+        $('#email').val('').rules('add', { required: true });
 
         $(this).addClass('hide');
-        $('#contactid').rules('remove','required');
-        $('#contactid').selectpicker('val','');
+
+        $('#contactid').removeAttr('required');
+        $('#contactid').selectpicker('val', '');
         $('input[name="userid"]').val('');
 
         $('#ticket_to_contact').removeClass('hide');
         $('#ticket_contact_w').addClass('hide');
     });
 
-    $('#ticket_to_contact').on('click',function(e){
+    $('#ticket_to_contact').on('click', function(e) {
         e.preventDefault();
-        $('#name, #email').prop('disabled',true);
+        $('#name, #email').prop('disabled', true);
         $('#ticket_no_contact').removeClass('hide');
-        $('#contactid').rules('add',{required:true});
-        $('#name').rules('remove','required');
-        $('#email').rules('remove','required');
+        $('#contactid').attr('required', true);
+        $('#name').rules('remove', 'required');
+        $('#email').rules('remove', 'required');
         $('#ticket_no_contact, #ticket_contact_w').removeClass('hide');
         $(this).addClass('hide');
     });
@@ -57,6 +99,7 @@ $(function() {
         var note_description = $('textarea[name="note_description"]').val();
         var ticketid = $('input[name="ticketid"]').val();
         if (note_description == '') { return; }
+        $(e.target).addClass('disabled');
         $.post(admin_url + 'misc/add_note/' + ticketid + '/ticket', {
             description: note_description
         }).done(function() {
@@ -81,7 +124,7 @@ $(function() {
 
         var selectRequired = ['department', 'priority'];
 
-        if($('#contactid').data('no-contact') != true) {
+        if ($('#contactid').data('no-contact') != true) {
             selectRequired.push('contactid');
         }
 
@@ -102,21 +145,21 @@ $(function() {
             var parent = cf_field.parents('.form-group');
             if (cf_field.is(':checkbox')) {
                 var checked = parent.find('input[type="checkbox"]:checked');
-                if(checked.length == 0) {
+                if (checked.length == 0) {
                     errors = true;
                     parent.addClass('has-error');
                 } else {
                     parent.removeClass('has-error');
                 }
             } else if (cf_field.is('input') || cf_field.is('textarea')) {
-                if(cf_field.val() === '') {
+                if (cf_field.val() === '') {
                     errors = true;
                     parent.addClass('has-error');
                 } else {
                     parent.removeClass('has-error');
                 }
             } else if (cf_field.is('select')) {
-                if(cf_field.selectpicker('val') == '') {
+                if (cf_field.selectpicker('val') == '') {
                     errors = true;
                     parent.addClass('has-error');
                 } else {
@@ -142,6 +185,8 @@ $(function() {
                 } else {
                     window.location.reload();
                 }
+            } else if (typeof(response.message) !== 'undefined') {
+                alert_float('warning', response.message)
             }
         });
     });
@@ -193,6 +238,11 @@ $(function() {
                     $('input[name="name"]').val(response.contact_data.firstname + ' ' + response.contact_data.lastname);
                     $('input[name="email"]').val(response.contact_data.email);
                     $('input[name="userid"]').val(response.contact_data.userid);
+                    if (response.contact_data.ticket_emails == '0') {
+                        show_ticket_no_contact_email_warning(response.contact_data.userid, response.contact_data.id);
+                    } else {
+                        clear_ticket_no_contact_email_warning();
+                    }
                 }
                 if (!projectAutoSelected) {
                     if (response.customer_has_projects) {
@@ -213,6 +263,7 @@ $(function() {
             } else {
                 projectsWrapper.removeClass('hide');
             }
+            clear_ticket_no_contact_email_warning();
         }
     });
 });
@@ -231,9 +282,21 @@ function insert_ticket_knowledgebase_link(e) {
 function tickets_bulk_action(event) {
     if (confirm_delete()) {
         var mass_delete = $('#mass_delete').prop('checked');
+        var merge_tickets = $('#merge_tickets').prop('checked');
         var ids = [];
         var data = {};
-        if (mass_delete == false || typeof(mass_delete) == 'undefined') {
+
+        if (typeof(merge_tickets) != 'undefined' && merge_tickets == true){
+            data.merge_tickets = true;
+            data.primary_ticket = $('#primary_ticket_id').val();
+            data.primary_ticket_status = $('#primary_ticket_status').val();
+
+            if (data.primary_ticket == '') {
+                console.log('empty')
+
+                return;
+            }
+        } else if (mass_delete == false || typeof(mass_delete) == 'undefined') {
             data.status = $('#move_to_status_tickets_bulk').val();
             data.department = $('#move_to_department_tickets_bulk').val();
             data.priority = $('#move_to_priority_tickets_bulk').val();
@@ -260,4 +323,24 @@ function tickets_bulk_action(event) {
             });
         }, 50);
     }
+}
+
+function show_ticket_no_contact_email_warning(userid, contactid) {
+    if ($('#contact_email_notifications_warning').length == 0) {
+        $('#new_ticket_form, #single-ticket-form').prepend('<div class="alert alert-warning" id="contact_email_notifications_warning">Email notifications for tickets is disabled for this contact, if you want the contact to receive ticket emails you must enable by clicking <a href="' + admin_url + 'clients/client/' + userid + '?contactid=' + contactid + '" target="_blank">here</a>.</div>');
+    }
+}
+
+function clear_ticket_no_contact_email_warning() {
+    $('#contact_email_notifications_warning').remove();
+}
+
+function validate_new_ticket_form() {
+    $('#new_ticket_form').appFormValidator();
+
+    setTimeout(function() {
+        $.each($('#new_ticket_form').find('[data-custom-field-required="1"]'), function() {
+            $(this).rules('add', 'required');
+        });
+    }, 10);
 }

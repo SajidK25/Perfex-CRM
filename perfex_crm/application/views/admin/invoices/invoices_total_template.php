@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="row">
    <?php if(count($invoices_years) > 1 || isset($invoices_total_currencies)){ ?>
    <div class="col-md-12 simple-bootstrap-select mbot5">
@@ -11,11 +12,13 @@
               }
             } else {
               if($this->input->post('currency') == $currency['id']){
-               $selected = 'selected';
-             }
+                  $selected = 'selected';
+              }
             }
             ?>
-         <option value="<?php echo $currency['id']; ?>" <?php echo $selected; ?> data-subtext="<?php echo $currency['name']; ?>"><?php echo $currency['symbol']; ?></option>
+         <option value="<?php echo $currency['id']; ?>" <?php echo $selected; ?> data-subtext="<?php echo $currency['name']; ?>">
+          <?php echo $currency['symbol']; ?>
+          </option>
          <?php } ?>
       </select>
       <?php } ?>
@@ -33,7 +36,7 @@
       <div class="panel_s">
          <div class="panel-body">
             <h3 class="text-muted _total">
-               <?php echo format_money($total_result['due'],$total_result['symbol']); ?>
+               <?php echo app_format_money($total_result['due'], $total_result['currency']); ?>
             </h3>
             <span class="text-warning"><?php echo _l('outstanding_invoices'); ?></span>
          </div>
@@ -43,7 +46,7 @@
       <div class="panel_s">
          <div class="panel-body">
             <h3 class="text-muted _total">
-               <?php echo format_money($total_result['overdue'],$total_result['symbol']); ?>
+               <?php echo app_format_money($total_result['overdue'], $total_result['currency']); ?>
             </h3>
             <span class="text-danger"><?php echo _l('past_due_invoices'); ?></span>
          </div>
@@ -53,7 +56,7 @@
       <div class="panel_s">
          <div class="panel-body">
             <h3 class="text-muted _total">
-               <?php echo format_money($total_result['paid'],$total_result['symbol']); ?>
+               <?php echo app_format_money($total_result['paid'], $total_result['currency']); ?>
             </h3>
             <span class="text-success"><?php echo _l('paid_invoices'); ?></span>
          </div>

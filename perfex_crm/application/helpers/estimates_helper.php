@@ -1,5 +1,41 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * Get Estimate short_url
+ * @since  Version 2.7.3
+ * @param  object $estimate
+ * @return string Url
+ */
+function get_estimate_shortlink($estimate)
+{
+    $long_url = site_url("estimate/{$estimate->id}/{$estimate->hash}");
+    if (!get_option('bitly_access_token')) {
+        return $long_url;
+    }
+
+    // Check if estimate has short link, if yes return short link
+    if (!empty($estimate->short_link)) {
+        return $estimate->short_link;
+    }
+
+    // Create short link and return the newly created short link
+    $short_link = app_generate_short_link([
+        'long_url'  => $long_url,
+        'title'     => format_estimate_number($estimate->id)
+    ]);
+
+    if ($short_link) {
+        $CI = &get_instance();
+        $CI->db->where('id', $estimate->id);
+        $CI->db->update(db_prefix() . 'estimates', [
+            'short_link' => $short_link
+        ]);
+        return $short_link;
+    }
+    return $long_url;
+}
 
 /**
  * Check estimate restrictions - hash, clientid
@@ -8,7 +44,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 function check_estimate_restrictions($id, $hash)
 {
-    $CI =& get_instance();
+    $CI = &get_instance();
     $CI->load->model('estimates_model');
     if (!$hash || !$id) {
         show_404();
@@ -16,7 +52,7 @@ function check_estimate_restrictions($id, $hash)
     if (!is_client_logged_in() && !is_staff_logged_in()) {
         if (get_option('view_estimate_only_logged_in') == 1) {
             redirect_after_login_to_current_url();
-            redirect(site_url('clients/login'));
+            redirect(site_url('authentication/login'));
         }
     }
     $estimate = $CI->estimates_model->get($id);
@@ -37,8 +73,9 @@ function check_estimate_restrictions($id, $hash)
  * Check if estimate email template for expiry reminders is enabled
  * @return boolean
  */
-function is_estimates_email_expiry_reminder_enabled(){
-    return total_rows('tblemailtemplates',array('slug'=>'estimate-expiry-reminder','active'=>1)) > 0;
+function is_estimates_email_expiry_reminder_enabled()
+{
+    return total_rows(db_prefix() . 'emailtemplates', ['slug' => 'estimate-expiry-reminder', 'active' => 1]) > 0;
 }
 
 /**
@@ -46,7 +83,8 @@ function is_estimates_email_expiry_reminder_enabled(){
  * Will be either email or SMS
  * @return boolean
  */
-function is_estimates_expiry_reminders_enabled(){
+function is_estimates_expiry_reminders_enabled()
+{
     return is_estimates_email_expiry_reminder_enabled() || is_sms_trigger_active(SMS_TRIGGER_ESTIMATE_EXP_REMINDER);
 }
 
@@ -73,7 +111,7 @@ function estimate_status_color_pdf($status_id)
         $statusColor = '255, 111, 0';
     }
 
-    return $statusColor;
+    return hooks()->apply_filters('estimate_status_pdf_color', $statusColor, $status_id);
 }
 
 /**
@@ -90,9 +128,9 @@ function format_estimate_status($status, $classes = '', $label = true)
     $status      = estimate_status_by_id($status);
     if ($label == true) {
         return '<span class="label label-' . $label_class . ' ' . $classes . ' s-status estimate-status-' . $id . ' estimate-status-' . $label_class . '">' . $status . '</span>';
-    } else {
-        return $status;
     }
+
+    return $status;
 }
 
 /**
@@ -122,13 +160,7 @@ function estimate_status_by_id($id)
         }
     }
 
-    $hook_data = do_action('estimate_status_label', array(
-        'id' => $id,
-        'label' => $status,
-    ));
-    $status    = $hook_data['label'];
-
-    return $status;
+    return hooks()->apply_filters('estimate_status_label', $status, $id);
 }
 
 /**
@@ -165,13 +197,7 @@ function estimate_status_color_class($id, $replace_default_by_muted = false)
         }
     }
 
-    $hook_data = do_action('estimate_status_color_class', array(
-        'id' => $id,
-        'class' => $class,
-    ));
-    $class     = $hook_data['class'];
-
-    return $class;
+    return hooks()->apply_filters('estimate_status_color_class', $class, $id);
 }
 
 /**
@@ -181,8 +207,8 @@ function estimate_status_color_class($id, $replace_default_by_muted = false)
  */
 function is_last_estimate($id)
 {
-    $CI =& get_instance();
-    $CI->db->select('id')->from('tblestimates')->order_by('id', 'desc')->limit(1);
+    $CI = &get_instance();
+    $CI->db->select('id')->from(db_prefix() . 'estimates')->order_by('id', 'desc')->limit(1);
     $query            = $CI->db->get();
     $last_estimate_id = $query->row()->id;
     if ($last_estimate_id == $id) {
@@ -199,42 +225,20 @@ function is_last_estimate($id)
  */
 function format_estimate_number($id)
 {
-    $CI =& get_instance();
-    $CI->db->select('date,number,prefix,number_format')->from('tblestimates')->where('id', $id);
+    $CI = &get_instance();
+    $CI->db->select('date,number,prefix,number_format')->from(db_prefix() . 'estimates')->where('id', $id);
     $estimate = $CI->db->get()->row();
 
     if (!$estimate) {
         return '';
     }
 
-    $format = $estimate->number_format;
-    $prefix = $estimate->prefix;
-    $number = $estimate->number;
-    $date = $estimate->date;
-    $prefixPadding = get_option('number_padding_prefixes');
+    $number = sales_number_format($estimate->number, $estimate->number_format, $estimate->prefix, $estimate->date);
 
-
-    if ($format == 1) {
-        // Number based
-        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
-    } elseif ($format == 2) {
-        // Year based
-        return $prefix . date('Y', strtotime($date)) . '/' . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
-    } else if($format == 3) {
-        // Number-yy based
-        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '-' . date('y', strtotime($date));
-    } else if($format == 4) {
-        // Number-mm-yyyy based
-        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '/' . date('m', strtotime($date)) . '/' . date('Y', strtotime($date));
-    }
-
-    $hook_data['id'] = $id;
-    $hook_data['estimate'] = $estimate;
-    $hook_data['formatted_number'] = $number;
-    $hook_data = do_action('format_estimate_number',$hook_data);
-    $number = $hook_data['formatted_number'];
-
-    return $number;
+    return hooks()->apply_filters('format_estimate_number', $number, [
+        'id'       => $id,
+        'estimate' => $estimate,
+    ]);
 }
 
 
@@ -245,10 +249,10 @@ function format_estimate_number($id)
  */
 function get_estimate_item_taxes($itemid)
 {
-    $CI =& get_instance();
+    $CI = &get_instance();
     $CI->db->where('itemid', $itemid);
     $CI->db->where('rel_type', 'estimate');
-    $taxes = $CI->db->get('tblitemstax')->result_array();
+    $taxes = $CI->db->get(db_prefix() . 'item_tax')->result_array();
     $i     = 0;
     foreach ($taxes as $tax) {
         $taxes[$i]['taxname'] = $tax['taxname'] . '|' . $tax['taxrate'];
@@ -261,38 +265,41 @@ function get_estimate_item_taxes($itemid)
 /**
  * Calculate estimates percent by status
  * @param  mixed $status          estimate status
- * @param  mixed $total_estimates in case the total is calculated in other place
  * @return array
  */
-function get_estimates_percent_by_status($status, $total_estimates = '')
+function get_estimates_percent_by_status($status, $project_id = null)
 {
     $has_permission_view = has_permission('estimates', '', 'view');
+    $where               = '';
 
-    if (!is_numeric($total_estimates)) {
-        $where_total = array();
-        if (!$has_permission_view) {
-            $where_total['addedfrom'] = get_staff_user_id();
-        }
-        $total_estimates = total_rows('tblestimates', $where_total);
+    if (isset($project_id)) {
+        $where .= 'project_id=' . get_instance()->db->escape_str($project_id) . ' AND ';
+    }
+    if (!$has_permission_view) {
+        $where .= get_estimates_where_sql_for_staff(get_staff_user_id());
     }
 
-    $data            = array();
+    $where = trim($where);
+
+    if (endsWith($where, ' AND')) {
+        $where = substr_replace($where, '', -3);
+    }
+
+    $total_estimates = total_rows(db_prefix() . 'estimates', $where);
+
+    $data            = [];
     $total_by_status = 0;
 
     if (!is_numeric($status)) {
         if ($status == 'not_sent') {
-            $total_by_status = total_rows('tblestimates', 'sent=0 AND status NOT IN(2,3,4)' . (!$has_permission_view ? ' AND addedfrom=' . get_staff_user_id() : ''));
+            $total_by_status = total_rows(db_prefix() . 'estimates', 'sent=0 AND status NOT IN(2,3,4)' . ($where != '' ? ' AND (' . $where . ')' : ''));
         }
     } else {
-        $where = array(
-            'status' => $status,
-        );
-        if (!$has_permission_view) {
-            $where = array_merge($where, array(
-                'addedfrom' => get_staff_user_id(),
-            ));
+        $whereByStatus = 'status=' . $status;
+        if ($where != '') {
+            $whereByStatus .= ' AND (' . $where . ')';
         }
-        $total_by_status = total_rows('tblestimates', $where);
+        $total_by_status = total_rows(db_prefix() . 'estimates', $whereByStatus);
     }
 
     $percent                 = ($total_estimates > 0 ? number_format(($total_by_status * 100) / $total_estimates, 2) : 0);
@@ -301,4 +308,72 @@ function get_estimates_percent_by_status($status, $total_estimates = '')
     $data['total']           = $total_estimates;
 
     return $data;
+}
+
+function get_estimates_where_sql_for_staff($staff_id)
+{
+    $CI = &get_instance();
+    $has_permission_view_own             = has_permission('estimates', '', 'view_own');
+    $allow_staff_view_estimates_assigned = get_option('allow_staff_view_estimates_assigned');
+    $whereUser                           = '';
+    if ($has_permission_view_own) {
+        $whereUser = '((' . db_prefix() . 'estimates.addedfrom=' . $CI->db->escape_str($staff_id) . ' AND ' . db_prefix() . 'estimates.addedfrom IN (SELECT staff_id FROM ' . db_prefix() . 'staff_permissions WHERE feature = "estimates" AND capability="view_own"))';
+        if ($allow_staff_view_estimates_assigned == 1) {
+            $whereUser .= ' OR sale_agent=' . $CI->db->escape_str($staff_id);
+        }
+        $whereUser .= ')';
+    } else {
+        $whereUser .= 'sale_agent=' . $CI->db->escape_str($staff_id);
+    }
+
+    return $whereUser;
+}
+/**
+ * Check if staff member have assigned estimates / added as sale agent
+ * @param  mixed $staff_id staff id to check
+ * @return boolean
+ */
+function staff_has_assigned_estimates($staff_id = '')
+{
+    $CI       = &get_instance();
+    $staff_id = is_numeric($staff_id) ? $staff_id : get_staff_user_id();
+    $cache    = $CI->app_object_cache->get('staff-total-assigned-estimates-' . $staff_id);
+
+    if (is_numeric($cache)) {
+        $result = $cache;
+    } else {
+        $result = total_rows(db_prefix() . 'estimates', ['sale_agent' => $staff_id]);
+        $CI->app_object_cache->add('staff-total-assigned-estimates-' . $staff_id, $result);
+    }
+
+    return $result > 0 ? true : false;
+}
+/**
+ * Check if staff member can view estimate
+ * @param  mixed $id estimate id
+ * @param  mixed $staff_id
+ * @return boolean
+ */
+function user_can_view_estimate($id, $staff_id = false)
+{
+    $CI = &get_instance();
+
+    $staff_id = $staff_id ? $staff_id : get_staff_user_id();
+
+    if (has_permission('estimates', $staff_id, 'view')) {
+        return true;
+    }
+
+    $CI->db->select('id, addedfrom, sale_agent');
+    $CI->db->from(db_prefix() . 'estimates');
+    $CI->db->where('id', $id);
+    $estimate = $CI->db->get()->row();
+
+    if ((has_permission('estimates', $staff_id, 'view_own') && $estimate->addedfrom == $staff_id)
+        || ($estimate->sale_agent == $staff_id && get_option('allow_staff_view_estimates_assigned') == '1')
+    ) {
+        return true;
+    }
+
+    return false;
 }

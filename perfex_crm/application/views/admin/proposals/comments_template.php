@@ -1,10 +1,9 @@
-<?php
+<?php defined('BASEPATH') or exit('No direct script access allowed');
    ob_start();
    $len = count($comments);
    $i = 0;
    foreach ($comments as $comment) { ?>
-<div class="col-md-12" data-commentid="<?php echo $comment['id']; ?>">
-   <small class="mtop10 text-muted"><?php echo _dt($comment['dateadded']); ?></small>
+<div class="col-md-12 comment-item" data-commentid="<?php echo $comment['id']; ?>">
    <?php if($comment['staffid'] != 0){ ?>
    <a href="<?php echo admin_url('profile/' . $comment['staffid']); ?>">
    <?php
@@ -22,9 +21,15 @@
    </a>
    <?php } ?>
    <div class="media-body">
+      <div class="mtop5">
       <?php if($comment['staffid'] != 0){ ?>
-      <a href="<?php echo admin_url('profile/' . $comment['staffid']); ?>"><?php echo get_staff_full_name($comment['staffid']); ?></a> <br />
+         <a href="<?php echo admin_url('profile/' . $comment['staffid']); ?>"><?php echo get_staff_full_name($comment['staffid']); ?></a>
+      <?php } else { ?>
+         <?php echo '<b>' . _l('is_customer_indicator') . '</b>'; ?>
       <?php } ?>
+         <small class="text-muted text-has-action" data-toggle="tooltip" data-title="<?php echo _dt($comment['dateadded']); ?>"> - <?php echo time_ago($comment['dateadded']); ?></small>
+      </div>
+      <br />
       <div data-proposal-comment="<?php echo $comment['id']; ?>">
          <?php echo check_for_links($comment['content']); ?>
       </div>

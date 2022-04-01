@@ -32,7 +32,7 @@ class Migration_Version_122 extends CI_Migration
         $config_file = read_file($config_path);
         $config_file = trim($config_file);
         $config_file = str_replace("\$config['sess_driver'] = 'files';", "\$config['sess_driver'] = 'database';", $config_file);
-        $config_file = str_replace("\$config['sess_save_path'] = sys_get_temp_dir();", "\$config['sess_save_path'] = 'tblsessions';", $config_file);
+        $config_file = str_replace("\$config['sess_save_path'] = sys_get_temp_dir();", "\$config['sess_save_path'] = db_prefix().'sessions';", $config_file);
         if (!$fp = fopen($config_path, FOPEN_WRITE_CREATE_DESTRUCTIVE)) {
             return FALSE;
         }

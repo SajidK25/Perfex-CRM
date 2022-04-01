@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <p><?php echo _l('project_note_private'); ?></p>
 <hr />
 <?php echo form_open(admin_url('projects/save_note/'.$project->id)); ?>

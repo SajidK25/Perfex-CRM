@@ -24,16 +24,16 @@ class Migration_Version_124 extends CI_Migration
         fclose($fp);
         @chmod($config_path, FILE_READ_MODE);
 
-        $cfields_values = $this->db->get('tblcustomfieldsvalues')->result_array();
+        $cfields_values = $this->db->get(db_prefix().'customfieldsvalues')->result_array();
         foreach($cfields_values as $cf){
             $this->db->where('id',$cf['fieldid']);
-            $row = $this->db->get('tblcustomfields')->row();
+            $row = $this->db->get(db_prefix().'customfields')->row();
             if($row){
                 if($row->type == 'date_picker'){
                     $date = $cf['value'];
                     if(!empty($date)){
                         $d = date('Y-m-d',strtotime($date));
-                        if(_startsWith($d,'197') || _startsWith($d,'196')){
+                        if(startsWith($d,'197') || startsWith($d,'196')){
                             $d = @date_format(date_create_from_format(get_current_date_format(true), $date), 'Y-m-d');
                             if(!$d){
                                 if(strpos($date,'.') !== false){
@@ -47,7 +47,7 @@ class Migration_Version_124 extends CI_Migration
                         }
                         if($d){
                             $this->db->where('id',$cf['id']);
-                            $this->db->update('tblcustomfieldsvalues',array('value'=>$d));
+                            $this->db->update(db_prefix().'customfieldsvalues',array('value'=>$d));
                         }
                     }
                 }
@@ -55,21 +55,21 @@ class Migration_Version_124 extends CI_Migration
         }
 
         $this->db->query("ALTER TABLE `tblleads` ADD `client_id` INT NOT NULL DEFAULT '0' AFTER `is_public`;");
-        $customers = $this->db->get('tblclients')->result_array();
+        $customers = $this->db->get(db_prefix().'clients')->result_array();
 
         foreach($customers as $c){
             if(!is_null($c['leadid'])){
                 $this->db->where('id',$c['leadid']);
-                $this->db->update('tblleads',array('client_id'=>$c['userid']));
+                $this->db->update(db_prefix().'leads',array('client_id'=>$c['userid']));
             }
         }
 
         $this->db->where('status',0);
-        $proposals = $this->db->get('tblproposals')->result_array();
+        $proposals = $this->db->get(db_prefix().'proposals')->result_array();
 
         foreach($proposals as $proposal){
             $this->db->where('id',$proposal['id']);
-            $this->db->update('tblproposals',array('status'=>6));
+            $this->db->update(db_prefix().'proposals',array('status'=>6));
         }
 
         $this->db->query("ALTER TABLE `tblestimates` ADD INDEX(`project_id`);");
@@ -82,19 +82,19 @@ class Migration_Version_124 extends CI_Migration
 
         $this->db->query("ALTER TABLE `tblemailtemplates` ADD `language` VARCHAR(40) NULL AFTER `slug`;");
 
-        $email_templates = $this->db->get('tblemailtemplates')->result_array();
+        $email_templates = $this->db->get(db_prefix().'emailtemplates')->result_array();
 
         foreach($email_templates as $template){
             $temp_data = array('language'=>'english');
-            $this->db->update('tblemailtemplates',$temp_data);
+            $this->db->update(db_prefix().'emailtemplates',$temp_data);
         }
 
-        $email_templates = $this->db->get('tblemailtemplates')->result_array();
+        $email_templates = $this->db->get(db_prefix().'emailtemplates')->result_array();
 
         foreach(list_folders(APPPATH .'language') as $language){
             if($language != 'english'){
                 foreach($email_templates as $template){
-                    if(total_rows('tblemailtemplates',array('slug'=>$template['slug'],'language'=>$language)) == 0){
+                    if(total_rows(db_prefix().'emailtemplates',array('slug'=>$template['slug'],'language'=>$language)) == 0){
                         $data = array();
                         $data['slug'] = $template['slug'];
                         $data['type'] = $template['type'];
@@ -110,22 +110,22 @@ class Migration_Version_124 extends CI_Migration
                         $data['active'] = $template['active'];
                         $data['order'] = $template['order'];
 
-                        $this->db->insert('tblemailtemplates',$data);
+                        $this->db->insert(db_prefix().'emailtemplates',$data);
                     }
                 }
             }
         }
 
-        $invoices = $this->db->get('tblinvoices')->result_array();
+        $invoices = $this->db->get(db_prefix().'invoices')->result_array();
         foreach($invoices as $invoice){
             $this->db->where('id',$invoice['id']);
-            $this->db->update('tblinvoices',array('prefix'=>get_option('invoice_prefix')));
+            $this->db->update(db_prefix().'invoices',array('prefix'=>get_option('invoice_prefix')));
         }
 
-        $estimates = $this->db->get('tblestimates')->result_array();
+        $estimates = $this->db->get(db_prefix().'estimates')->result_array();
         foreach($estimates as $estimate){
             $this->db->where('id',$estimate['id']);
-            $this->db->update('tblestimates',array('prefix'=>get_option('estimate_prefix')));
+            $this->db->update(db_prefix().'estimates',array('prefix'=>get_option('estimate_prefix')));
         }
 
         add_option('show_expense_reminders_on_calendar',1);
@@ -151,16 +151,16 @@ class Migration_Version_124 extends CI_Migration
         $this->db->query("ALTER TABLE `tblprojectfiles` ADD `description` TEXT NULL AFTER `subject`;");
         $this->db->query("INSERT INTO `tblpermissions` (`name`, `shortname`) VALUES ('Items', 'items');");
 
-        $discussion_comments = $this->db->get('tblprojectdiscussioncomments')->result_array();
+        $discussion_comments = $this->db->get(db_prefix().'projectdiscussioncomments')->result_array();
         foreach($discussion_comments as $comment){
             $this->db->where('id',$comment['id']);
-            $this->db->update('tblprojectdiscussioncomments',array('discussion_type'=>'regular'));
+            $this->db->update(db_prefix().'projectdiscussioncomments',array('discussion_type'=>'regular'));
         }
 
-        $project_files = $this->db->get('tblprojectfiles')->result_array();
+        $project_files = $this->db->get(db_prefix().'projectfiles')->result_array();
         foreach($project_files as $file){
             $this->db->where('id',$file['id']);
-            $this->db->update('tblprojectfiles',array('subject'=>$file['file_name']));
+            $this->db->update(db_prefix().'projectfiles',array('subject'=>$file['file_name']));
         }
 
         add_option('only_show_contact_tickets',0);

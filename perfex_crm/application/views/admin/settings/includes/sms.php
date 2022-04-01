@@ -1,8 +1,8 @@
-<?php
-do_action('before_sms_gateways_settings');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
+hooks()->do_action('before_sms_gateways_settings');
 
-$gateways = $this->sms->get_gateways();
-$triggers = $this->sms->get_available_triggers();
+$gateways = $this->app_sms->get_gateways();
+$triggers = $this->app_sms->get_available_triggers();
 $total_gateways = count($gateways);
 
 if($total_gateways > 1) { ?>
@@ -21,7 +21,7 @@ if($total_gateways > 1) { ?>
             </a>
         </h4>
     </div>
-    <div id="sms_<?php echo $gateway['id']; ?>" class="panel-collapse collapse<?php if($this->sms->get_option($gateway['id'],'active') == 1 || $total_gateways == 1){echo ' in';} ?>" role="tabpanel" aria-labelledby="<?php echo 'heading'.$gateway['id']; ?>">
+    <div id="sms_<?php echo $gateway['id']; ?>" class="panel-collapse collapse<?php if($this->app_sms->get_option($gateway['id'],'active') == 1 || $total_gateways == 1){echo ' in';} ?>" role="tabpanel" aria-labelledby="<?php echo 'heading'.$gateway['id']; ?>">
       <div class="panel-body no-br-tlr no-border-color">
 
         <?php
@@ -30,17 +30,64 @@ if($total_gateways > 1) { ?>
         }
 
         foreach($gateway['options'] as $g_option){
-            echo render_input('settings['.$this->sms->option_name($gateway['id'],$g_option['name']).']',$g_option['label'],$this->sms->get_option($gateway['id'],$g_option['name']));
+            $type = isset($g_option['field_type']) ? $g_option['field_type'] : 'text';
+            if($type == 'text'){
+                echo render_input(
+                    'settings['.$this->app_sms->option_name($gateway['id'],$g_option['name']).']',
+                    $g_option['label'],
+                    $this->app_sms->get_option($gateway['id'],$g_option['name']),
+                    'text',
+                    [],
+                    [],
+                    isset($g_option['info']) ? 'mbot5' : 'mbot15'
+                );
+            } else if($type == 'radio') {
+                ?>
+                <div class="form-group">
+                    <p><?php echo $g_option['label']; ?></p>
+                    <?php
+                foreach($g_option['options'] as $option) {
+                    ?>
+                    <div class="radio radio-info radio-inline">
+                        <input type="radio"
+                        name="settings[<?php echo $optionName = $this->app_sms->option_name($gateway['id'], $g_option['name']); ?>]" value="<?php echo $option['value']; ?>"
+                        id="<?php echo $option['value'] . '-'.  $optionName; ?>"
+                        <?php if($this->app_sms->get_option($gateway['id'],$g_option['name']) == $option['value']){ echo ' checked';} ?>>
+                        <label for="<?php echo $option['value'] . '-'.  $optionName; ?>"><?php echo $option['label']; ?></label>
+                     </div>
+                    <?php
+                }
+                ?>
+                </div>
+                <?php
+            }
+
+            if(isset($g_option['info'])) { ?>
+                <div class="mbot15">
+                    <?php echo $g_option['info']; ?>
+                </div>
+            <?php }
         }
         echo '<div class="sms_gateway_active">';
 
-        echo render_yes_no_option($this->sms->option_name($gateway['id'],'active'),'Active');
+        echo render_yes_no_option($this->app_sms->option_name($gateway['id'],'active'), 'Active');
+
         echo '</div>';
+            if(get_option($this->app_sms->option_name($gateway['id'],'active')) == '1') {
+                echo '<hr />';
+                echo '<h4 class="mbot15">'._l('test_sms_config').'</h4>';
+                echo '<div class="form-group"><input type="text" placeholder="'._l('staff_add_edit_phonenumber').'" class="form-control test-phone" data-id="'.$gateway['id'].'"></div>';
+                echo '<div class="form-group"><textarea class="form-control sms-gateway-test-message" placeholder="'._l('test_sms_message').'" data-id="'.$gateway['id'].'" rows="4"></textarea></div>';
+                echo '<button type="button" class="btn btn-info send-test-sms" data-id="'.$gateway['id'].'">'._l('send_test_sms').'</button>';
+                echo '<div id="sms_test_response" data-id="'.$gateway['id'].'"></div>';
+            }
         ?>
     </div>
 </div>
 </div>
 <?php } ?>
+<hr />
+<?php echo render_input('settings[bitly_access_token]', 'Bitly Access Token', get_option('bitly_access_token')); ?>
 <hr />
 <h4 class="mbot15">
     <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('sms_trigger_disable_tip'); ?>"></i>
@@ -55,7 +102,10 @@ foreach($triggers as $trigger_name => $trigger_opts) {
     if(isset($trigger_opts['info']) && $trigger_opts['info'] != ''){
      $label .= '<p>'.$trigger_opts['info'].'</p>';
     }
-    echo render_textarea('settings[' .$this->sms->trigger_option_name($trigger_name).']',$label,$trigger_opts['value']);
+
+    echo render_textarea('settings[' .$this->app_sms->trigger_option_name($trigger_name).']',$label,$trigger_opts['value']);
+
+    hooks()->do_action('after_sms_trigger_textarea_content', ['name' => $trigger_name, 'options' => $trigger_opts]);
 
     $merge_fields = '';
 
@@ -69,7 +119,7 @@ foreach($triggers as $trigger_name => $trigger_opts) {
         echo '<hr class="hr-10" />';
         echo '</div>';
     }
-    echo '<hr />';
+    echo '<hr class="hr-10" />';
 }
 ?>
 </div>

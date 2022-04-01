@@ -14,12 +14,12 @@ class Migration_Version_196 extends CI_Migration
         $this->db->query("ALTER TABLE `tblgoals` ADD INDEX(`staff_id`);");
 
         $this->db->where('datecreated','0000-00-00 00:00:00');
-        $total = $this->db->count_all_results('tblclients');
+        $total = $this->db->count_all_results(db_prefix().'clients');
 
         // Will cause problems to execute the query below
         if($total > 0) {
             $this->db->where('datecreated','0000-00-00 00:00:00');
-            $this->db->update('tblclients',array('datecreated'=>date('Y-m-d H:i:s')));
+            $this->db->update(db_prefix().'clients',array('datecreated'=>date('Y-m-d H:i:s')));
         }
 
         $this->db->query("ALTER TABLE `tblclients` ADD `addedfrom` INT NOT NULL DEFAULT '0' AFTER `show_primary_contact`;");

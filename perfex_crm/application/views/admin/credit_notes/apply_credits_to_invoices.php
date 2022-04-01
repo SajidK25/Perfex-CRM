@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php if($credit_note->status == 1) { ?>
 <!-- Modal Apply Credits -->
 <div class="modal fade apply-credits-to-invoice" id="apply_credits" data-credits-remaining="<?php echo $credit_note->remaining_credits; ?>" tabindex="-1" role="dialog" aria-labelledby="modalLabelApplyCredits">
@@ -24,12 +25,13 @@
                 </tr>
             </thead>
             <tbody>
-                <?php foreach($available_creditable_invoices as $invoice) { ?>
+                <?php foreach($available_creditable_invoices as $invoice) {
+                    ?>
                 <tr>
                     <td><a href="<?php echo admin_url('invoices/list_invoices/'.$invoice['id']); ?>" target="_blank"><?php echo format_invoice_number($invoice['id']); ?></a></td>
                     <td><?php echo _d($invoice['date']); ?></td>
-                    <td><?php echo format_money($invoice['total'],$invoice['symbol']) ?></td>
-                    <td><?php echo format_money($invoice['total_left_to_pay'],$invoice['symbol']) ?></td>
+                    <td><?php echo app_format_money($invoice['total'], $invoice['currency_name']) ?></td>
+                    <td><?php echo app_format_money($invoice['total_left_to_pay'], $invoice['currency_name']) ?></td>
                     <td>
                         <input type="number" name="amount[<?php echo $invoice['id']; ?>]" class="form-control apply-credits-field" value="0">
                     </td>
@@ -46,13 +48,13 @@
                      <tr>
                         <td class="bold"><?php echo _l('amount_to_credit'); ?>:</td>
                         <td class="amount-to-credit">
-                            <?php echo _format_number(0); ?>
+                            <?php echo app_format_money(0, $credit_note->currency_name); ?>
                         </td>
                     </tr>
                     <tr>
                         <td class="bold"><?php echo _l('credit_note_remaining_credits'); ?>:</td>
                         <td class="credit-note-balance-due">
-                            <?php echo _format_number($credit_note->remaining_credits); ?>
+                            <?php echo app_format_money($credit_note->remaining_credits, $credit_note->currency_name); ?>
                         </td>
                     </tr>
                 </tbody>
@@ -75,8 +77,10 @@
 </div>
 </div>
 <script>
+    $('body').addClass('no-calculate-total');
+    init_currency(<?php echo $credit_note->currencyid; ?>);
     $(function(){
-        _validate_form('#apply_credits_form');
+        appValidateForm('#apply_credits_form');
     });
 </script>
 <?php } ?>

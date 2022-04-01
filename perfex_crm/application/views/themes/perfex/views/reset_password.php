@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="container">
     <div class="row">
         <div class="col-md-4 col-md-offset-4 mtop40 text-center">

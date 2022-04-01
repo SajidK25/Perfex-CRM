@@ -37,7 +37,7 @@ class Migration_Version_117 extends CI_Migration
           PRIMARY KEY (`id`)
           ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1");
 
-        $estimate_notes = $this->db->get('tblestimatenotes')->result_array();
+        $estimate_notes = $this->db->get(db_prefix().'estimatenotes')->result_array();
         foreach ($estimate_notes as $note) {
             $data                = array();
             $data['rel_type']    = 'estimate';
@@ -45,12 +45,12 @@ class Migration_Version_117 extends CI_Migration
             $data['addedfrom']   = $note['staffid'];
             $data['description'] = $note['description'];
             $data['dateadded']   = $note['dateadded'];
-            $this->db->insert('tblnotes', $data);
+            $this->db->insert(db_prefix().'notes', $data);
         }
 
         $this->db->query("DROP TABLE tblestimatenotes");
 
-        $lead_notes = $this->db->get('tblleadnotes')->result_array();
+        $lead_notes = $this->db->get(db_prefix().'leadnotes')->result_array();
         foreach ($lead_notes as $note) {
             $data                = array();
             $data['rel_type']    = 'lead';
@@ -58,12 +58,12 @@ class Migration_Version_117 extends CI_Migration
             $data['addedfrom']   = $note['staffid'];
             $data['description'] = $note['description'];
             $data['dateadded']   = $note['dateadded'];
-            $this->db->insert('tblnotes', $data);
+            $this->db->insert(db_prefix().'notes', $data);
         }
 
         $this->db->query("DROP TABLE tblleadnotes");
 
-        $customer_staff_notes = $this->db->get('tbluseradminnotes')->result_array();
+        $customer_staff_notes = $this->db->get(db_prefix().'useradminnotes')->result_array();
         foreach ($customer_staff_notes as $note) {
             $data = array();
             if ($note['staff'] == 1) {
@@ -75,12 +75,12 @@ class Migration_Version_117 extends CI_Migration
             $data['addedfrom']   = $note['addedfrom'];
             $data['description'] = $note['description'];
             $data['dateadded']   = $note['dateadded'];
-            $this->db->insert('tblnotes', $data);
+            $this->db->insert(db_prefix().'notes', $data);
         }
 
         $this->db->query("DROP TABLE tbluseradminnotes");
 
-        $ticket_notes = $this->db->get('tblticketnotes')->result_array();
+        $ticket_notes = $this->db->get(db_prefix().'ticketnotes')->result_array();
         foreach ($ticket_notes as $note) {
             $data                = array();
             $data['rel_type']    = 'ticket';
@@ -88,7 +88,7 @@ class Migration_Version_117 extends CI_Migration
             $data['addedfrom']   = $note['admin'];
             $data['description'] = $note['note'];
             $data['dateadded']   = $note['date'];
-            $this->db->insert('tblnotes', $data);
+            $this->db->insert(db_prefix().'notes', $data);
         }
 
         $this->db->query("DROP TABLE tblticketnotes");
@@ -122,14 +122,14 @@ class Migration_Version_117 extends CI_Migration
         $this->db->query("ALTER TABLE `tblprojects` ADD `progress` INT NULL DEFAULT '0' AFTER `project_created`, ADD `progress_from_tasks` INT NOT NULL DEFAULT '1' AFTER `progress`;");
 
         $this->db->where('name', 'show_leads_reminders_on_calendar');
-        $this->db->update('tbloptions', array(
+        $this->db->update(db_prefix().'options', array(
             'name' => 'show_lead_reminders_on_calendar'
         ));
 
         $this->db->query("ALTER TABLE `tblleads` ADD `dateassigned` DATE NULL AFTER `lastcontact`;");
 
         $this->db->where('name', 'show_client_reminders_on_calendar');
-        $this->db->update('tbloptions', array(
+        $this->db->update(db_prefix().'options', array(
             'name' => 'show_customer_reminders_on_calendar'
         ));
 
@@ -154,10 +154,10 @@ class Migration_Version_117 extends CI_Migration
         $this->db->query("ALTER TABLE `tblleads` DROP `notes`;");
         $this->db->query("ALTER TABLE `tblcustomfields` ADD `slug` VARCHAR(150) NOT NULL AFTER `name`;");
 
-        $custom_fields = $this->db->get('tblcustomfields')->result_array();
+        $custom_fields = $this->db->get(db_prefix().'customfields')->result_array();
         foreach ($custom_fields as $field) {
             $this->db->where('id', $field['id']);
-            $this->db->update('tblcustomfields', array(
+            $this->db->update(db_prefix().'customfields', array(
                 'slug'=>
                 slug_it($field['name'], array(
                     'separator' => '_'
@@ -166,10 +166,10 @@ class Migration_Version_117 extends CI_Migration
         }
 
         $this->db->query("ALTER TABLE `tblevents` ADD `color` VARCHAR(10) NULL AFTER `public`;");
-        $events = $this->db->get('tblevents')->result_array();
+        $events = $this->db->get(db_prefix().'events')->result_array();
         foreach ($events as $event) {
             $this->db->where('eventid', $event['eventid']);
-            $this->db->update('tblevents', array(
+            $this->db->update(db_prefix().'events', array(
                 'color' => '#28B8DA'
             ));
         }

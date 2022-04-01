@@ -53,11 +53,11 @@ class Migration_Version_118 extends CI_Migration
                  update_option('paymentmethod_stripe_api_publishable_key',$this->encryption->encrypt($paymentmethod_stripe_api_publishable_key));
             }
             $this->db->where('id',1);
-            $leads_email = $this->db->get('tblleadsemailintegration')->row();
+            $leads_email = $this->db->get(db_prefix().'leadsemailintegration')->row();
             if($leads_email){
                 if(!empty($leads_email->password)){
                     $this->db->where('id',1);
-                    $this->db->update('tblleadsemailintegration',array('password'=>$this->encryption->encrypt($leads_email->password)));
+                    $this->db->update(db_prefix().'leadsemailintegration',array('password'=>$this->encryption->encrypt($leads_email->password)));
                 }
             }
         }
@@ -132,16 +132,16 @@ class Migration_Version_118 extends CI_Migration
         add_option('pdf_logo_width',120);
 
         $this->db->query("ALTER TABLE `tbltickets` ADD `assigned` INT NOT NULL DEFAULT '0' AFTER `ip`;");
-        $assignments = $this->db->get('tblticketassignments')->result_array();
+        $assignments = $this->db->get(db_prefix().'ticketassignments')->result_array();
         foreach($assignments as $as){
             $this->db->where('ticketid',$as['ticketid']);
-            $this->db->update('tbltickets',array('assigned'=>$as['staffid']));
+            $this->db->update(db_prefix().'tickets',array('assigned'=>$as['staffid']));
         }
          $this->db->query("DROP TABLE tblticketassignments");
         $this->db->query("ALTER TABLE `tbltickets` ADD `project_id` INT NOT NULL DEFAULT '0' AFTER `date`;");
 
         $this->db->where('name','show_invoice_reminders_on_calendarsettings');
-        $this->db->update('tbloptions',array('name'=>'show_invoice_reminders_on_calendar'));
+        $this->db->update(db_prefix().'options',array('name'=>'show_invoice_reminders_on_calendar'));
 
         $this->db->query("ALTER TABLE `tbldepartments` ADD `host` VARCHAR(150) NULL AFTER `email`, ADD `password` VARCHAR(192) NULL AFTER `host`, ADD `encryption` VARCHAR(3) NULL AFTER `password`;");
 

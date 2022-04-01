@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $_announcements = get_announcements_for_user();
 if(sizeof($_announcements) > 0 && isset($dashboard) && is_staff_member()){ ?>
 <div class="col-lg-12">
@@ -27,4 +28,4 @@ if(sizeof($_announcements) > 0 && isset($dashboard) && is_staff_member()){ ?>
 	</div>
 </div>
 <?php } ?>
-<?php do_action('before_start_render_content'); ?>
+<?php hooks()->do_action('before_start_render_content'); ?>

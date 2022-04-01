@@ -1,11 +1,12 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="mtop40">
-  <div class="col-md-4 col-md-offset-4 text-center">
+  <div class="col-md-4 col-md-offset-4 text-center forgot-password-heading">
     <h1 class="text-uppercase mbot20"><?php echo _l('customer_forgot_password_heading'); ?></h1>
   </div>
   <div class="col-md-4 col-md-offset-4">
     <div class="panel_s">
       <div class="panel-body">
-        <?php echo form_open($this->uri->uri_string()); ?>
+        <?php echo form_open($this->uri->uri_string(),['id'=>'forgot-password-form']); ?>
         <?php echo validation_errors('<div class="alert alert-danger text-center">', '</div>'); ?>
         <?php if($this->session->flashdata('message-danger')){ ?>
         <div class="alert alert-danger">

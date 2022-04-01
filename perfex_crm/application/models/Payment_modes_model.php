@@ -1,42 +1,75 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Payment_modes_model extends CRM_Model
+
+class Payment_modes_model extends App_Model
 {
-    private $online_payment_modes = array();
+    /**
+     * @deprecated 2.3.4
+     * @see gateways
+     * @var array
+     */
+    private $payment_gateways = [];
+
+    /**
+     * New variable because the app_payment_gateways hook is moved in the method get_payment_gateways and the gateways be duplicated
+     * After the deprecated filters are removed and access to $payment_gateways is removed, this should work fine.
+     * @since 2.3.4
+     * @var array
+     */
+    private $gateways = null;
 
     public function __construct()
     {
-        $online_payment_modes       = array();
-        $online_payment_modes       = do_action('before_add_online_payment_modes', $online_payment_modes);
-        $this->online_payment_modes = $online_payment_modes;
         parent::__construct();
+
+        /**
+         * @deprecated 2.3.0 use app_payment_gateways
+         * @var array
+         */
+
+        $this->payment_gateways = apply_filters_deprecated('before_add_online_payment_modes', [[]], '2.3.0', 'app_payment_gateways');
+
+        /**
+         * @deprecated 2.3.2 use app_payment_gateways
+         * @var array
+         */
+        $this->payment_gateways = apply_filters_deprecated('before_add_payment_gateways', [$this->payment_gateways], '2.3.0', 'app_payment_gateways');
     }
 
     /**
      * Get payment mode
-     * @param  integer $id payment mode id
-     * @return mixed    if id passed return object else array
+     * @param  string  $id    payment mode id
+     * @param  array   $where additional where only for offline modes
+     * @param  boolean $include_inactive   whether to include inactive too
+     * @param  boolean $force force if it's inactive to return it back
+     * @return array
      */
-    public function get($id = '', $where = array(), $all = false, $force = false)
+    public function get($id = '', $where = [], $include_inactive = false, $force = false)
     {
         $this->db->where($where);
 
         if (is_numeric($id)) {
             $this->db->where('id', $id);
 
-            return $this->db->get('tblinvoicepaymentsmodes')->row();
+            return $this->db->get(db_prefix() . 'payment_modes')->row();
         } elseif (!empty($id)) {
-            foreach ($this->online_payment_modes as $online_mode) {
-                if ($online_mode['id'] == $id) {
-                    if ($online_mode['active'] == 0 && $force == false) {
+            foreach ($this->get_payment_gateways(true) as $gateway) {
+                if ($gateway['id'] == $id) {
+
+                    if ($gateway['active'] == 0 && $force == false) {
                         continue;
                     }
-                    $mode                      = new stdCLass();
-                    $mode->id                  = $id;
-                    $mode->name                = $online_mode['name'];
-                    $mode->description         = $online_mode['description'];
-                    $mode->selected_by_default = $online_mode['selected_by_default'];
-                    $mode->show_on_pdf         = 0;
+
+                    // The instance is already object and array_to_object is messing up
+                    $instance = $gateway['instance'];
+                    unset($gateway['instance']);
+
+                    $mode = array_to_object($gateway);
+
+                    // Add again the instance
+                    $mode->instance    = $instance;
+                    $mode->show_on_pdf = 0;
 
                     return $mode;
                 }
@@ -44,11 +77,13 @@ class Payment_modes_model extends CRM_Model
 
             return false;
         }
-        if ($all !== true) {
+
+        if ($include_inactive !== true) {
             $this->db->where('active', 1);
         }
-        $modes = $this->db->get('tblinvoicepaymentsmodes')->result_array();
-        $modes = array_merge($modes, $this->get_online_payment_modes($all));
+
+        $modes = $this->db->get(db_prefix() . 'payment_modes')->result_array();
+        $modes = array_merge($modes, $this->get_payment_gateways($include_inactive));
 
         return $modes;
     }
@@ -62,47 +97,23 @@ class Payment_modes_model extends CRM_Model
         if (isset($data['id'])) {
             unset($data['id']);
         }
-        if (!isset($data['active'])) {
-            $data['active'] = 0;
-        } else {
-            $data['active'] = 1;
+
+        foreach (['active', 'show_on_pdf', 'selected_by_default', 'invoices_only', 'expenses_only'] as $check) {
+            $data[$check] = !isset($data[$check]) ? 0 : 1;
         }
 
-        if (!isset($data['invoices_only'])) {
-            $data['invoices_only'] = 0;
-        } else {
-            $data['invoices_only'] = 1;
-        }
-        if (!isset($data['expenses_only'])) {
-            $data['expenses_only'] = 0;
-        } else {
-            $data['expenses_only'] = 1;
-        }
-
-        if (!isset($data['show_on_pdf'])) {
-            $data['show_on_pdf'] = 0;
-        } else {
-            $data['show_on_pdf'] = 1;
-        }
-
-        if (!isset($data['selected_by_default'])) {
-            $data['selected_by_default'] = 0;
-        } else {
-            $data['selected_by_default'] = 1;
-        }
-
-        $this->db->insert('tblinvoicepaymentsmodes', array(
-            'name' => $data['name'],
-            'description' => nl2br_save_html($data['description']),
-            'active' => $data['active'],
-            'expenses_only' => $data['expenses_only'],
-            'invoices_only' => $data['invoices_only'],
-            'show_on_pdf' => $data['show_on_pdf'],
-            'selected_by_default' => $data['selected_by_default']
-        ));
+        $this->db->insert(db_prefix() . 'payment_modes', [
+            'name'                => $data['name'],
+            'description'         => nl2br_save_html($data['description']),
+            'active'              => $data['active'],
+            'expenses_only'       => $data['expenses_only'],
+            'invoices_only'       => $data['invoices_only'],
+            'show_on_pdf'         => $data['show_on_pdf'],
+            'selected_by_default' => $data['selected_by_default'],
+        ]);
         $insert_id = $this->db->insert_id();
         if ($insert_id) {
-            logActivity('New Payment Mode Added [ID: ' . $insert_id . ', Name:' . $data['name'] . ']');
+            log_activity('New Payment Mode Added [ID: ' . $insert_id . ', Name:' . $data['name'] . ']');
 
             return true;
         }
@@ -118,52 +129,26 @@ class Payment_modes_model extends CRM_Model
     public function edit($data)
     {
         $id = $data['paymentmodeid'];
+
         unset($data['paymentmodeid']);
-        if (!isset($data['active'])) {
-            $data['active'] = 0;
-        } else {
-            $data['active'] = 1;
-        }
 
-
-        if (!isset($data['show_on_pdf'])) {
-            $data['show_on_pdf'] = 0;
-        } else {
-            $data['show_on_pdf'] = 1;
-        }
-
-
-        if (!isset($data['selected_by_default'])) {
-            $data['selected_by_default'] = 0;
-        } else {
-            $data['selected_by_default'] = 1;
-        }
-
-
-        if (!isset($data['invoices_only'])) {
-            $data['invoices_only'] = 0;
-        } else {
-            $data['invoices_only'] = 1;
-        }
-        if (!isset($data['expenses_only'])) {
-            $data['expenses_only'] = 0;
-        } else {
-            $data['expenses_only'] = 1;
+        foreach (['active', 'show_on_pdf', 'selected_by_default', 'invoices_only', 'expenses_only'] as $check) {
+            $data[$check] = !isset($data[$check]) ? 0 : 1;
         }
 
         $this->db->where('id', $id);
-        $this->db->update('tblinvoicepaymentsmodes', array(
-            'name' => $data['name'],
-            'description' => nl2br_save_html($data['description']),
-            'active' => $data['active'],
-            'expenses_only' => $data['expenses_only'],
-            'invoices_only' => $data['invoices_only'],
-            'show_on_pdf' => $data['show_on_pdf'],
-            'selected_by_default' => $data['selected_by_default']
-        ));
+        $this->db->update(db_prefix() . 'payment_modes', [
+            'name'                => $data['name'],
+            'description'         => nl2br_save_html($data['description']),
+            'active'              => $data['active'],
+            'expenses_only'       => $data['expenses_only'],
+            'invoices_only'       => $data['invoices_only'],
+            'show_on_pdf'         => $data['show_on_pdf'],
+            'selected_by_default' => $data['selected_by_default'],
+        ]);
 
         if ($this->db->affected_rows() > 0) {
-            logActivity('Payment Mode Updated [ID: ' . $id . ', Name:' . $data['name'] . ']');
+            log_activity('Payment Mode Updated [ID: ' . $id . ', Name:' . $data['name'] . ']');
 
             return true;
         }
@@ -179,15 +164,17 @@ class Payment_modes_model extends CRM_Model
     public function delete($id)
     {
         // Check if the payment mode is using in the invoiec payment records table.
-        if (is_reference_in_table('paymentmode', 'tblinvoicepaymentrecords', $id) || is_reference_in_table('paymentmode', 'tblexpenses', $id)) {
-            return array(
-                'referenced' => true
-            );
+        if (is_reference_in_table('paymentmode', db_prefix() . 'invoicepaymentrecords', $id)
+            || is_reference_in_table('paymentmode', db_prefix() . 'expenses', $id)) {
+            return [
+                'referenced' => true,
+            ];
         }
+
         $this->db->where('id', $id);
-        $this->db->delete('tblinvoicepaymentsmodes');
+        $this->db->delete(db_prefix() . 'payment_modes');
         if ($this->db->affected_rows() > 0) {
-            logActivity('Payment Mode Deleted [' . $id . ']');
+            log_activity('Payment Mode Deleted [' . $id . ']');
 
             return true;
         }
@@ -196,23 +183,58 @@ class Payment_modes_model extends CRM_Model
     }
 
     /**
+     * @since  2.3.0
+     * Get payment gateways
+     * @param  boolean $includeInactive whether to include the inactive ones too
+     * @return array
+     */
+    public function get_payment_gateways($includeInactive = false)
+    {
+        if (is_null($this->gateways)) {
+
+            /**
+             * Used for autoloading the payment gateways in App_gateway
+             * @since  2.3.4
+             */
+            hooks()->do_action('before_get_payment_gateways');
+
+            /**
+              * Moved here in 2.3.4
+              * When remove $this->payment_gateways, change filter parameter below $this->payment_gateways to empty array ([])
+              * @since 2.3.2
+              * @var array
+            */
+            $this->gateways = hooks()->apply_filters('app_payment_gateways', $this->payment_gateways);
+        }
+
+        $modes = [];
+        foreach ($this->gateways as $mode) {
+            if ($includeInactive !== true && $mode['active'] == 0) {
+                continue;
+            }
+
+            // The the gateways unique in case duplicate ID's are found.
+            if (!value_exists_in_array_by_key($modes, 'id', $mode['id'])) {
+                $modes[] = $mode;
+            } else {
+                if (ENVIRONMENT != 'production') {
+                    trigger_error(sprintf('Payment Gateway ID "%1$s" already exists, ignoring duplicate gateway ID...', $mode['id']));
+                }
+            }
+        }
+
+        return $modes;
+    }
+
+    /**
      * Get all online payment modes
+     * @deprecated 2.3.0 use get_payment_gateways instead
      * @since   1.0.1
      * @return array payment modes
      */
     public function get_online_payment_modes($all = false)
     {
-        $modes = array();
-        foreach ($this->online_payment_modes as $mode) {
-            if ($all !== true) {
-                if ($mode['active'] == 0) {
-                    continue;
-                }
-            }
-            $modes[] = $mode;
-        }
-
-        return $modes;
+        return $this->get_payment_gateways($all);
     }
 
     /**
@@ -225,11 +247,12 @@ class Payment_modes_model extends CRM_Model
     public function change_payment_mode_status($id, $status)
     {
         $this->db->where('id', $id);
-        $this->db->update('tblinvoicepaymentsmodes', array(
-            'active' => $status
-        ));
+        $this->db->update(db_prefix() . 'payment_modes', [
+            'active' => $status,
+        ]);
+
         if ($this->db->affected_rows() > 0) {
-            logActivity('Payment Mode Status Changed [ModeID: ' . $id . ' Status(Active/Inactive): ' . $status . ']');
+            log_activity('Payment Mode Status Changed [ModeID: ' . $id . ' Status(Active/Inactive): ' . $status . ']');
 
             return true;
         }
@@ -247,15 +270,49 @@ class Payment_modes_model extends CRM_Model
     public function change_payment_mode_show_to_client_status($id, $status)
     {
         $this->db->where('id', $id);
-        $this->db->update('tblinvoicepaymentsmodes', array(
-            'showtoclient' => $status
-        ));
+        $this->db->update(db_prefix() . 'payment_modes', [
+            'showtoclient' => $status,
+        ]);
+
         if ($this->db->affected_rows() > 0) {
-            logActivity('Payment Mode Show to Client Changed [ModeID: ' . $id . ' Status(Active/Inactive): ' . $status . ']');
+            log_activity('Payment Mode Show to Client Changed [ModeID: ' . $id . ' Status(Active/Inactive): ' . $status . ']');
 
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Inject custom payment gateway into the payment gateways array
+     * @param string $gateway_name payment gateway name, should equal like the libraries/classname
+     * @param string $module       module name to load the gateway if not already loaded
+     */
+    public function add_payment_gateway($gateway, $module = null)
+    {
+        if (is_string($gateway)) {
+            $gateway = strtolower($gateway);
+
+            // Perhaps is in subfolder e.q. gateways/Example_gateway?
+            $basename = basename($gateway);
+
+            if (!$this->load->is_loaded($basename) && $module) {
+                $this->load->library($module . '/' . $gateway);
+            }
+
+            $class = $this->{$basename};
+        } else {
+            // register_payment_gateway(new Example_gateway(), '[module_name]');
+            $class = $gateway;
+            $name  = get_class($class);
+
+            if (!$class instanceof App_gateway) {
+                throw new \Exception($name . ' must be an instance of "App_gateway"');
+            }
+        }
+
+        if (hooks()->has_filter('app_payment_gateways', [ $class, 'initMode']) === false) {
+            hooks()->add_filter('app_payment_gateways', [$class, 'initMode']);
+        }
     }
 }

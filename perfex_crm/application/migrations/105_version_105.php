@@ -58,17 +58,17 @@ class Migration_Version_105 extends CI_Migration
         $this->db->query("ALTER TABLE `tblinvoiceitems` ADD `description` MEDIUMTEXT NOT NULL , ADD `long_description` TEXT NULL , ADD `rate` DECIMAL(11,2) NOT NULL , ADD `taxid` INT NULL , ADD `item_order` INT NULL ;");
 
         $this->db->order_by('id', 'asc');
-        $items = $this->db->get('tblinvoiceitems')->result_array();
+        $items = $this->db->get(db_prefix().'invoiceitems')->result_array();
 
         if (count($items) > 0) {
             $i = 1;
             foreach ($items as $item) {
                     if ($item['expenseid'] == 0) {
                         $this->db->where('id', $item['itemid']);
-                        $main_item = $this->db->get('tblinvoiceitemslist')->row();
+                        $main_item = $this->db->get(db_prefix().'invoiceitemslist')->row();
 
                         $this->db->where('id', $item['id']);
-                        $this->db->update('tblinvoiceitems', array(
+                        $this->db->update(db_prefix().'invoiceitems', array(
                             'item_order' => $i,
                             'taxid' => $main_item->tax,
                             'rate' => $main_item->rate,
@@ -77,13 +77,13 @@ class Migration_Version_105 extends CI_Migration
                         ));
                     } else {
                         $this->db->where('id', $item['expenseid']);
-                        $main_expense = $this->db->get('tblexpenses')->row();
+                        $main_expense = $this->db->get(db_prefix().'expenses')->row();
 
                         $this->db->where('id', $main_expense->category);
-                        $category = $this->db->get('tblexpensescategories')->row();
+                        $category = $this->db->get(db_prefix().'expensescategories')->row();
 
                         $this->db->where('id', $item['id']);
-                        $this->db->update('tblinvoiceitems', array(
+                        $this->db->update(db_prefix().'invoiceitems', array(
                             'item_order' => 1,
                             'taxid' => $main_expense->tax,
                             'rate' => $main_expense->amount,
@@ -99,15 +99,15 @@ class Migration_Version_105 extends CI_Migration
         $this->db->query("ALTER TABLE `tblinvoiceitems` DROP `itemid`;");
         // Estimates
         $this->db->order_by('id', 'asc');
-        $items = $this->db->get('tblestimateitems')->result_array();
+        $items = $this->db->get(db_prefix().'estimateitems')->result_array();
         if (count($items) > 0) {
             $i = 1;
             foreach ($items as $item) {
                     $this->db->where('id', $item['itemid']);
-                    $main_item = $this->db->get('tblinvoiceitemslist')->row();
+                    $main_item = $this->db->get(db_prefix().'invoiceitemslist')->row();
 
                     $this->db->where('id', $item['id']);
-                    $this->db->update('tblestimateitems', array(
+                    $this->db->update(db_prefix().'estimateitems', array(
                         'item_order' => $i,
                         'taxid' => $main_item->tax,
                         'rate' => $main_item->rate,

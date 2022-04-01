@@ -8,9 +8,7 @@ use InvalidArgumentException;
  *
  * <b>== More information ==</b>
  *
- * For more detailed information on Subscriptions, see {@link http://www.braintreepayments.com/gateway/subscription-api http://www.braintreepaymentsolutions.com/gateway/subscription-api}
- *
- * PHP Version 5
+ * For more detailed information on Subscriptions, see {@link https://developers.braintreepayments.com/reference/response/subscription/php https://developers.braintreepayments.com/reference/response/subscription/php}
  *
  * @package   Braintree
  */
@@ -223,4 +221,3 @@ class SubscriptionGateway
         }
     }
 }
-class_alias('Braintree\SubscriptionGateway', 'Braintree_SubscriptionGateway');

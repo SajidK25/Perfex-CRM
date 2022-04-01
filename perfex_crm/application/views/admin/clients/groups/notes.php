@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php if(isset($client)){ ?>
 <h4 class="customer-profile-group-heading"><?php echo _l('contracts_notes_tab'); ?></h4>
 <div class="col-md-12">
@@ -18,7 +19,7 @@
 </div>
 <div class="clearfix"></div>
 <div class="mtop15">
-    <table class="table dt-table scroll-responsive" data-order-col="2" data-order-type="desc">
+    <table class="table dt-table" data-order-col="2" data-order-type="desc">
         <thead>
             <tr>
                 <th width="50%">
@@ -40,7 +41,7 @@
             <tr>
                 <td width="50%">
                   <div data-note-description="<?php echo $note['id']; ?>">
-                    <?php echo $note['description']; ?>
+                    <?php echo check_for_links($note['description']); ?>
                 </div>
                 <div data-note-edit-textarea="<?php echo $note['id']; ?>" class="hide">
                     <textarea name="description" class="form-control" rows="4"><?php echo clear_textarea_breaks($note['description']); ?></textarea>
@@ -55,7 +56,7 @@
         </td>
         <td data-order="<?php echo $note['dateadded']; ?>">
          <?php if(!empty($note['date_contacted'])){ ?>
-           <span data-toggle="tooltip" data-title="<?php echo _dt($note['date_contacted']); ?>">
+           <span data-toggle="tooltip" data-title="<?php echo html_escape(_dt($note['date_contacted'])); ?>">
               <i class="fa fa-phone-square text-success font-medium valign" aria-hidden="true"></i>
           </span>
           <?php } ?>

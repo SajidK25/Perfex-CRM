@@ -77,14 +77,14 @@ class Migration_Version_111 extends CI_Migration
 
     $this->db->query("ALTER TABLE `tblstaff` ADD `media_path_slug` VARCHAR(300) NULL AFTER `default_language`;");
 
-    $staff = $this->db->get('tblstaff')->result_array();
+    $staff = $this->db->get(db_prefix().'staff')->result_array();
     foreach($staff as $staff){
       $sl = $staff['firstname'].' '.$staff['lastname'];
       if($sl == ' '){
         $sl = 'unknown-'.$staff['staffid'];
       }
       $this->db->where('staffid',$staff['staffid']);
-      $this->db->update('tblstaff',array('media_path_slug'=>slug_it($sl)));
+      $this->db->update(db_prefix().'staff',array('media_path_slug'=>slug_it($sl)));
     }
 
     add_option('autoclose_tickets_after',72);
@@ -100,13 +100,13 @@ class Migration_Version_111 extends CI_Migration
     delete_option('newsfeed_upload_file_extensions');
 
     $this->db->where('shortname','isTranslator');
-    $perm_not_used = $this->db->get('tblpermissions')->row();
+    $perm_not_used = $this->db->get(db_prefix().'permissions')->row();
     if($perm_not_used){
       $this->db->where('permissionid',$perm_not_used->permissionid);
-      $this->db->delete('tblstaffpermissions');
+      $this->db->delete(db_prefix().'staffpermissions');
 
       $this->db->where('permissionid',$perm_not_used->permissionid);
-      $this->db->delete('tblpermissions');
+      $this->db->delete(db_prefix().'permissions');
     }
 
 
@@ -160,21 +160,21 @@ class Migration_Version_111 extends CI_Migration
 
     foreach($templates as $_template){
       $this->db->where('slug',$_template);
-      $template = $this->db->get('tblemailtemplates')->row();
+      $template = $this->db->get(db_prefix().'emailtemplates')->row();
       if($template){
 
         $template->message = str_replace('client_firstname','contact_firstname',$template->message);
         $template->message = str_replace('client_lastname','contact_lastname',$template->message);
         $template->message = str_replace('client_email','contact_email',$template->message);
         $this->db->where('emailtemplateid',$template->emailtemplateid);
-        $this->db->update('tblemailtemplates',array('message'=>$template->message));
+        $this->db->update(db_prefix().'emailtemplates',array('message'=>$template->message));
       }
     }
 
 
-    $clients = $this->db->get('tblclients')->result_array();
+    $clients = $this->db->get(db_prefix().'clients')->result_array();
     foreach($clients as $client){
-      $this->db->insert('tblcontacts',array(
+      $this->db->insert(db_prefix().'contacts',array(
         'is_primary'=>1,
         'userid'=>$client['userid'],
         'firstname'=>$client['firstname'],
@@ -197,18 +197,18 @@ class Migration_Version_111 extends CI_Migration
       if($contact_id){
 
         $this->db->where('userid',$client['userid']);
-        $this->db->update('tbltickets',array('contactid'=>$contact_id));
+        $this->db->update(db_prefix().'tickets',array('contactid'=>$contact_id));
         $this->db->where('userid',$client['userid']);
-        $this->db->update('tblticketreplies',array('contactid'=>$contact_id));
+        $this->db->update(db_prefix().'ticketreplies',array('contactid'=>$contact_id));
 
         $this->db->where('userid',$client['userid']);
-        $this->db->update('tblcontactpermissions',array('userid'=>$contact_id));
+        $this->db->update(db_prefix().'contactpermissions',array('userid'=>$contact_id));
 
         $this->db->where('fromclientid',$client['userid']);
-        $this->db->update('tblnotifications',array('fromclientid'=>$contact_id));
+        $this->db->update(db_prefix().'notifications',array('fromclientid'=>$contact_id));
 
         $this->db->where('contact_id',$client['userid']);
-        $this->db->update('tblprojectdiscussioncomments',array('full_name'=>$client['firstname'] . ' ' . $client['lastname']));
+        $this->db->update(db_prefix().'projectdiscussioncomments',array('full_name'=>$client['firstname'] . ' ' . $client['lastname']));
 
       }
     }

@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="customer_group_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -27,7 +28,7 @@
 </div>
 <script>
     window.addEventListener('load',function(){
-       _validate_form($('#customer-group-modal'), {
+       appValidateForm($('#customer-group-modal'), {
         name: 'required'
     }, manage_customer_groups);
 

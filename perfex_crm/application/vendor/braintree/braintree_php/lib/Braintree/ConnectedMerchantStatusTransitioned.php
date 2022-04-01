@@ -21,6 +21,7 @@ class ConnectedMerchantStatusTransitioned extends Base
     {
         $instance = new self();
         $instance->_initialize($attributes);
+        $instance->_attributes['merchantId'] = $instance->_attributes['merchantPublicId'];
 
         return $instance;
     }
@@ -33,4 +34,3 @@ class ConnectedMerchantStatusTransitioned extends Base
         $this->_attributes = $attributes;
     }
 }
-class_alias('Braintree\ConnectedMerchantStatusTransitioned', 'Braintree_ConnectedMerchantStatusTransitioned');

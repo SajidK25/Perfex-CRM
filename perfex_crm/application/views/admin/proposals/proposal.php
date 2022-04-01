@@ -1,12 +1,13 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
-   <div class="content accounting-template">
+   <div class="content accounting-template proposal">
       <div class="row">
          <?php
-            if(isset($proposal)){
+         if(isset($proposal)){
              echo form_hidden('isedit',$proposal->id);
             }
-            $rel_type = '';
+         $rel_type = '';
             $rel_id = '';
             if(isset($proposal) || ($this->input->get('rel_id') && $this->input->get('rel_type'))){
              if($this->input->get('rel_id')){
@@ -18,8 +19,15 @@
              }
             }
             ?>
-         <?php echo form_open($this->uri->uri_string(),array('id'=>'proposal-form','class'=>'_transaction_form proposal-form')); ?>
-         <div class="col-md-12">
+         <?php
+         echo form_open($this->uri->uri_string(),array('id'=>'proposal-form','class'=>'_transaction_form proposal-form'));
+
+         if($this->input->get('estimate_request_id')) {
+             echo form_hidden('estimate_request_id', $this->input->get('estimate_request_id'));
+         }
+         ?>
+
+          <div class="col-md-12">
             <div class="panel_s">
                <div class="panel-body">
                   <div class="row">
@@ -74,17 +82,17 @@
                         </div>
                         <?php
                            $selected = '';
-                           $s_attrs = array('data-show-subtext'=>true);
+                           $currency_attr = array('data-show-subtext'=>true);
                            foreach($currencies as $currency){
                             if($currency['isdefault'] == 1){
-                              $s_attrs['data-base'] = $currency['id'];
+                              $currency_attr['data-base'] = $currency['id'];
                             }
                             if(isset($proposal)){
                               if($currency['id'] == $proposal->currency){
                                 $selected = $currency['id'];
                               }
                               if($proposal->rel_type == 'customer'){
-                                $s_attrs['disabled'] = true;
+                                $currency_attr['disabled'] = true;
                               }
                             } else {
                               if($rel_type == 'customer'){
@@ -96,7 +104,7 @@
                                     $selected = $currency['id'];
                                   }
                                 }
-                                $s_attrs['disabled'] = true;
+                                $currency_attr['disabled'] = true;
                               } else {
                                if($currency['isdefault'] == 1){
                                 $selected = $currency['id'];
@@ -104,12 +112,14 @@
                             }
                            }
                            }
+                           $currency_attr = apply_filters_deprecated('proposal_currency_disabled', [$currency_attr], '2.3.0', 'proposal_currency_attributes');
+                           $currency_attr = hooks()->apply_filters('proposal_currency_attributes', $currency_attr);
                            ?>
                            <div class="row">
                              <div class="col-md-6">
-                                 <?php
-                        echo render_select('currency',$currencies,array('id','name','symbol'),'proposal_currency',$selected,do_action('proposal_currency_disabled',$s_attrs));
-                           ?>
+                              <?php
+                              echo render_select('currency', $currencies, array('id','name','symbol'), 'proposal_currency', $selected, $currency_attr);
+                              ?>
                              </div>
                              <div class="col-md-6">
                                <div class="form-group select-placeholder">
@@ -132,7 +142,7 @@
                         <div class="form-group mtop10 no-mbot">
                             <p><?php echo _l('proposal_allow_comments'); ?></p>
                             <div class="onoffswitch">
-                              <input type="checkbox" id="allow_comments" class="onoffswitch-checkbox" <?php if(isset($proposal)){if($proposal->allow_comments == 1){echo 'checked';}}; ?> value="on" name="allow_comments">
+                              <input type="checkbox" id="allow_comments" class="onoffswitch-checkbox" <?php if((isset($proposal) && $proposal->allow_comments == 1) || !isset($proposal)){echo 'checked';}; ?> value="on" name="allow_comments">
                               <label class="onoffswitch-label" for="allow_comments" data-toggle="tooltip" title="<?php echo _l('proposal_allow_comments_help'); ?>"></label>
                             </div>
                           </div>
@@ -237,7 +247,7 @@
    data = {};
 
    $(function(){
-    init_currency_symbol();
+    init_currency();
     // Maybe items ajax search
     init_ajax_search('items','#item_select.ajax-search',undefined,admin_url+'items/search');
     validate_proposal_form();
@@ -307,14 +317,10 @@
       var serverData = {};
       serverData.rel_id = _rel_id.val();
       data.type = _rel_type.val();
-      <?php if(isset($proposal)){ ?>
-        serverData.connection_type = 'proposal';
-        serverData.connection_id = '<?php echo $proposal->id; ?>';
-      <?php } ?>
       init_ajax_search(_rel_type.val(),_rel_id,serverData);
    }
    function validate_proposal_form(){
-      _validate_form($('#proposal-form'), {
+      appValidateForm($('#proposal-form'), {
         subject : 'required',
         proposal_to : 'required',
         rel_type: 'required',

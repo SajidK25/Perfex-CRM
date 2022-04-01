@@ -1,74 +1,93 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
-$aColumns         = array(
+
+defined('BASEPATH') or exit('No direct script access allowed');
+
+$aColumns = [
     'subject',
-    'articlegroup'
-    );
-$sIndexColumn     = "articleid";
-$sTable           = 'tblknowledgebase';
-$additionalSelect = array(
+    'articlegroup',
+    'datecreated',
+    ];
+$sIndexColumn     = 'articleid';
+$sTable           = db_prefix() . 'knowledge_base';
+$additionalSelect = [
     'name',
     'groupid',
     'articleid',
     'slug',
-    'staff_article'
-    );
-$join             = array(
-    'LEFT JOIN tblknowledgebasegroups ON tblknowledgebasegroups.groupid = tblknowledgebase.articlegroup'
-    );
+    'staff_article',
+     db_prefix() . 'knowledge_base.description',
+    ];
+$join = [
+    'LEFT JOIN ' . db_prefix() . 'knowledge_base_groups ON ' . db_prefix() . 'knowledge_base_groups.groupid = ' . db_prefix() . 'knowledge_base.articlegroup',
+    ];
 
-$where = array();
-$filter = array();
-$groups = $this->ci->knowledge_base_model->get_kbg();
-$_groups = array();
-foreach($groups as $group){
-    if($this->ci->input->post('kb_group_'.$group['groupid'])){
-        array_push($_groups,$group['groupid']);
+$where   = [];
+$filter  = [];
+$groups  = $this->ci->knowledge_base_model->get_kbg();
+$_groups = [];
+foreach ($groups as $group) {
+    if ($this->ci->input->post('kb_group_' . $group['groupid'])) {
+        array_push($_groups, $group['groupid']);
     }
 }
-if(count($_groups) > 0){
-    array_push($filter, 'AND articlegroup IN (' . implode(', ',$_groups) . ')');
+if (count($_groups) > 0) {
+    array_push($filter, 'AND articlegroup IN (' . implode(', ', $_groups) . ')');
 }
-if(count($filter) > 0){
-    array_push($where,'AND ('.prepare_dt_filter($filter).')');
-}
-
-if(!has_permission('knowledge_base','','create') && !has_permission('knowledge_base','','edit')) {
-    array_push($where,' AND tblknowledgebase.active=1');
+if (count($filter) > 0) {
+    array_push($where, 'AND (' . prepare_dt_filter($filter) . ')');
 }
 
-$result  = data_tables_init($aColumns, $sIndexColumn, $sTable, $join,$where, $additionalSelect);
+if (!has_permission('knowledge_base', '', 'create') && !has_permission('knowledge_base', '', 'edit')) {
+    array_push($where, ' AND ' . db_prefix() . 'knowledge_base.active=1');
+}
+
+$result  = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, $additionalSelect);
 $output  = $result['output'];
 $rResult = $result['rResult'];
 
 foreach ($rResult as $aRow) {
-    $row = array();
+    $row = [];
     for ($i = 0; $i < count($aColumns); $i++) {
         $_data = $aRow[$aColumns[$i]];
         if ($aColumns[$i] == 'articlegroup') {
-            $_data =  $aRow['name'];
-        } else if($aColumns[$i] == 'subject'){
-            if($aRow['staff_article'] == 1){
-                $_data = '<a href="'.admin_url('knowledge_base/view/'.$aRow['slug']).'">'.$_data.'</a>';
+            $_data = $aRow['name'];
+        } elseif ($aColumns[$i] == 'subject') {
+            $link = admin_url('knowledge_base/view/' . $aRow['slug']);
+            if ($aRow['staff_article'] == 0) {
+                $link = site_url('knowledge-base/article/' . $aRow['slug']);
+            }
+
+            $_data = '<b>' . $_data . '</b>';
+            if (has_permission('knowledge_base', '', 'edit')) {
+                $_data = '<a href="' . admin_url('knowledge_base/article/' . $aRow['articleid']) . '" class="font-size-14">' . $_data . '</a>';
             } else {
-               $_data = '<a href="'.site_url('clients/knowledge_base/'.$aRow['slug']).'" target="_blank">'.$_data.'</a>';
-           }
-           if($aRow['staff_article'] == 1){
-                $_data .= '<span class="label label-default pull-right">'._l('internal_article').'</span>';
-           }
-       }
+                $_data = '<a href="' . $link . '" target="_blank" class="font-size-14">' . $_data . '</a>';
+            }
 
-       $row[] = $_data;
-   }
-   $options = '';
-   if(has_permission('knowledge_base','','edit')){
-    $options .= icon_btn('knowledge_base/article/' . $aRow['articleid'], 'pencil-square-o');
-}
-if(has_permission('knowledge_base','','delete')){
-    $options .= icon_btn('knowledge_base/delete_article/' . $aRow['articleid'], 'remove', 'btn-danger _delete');
-}
+            if ($aRow['staff_article'] == 1) {
+                $_data .= '<span class="label label-default pull-right">' . _l('internal_article') . '</span>';
+            }
 
-$row[] = $options;
+            $_data .= '<div class="row-options">';
 
-$output['aaData'][] = $row;
+            $_data .= '<a href="' . $link . '" target="_blank">' . _l('view') . '</a>';
+
+            if (has_permission('knowledge_base', '', 'edit')) {
+                $_data .= ' | <a href="' . admin_url('knowledge_base/article/' . $aRow['articleid']) . '">' . _l('edit') . '</a>';
+            }
+
+            if (has_permission('knowledge_base', '', 'delete')) {
+                $_data .= ' | <a href="' . admin_url('knowledge_base/delete_article/' . $aRow['articleid']) . '" class="_delete text-danger">' . _l('delete') . '</a>';
+            }
+
+            $_data .= '</div>';
+        } elseif ($aColumns[$i] == 'datecreated') {
+            $_data = _dt($_data);
+        }
+
+        $row[]              = $_data;
+        $row['DT_RowClass'] = 'has-row-options';
+    }
+
+    $output['aaData'][] = $row;
 }

@@ -23,13 +23,13 @@ class Migration_Version_140 extends CI_Migration
        add_option('di','');
 
        $this->db->where('name','last_recurring_invoices_cron');
-       $this->db->delete('tbloptions');
+       $this->db->delete(db_prefix().'options');
 
        $this->db->where('name','last_recurring_expenses_cron');
-       $this->db->delete('tbloptions');
+       $this->db->delete(db_prefix().'options');
 
        $this->db->where('staffid',1);
-       $st = $this->db->get('tblstaff')->row();
+       $st = $this->db->get(db_prefix().'staff')->row();
        if($st){
           update_option('di',strtotime($st->datecreated));
        }
@@ -41,7 +41,7 @@ class Migration_Version_140 extends CI_Migration
 
         $this->db->select('id,additional_data');
         $this->db->where('description','not_assigned_lead_to_you');
-        $not = $this->db->get('tblnotifications')->result_array();
+        $not = $this->db->get(db_prefix().'notifications')->result_array();
 
         foreach($not as $n){
             $id = $n['id'];
@@ -51,7 +51,7 @@ class Migration_Version_140 extends CI_Migration
                     unset($n[0]);
                     array_values(($n));
                     $this->db->where('id',$id);
-                    $this->db->update('tblnotifications',array('additional_data'=>serialize($n)));
+                    $this->db->update(db_prefix().'notifications',array('additional_data'=>serialize($n)));
                 }
             }
         }

@@ -1,26 +1,27 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
-$aColumns     = array(
-    'name'
-    );
 
-$sIndexColumn = "roleid";
-$sTable       = 'tblroles';
+defined('BASEPATH') or exit('No direct script access allowed');
 
-$result  = data_tables_init($aColumns, $sIndexColumn, $sTable,array(),array(),array('roleid'));
+$aColumns = [
+    'name',
+    ];
+
+$sIndexColumn = 'roleid';
+$sTable       = db_prefix().'roles';
+
+$result  = data_tables_init($aColumns, $sIndexColumn, $sTable, [], [], ['roleid']);
 $output  = $result['output'];
 $rResult = $result['rResult'];
 
 foreach ($rResult as $aRow) {
-    $row = array();
+    $row = [];
     for ($i = 0; $i < count($aColumns); $i++) {
         $_data = $aRow[$aColumns[$i]];
         if ($aColumns[$i] == 'name') {
-            $role_permissions = $this->ci->roles_model->get_role_permissions($aRow['roleid']);
             $_data            = '<a href="' . admin_url('roles/role/' . $aRow['roleid']) . '" class="mbot10 display-block">' . $_data . '</a>';
-            $_data .= '<span class="mtop10 display-block">'._l('roles_total_users'). ' ' . total_rows('tblstaff', array(
-                'role' => $aRow['roleid']
-                )) . '</span>';
+            $_data .= '<span class="mtop10 display-block">' . _l('roles_total_users') . ' ' . total_rows(db_prefix().'staff', [
+                'role' => $aRow['roleid'],
+                ]) . '</span>';
         }
         $row[] = $_data;
     }

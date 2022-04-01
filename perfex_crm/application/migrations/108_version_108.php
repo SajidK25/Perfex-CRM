@@ -23,7 +23,7 @@ class Migration_Version_108 extends CI_Migration
           if($tax){
               $default_tax = $tax->name . '|' . $tax->taxrate;
               $this->db->where('name','default_tax');
-              $this->db->update('tbloptions',array('value'=>$default_tax));
+              $this->db->update(db_prefix().'options',array('value'=>$default_tax));
           }
         }
 
@@ -50,68 +50,14 @@ class Migration_Version_108 extends CI_Migration
                           PRIMARY KEY (`id`)
                         ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;');
 
-
-
-        $this->db->where('name','aside_menu_inactive');
-        $aside_menu_inactive = $this->db->get('tbloptions')->row()->value;
-        $aside_menu_inactive_ = json_decode($aside_menu_inactive);
-
-        $i = 0;
-        foreach($aside_menu_inactive_->aside_menu_inactive as $menu){
-
-            if(isset($menu->children)){
-                $x = 0;
-                foreach($menu->children as $sub_menu){
-                    if(isset($sub_menu->id) && $sub_menu->id == 'child-mail-lists'){
-                        $aside_menu_inactive_->aside_menu_inactive[$i]->children[$x]->url = 'surveys/mail_lists';
-                    }
-                    $x++;
-                }
-            } else {
-                if(isset($menu->id) && $menu->id == 'child-mail-lists'){
-                    $aside_menu_inactive_->aside_menu_inactive[$i]->url = 'surveys/mail_lists';
-                }
-            }
-            $i++;
-        }
-
-        update_option('aside_menu_inactive',json_encode(array('aside_menu_inactive'=>$aside_menu_inactive_->aside_menu_inactive)));
-
-        // active aside
-
-        $this->db->where('name','aside_menu_active');
-        $aside_menu_active = $this->db->get('tbloptions')->row()->value;
-        $aside_menu_active_ = json_decode($aside_menu_active);
-
-        $i = 0;
-        foreach($aside_menu_active_->aside_menu_active as $menu){
-
-            if(isset($menu->children)){
-                $x = 0;
-                foreach($menu->children as $sub_menu){
-                    if(isset($sub_menu->id) && $sub_menu->id == 'child-mail-lists'){
-                        $aside_menu_active_->aside_menu_active[$i]->children[$x]->url = 'surveys/mail_lists';
-                    }
-                    $x++;
-                }
-            } else {
-                if(isset($menu->id) && $menu->id == 'child-mail-lists'){
-                    $aside_menu_active_->aside_menu_active[$i]->url = 'surveys/mail_lists';
-                }
-            }
-            $i++;
-        }
-
-        update_option('aside_menu_active',json_encode(array('aside_menu_active'=>$aside_menu_active_->aside_menu_active)));
-
-        $items_invoices = $this->db->get('tblinvoiceitems')->result_array();
+        $items_invoices = $this->db->get(db_prefix().'invoiceitems')->result_array();
 
         foreach($items_invoices as $item){
             $tax = get_tax_by_id($item['taxid']);
             if($tax){
                $taxrate = $tax->taxrate;
                $taxname = $tax->name;
-               $this->db->insert('tblinvoiceitemstaxes',array(
+               $this->db->insert(db_prefix().'invoiceitemstaxes',array(
                 'itemid'=>$item['id'],
                 'taxrate'=>$taxrate,
                 'taxname'=>$taxname,
@@ -122,14 +68,14 @@ class Migration_Version_108 extends CI_Migration
 
            $this->db->query('ALTER TABLE `tblinvoiceitems` DROP `taxid`;');
 
-           $items_estimates = $this->db->get('tblestimateitems')->result_array();
+           $items_estimates = $this->db->get(db_prefix().'estimateitems')->result_array();
 
         foreach($items_estimates as $item){
             $tax = get_tax_by_id($item['taxid']);
             if($tax){
              $taxrate = $tax->taxrate;
              $taxname = $tax->name;
-             $this->db->insert('tblestimateitemstaxes',array(
+             $this->db->insert(db_prefix().'estimateitemstaxes',array(
                 'itemid'=>$item['id'],
                 'taxrate'=>$taxrate,
                 'taxname'=>$taxname,
@@ -145,15 +91,15 @@ class Migration_Version_108 extends CI_Migration
         $this->db->query('ALTER TABLE `tblcustomfieldsvalues` ADD INDEX(`fieldto`);');
 
         $this->db->where('shortname','manageMailLists');
-        $mail_list_permission = $this->db->get('tblpermissions')->row();
+        $mail_list_permission = $this->db->get(db_prefix().'permissions')->row();
 
         if($mail_list_permission){
             $this->db->where('permissionid',$mail_list_permission->permissionid);
-            $this->db->delete('tblstaffpermissions');
+            $this->db->delete(db_prefix().'staffpermissions');
         }
 
         $this->db->where('shortname','manageMailLists');
-        $this->db->delete('tblpermissions');
+        $this->db->delete(db_prefix().'permissions');
 
         add_option('show_tax_per_item',1);
 

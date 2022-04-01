@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade invoice-project" id="invoice-project-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-xxl" role="document">
         <?php echo form_open('admin/projects/invoice_project/'.$project->id,array('id'=>'invoice_project_form','class'=>'_transaction_form invoice-form')); ?>
@@ -19,7 +20,12 @@
                 <button class="btn btn-default invoice-form-submit save-as-draft transaction-submit">
                     <?php echo _l('save_as_draft'); ?>
                 </button>
-                <button class="btn btn-info invoice-form-submit transaction-submit"><?php echo _l('submit'); ?></button>
+                <button class="btn btn-info invoice-form-submit save-and-send transaction-submit">
+                      <?php echo _l('save_and_send'); ?>
+                </button>
+                <button class="btn btn-info invoice-form-submit transaction-submit">
+                    <?php echo _l('submit'); ?>
+                </button>
             </div>
         </div>
         <?php echo form_close(); ?>
@@ -39,5 +45,9 @@
     $('#invoice-project-modal #clientid').change();
     $('input[name="show_quantity_as"]:checked').change();
     calculate_total();
-
+   // Trigger item select width fix
+    $('#invoice-project-modal').on('shown.bs.modal', function(){
+        $('#item_select').trigger('change')
+        lastItemAddedKey = $("body").find('.invoice-items-table .item').length
+    })
 </script>

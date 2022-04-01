@@ -1,4 +1,5 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
@@ -12,7 +13,7 @@ function render_yes_no_option($option_value, $label, $tooltip = '', $replace_yes
     ob_start(); ?>
     <div class="form-group">
         <label for="<?php echo $option_value; ?>" class="control-label clearfix">
-            <?php echo($tooltip != '' ? '<i class="fa fa-question-circle" data-toggle="tooltip" data-title="'. _l($tooltip, '', false) .'"></i> ': '') . _l($label, '', false); ?>
+            <?php echo($tooltip != '' ? '<i class="fa fa-question-circle" data-toggle="tooltip" data-title="' . _l($tooltip, '', false) . '"></i> ': '') . _l($label, '', false); ?>
         </label>
         <div class="radio radio-primary radio-inline">
             <input type="radio" id="y_opt_1_<?php echo $label; ?>" name="settings[<?php echo $option_value; ?>]" value="<?php echo $replace_1 == '' ? 1 : $replace_1; ?>" <?php if (get_option($option_value) == ($replace_1 == '' ? '1' : $replace_1)) {
@@ -49,7 +50,7 @@ function render_yes_no_option($option_value, $label, $tooltip = '', $replace_yes
  * @param  string $input_class      additional class on input
  * @return string
  */
-function render_input($name, $label = '', $value = '', $type = 'text', $input_attrs = array(), $form_group_attr = array(), $form_group_class = '', $input_class = '')
+function render_input($name, $label = '', $value = '', $type = 'text', $input_attrs = [], $form_group_attr = [], $form_group_class = '', $input_class = '')
 {
     $input            = '';
     $_form_group_attr = '';
@@ -99,7 +100,7 @@ function render_input($name, $label = '', $value = '', $type = 'text', $input_at
  * @param  array  $input_attrs <input sttributes
  * @return string
  */
-function render_color_picker($name, $label = '', $value = '', $input_attrs = array())
+function render_color_picker($name, $label = '', $value = '', $input_attrs = [])
 {
     $_input_attrs = '';
     foreach ($input_attrs as $key => $val) {
@@ -111,7 +112,7 @@ function render_color_picker($name, $label = '', $value = '', $input_attrs = arr
     }
 
     $picker = '';
-    $picker .= '<div class="form-group" app-field-wrapper="'.$name.'">';
+    $picker .= '<div class="form-group" app-field-wrapper="' . $name . '">';
     $picker .= '<label for="' . $name . '" class="control-label">' . $label . '</label>';
     $picker .= '<div class="input-group mbot15 colorpicker-input">
     <input type="text" value="' . set_value($name, $value) . '" name="' . $name . '" id="' . $name . '" class="form-control" ' . $_input_attrs . ' />
@@ -132,7 +133,7 @@ function render_color_picker($name, $label = '', $value = '', $input_attrs = arr
  * @param  string $input_class      <input> additional class
  * @return string
  */
-function render_date_input($name, $label = '', $value = '', $input_attrs = array(), $form_group_attr = array(), $form_group_class = '', $input_class = '')
+function render_date_input($name, $label = '', $value = '', $input_attrs = [], $form_group_attr = [], $form_group_class = '', $input_class = '')
 {
     $input            = '';
     $_form_group_attr = '';
@@ -170,7 +171,7 @@ function render_date_input($name, $label = '', $value = '', $input_attrs = array
         $input .= '<label for="' . $name . '" class="control-label">' . _l($label, '', false) . '</label>';
     }
     $input .= '<div class="input-group date">';
-    $input .= '<input type="text" id="' . $name . '" name="' . $name . '" class="form-control datepicker' . $input_class . '" ' . $_input_attrs . ' value="' . set_value($name, $value) . '">';
+    $input .= '<input type="text" id="' . $name . '" name="' . $name . '" class="form-control datepicker' . $input_class . '" ' . $_input_attrs . ' value="' . set_value($name, $value) . '" autocomplete="off">';
     $input .= '<div class="input-group-addon">
     <i class="fa fa-calendar calendar-icon"></i>
 </div>';
@@ -190,7 +191,7 @@ function render_date_input($name, $label = '', $value = '', $input_attrs = array
  * @param  string $input_class      <input> additional class
  * @return string
  */
-function render_datetime_input($name, $label = '', $value = '', $input_attrs = array(), $form_group_attr = array(), $form_group_class = '', $input_class = '')
+function render_datetime_input($name, $label = '', $value = '', $input_attrs = [], $form_group_attr = [], $form_group_class = '', $input_class = '')
 {
     $html = render_date_input($name, $label, $value, $input_attrs, $form_group_attr, $form_group_class, $input_class);
     $html = str_replace('datepicker', 'datetimepicker', $html);
@@ -208,7 +209,7 @@ function render_datetime_input($name, $label = '', $value = '', $input_attrs = a
  * @param  string $textarea_class      <textarea> additional class
  * @return string
  */
-function render_textarea($name, $label = '', $value = '', $textarea_attrs = array(), $form_group_attr = array(), $form_group_class = '', $textarea_class = '')
+function render_textarea($name, $label = '', $value = '', $textarea_attrs = [], $form_group_attr = [], $form_group_class = '', $textarea_class = '')
 {
     $textarea         = '';
     $_form_group_attr = '';
@@ -218,7 +219,7 @@ function render_textarea($name, $label = '', $value = '', $textarea_attrs = arra
     }
 
     if (isset($textarea_attrs['class'])) {
-        $textarea_class .= ' '. $textarea_attrs['class'];
+        $textarea_class .= ' ' . $textarea_attrs['class'];
         unset($textarea_attrs['class']);
     }
 
@@ -257,7 +258,7 @@ function render_textarea($name, $label = '', $value = '', $textarea_attrs = arra
 
     $v = clear_textarea_breaks($value);
     if (strpos($textarea_class, 'tinymce') !== false) {
-        $v = $value;
+        $v = html_purify($value);
     }
     $textarea .= '<textarea id="' . $name . '" name="' . $name . '" class="form-control' . $textarea_class . '" ' . $_textarea_attrs . '>' . set_value($name, $v) . '</textarea>';
 
@@ -279,7 +280,7 @@ function render_textarea($name, $label = '', $value = '', $textarea_attrs = arra
  * @param  boolean $include_blank    do you want to include the first <option> to be empty
  * @return string
  */
-function render_select($name, $options, $option_attrs = array(), $label = '', $selected = '', $select_attrs = array(), $form_group_attr = array(), $form_group_class = '', $select_class = '', $include_blank = true)
+function render_select($name, $options, $option_attrs = [], $label = '', $selected = '', $select_attrs = [], $form_group_attr = [], $form_group_class = '', $select_class = '', $include_blank = true)
 {
     $callback_translate = '';
     if (isset($options['callback_translate'])) {
@@ -388,7 +389,7 @@ function render_select($name, $options, $option_attrs = array(), $label = '', $s
                 $data_content .= $_opt_attr_key . '=' . '"' . $_opt_attr_val . '"';
             }
             if ($data_content != '') {
-                $data_content = ' ' .$data_content;
+                $data_content = ' ' . $data_content;
             }
         }
         $select .= '<option value="' . $key . '"' . $_selected . $data_content . $data_sub_text . '>' . $val . '</option>';
@@ -399,20 +400,20 @@ function render_select($name, $options, $option_attrs = array(), $label = '', $s
     return $select;
 }
 
-function render_select_with_input_group($name, $options, $option_attrs = array(), $label = '', $selected = '', $input_group_contents = '', $select_attrs = array(), $form_group_attr = array(), $form_group_class = '', $select_class = '', $include_blank = true)
+function render_select_with_input_group($name, $options, $option_attrs = [], $label = '', $selected = '', $input_group_contents = '', $select_attrs = [], $form_group_attr = [], $form_group_class = '', $select_class = '', $include_blank = true)
 {
     $select_class .= ' _select_input_group';
     $select = render_select($name, $options, $option_attrs, $label, $selected, $select_attrs, $form_group_attr, $form_group_class, $select_class, $include_blank);
-    $select = str_replace('form-group', 'input-group input-group-select select-'.$name, $select);
+    $select = str_replace('form-group', 'input-group input-group-select select-' . $name, $select);
     $select = str_replace('select-placeholder ', '', $select);
-    $select = str_replace('</select>', '</select><div class="input-group-addon">'.$input_group_contents.'</div>', $select);
+    $select = str_replace('</select>', '</select><div class="input-group-addon">' . $input_group_contents . '</div>', $select);
 
     $re = '/<label.*<\/label>/i';
     preg_match($re, $select, $label);
 
     if (count($label) > 0) {
         $select = preg_replace($re, '', $select);
-        $select = '<div class="select-placeholder form-group form-group-select-input-'.$name.' input-group-select">' . $label[0] . $select . '</div>';
+        $select = '<div class="select-placeholder form-group form-group-select-input-' . $name . ' input-group-select">' . $label[0] . $select . '</div>';
     }
 
     return $select;
@@ -427,14 +428,14 @@ if (!function_exists('render_form_builder_field')) {
      */
     function render_form_builder_field($field)
     {
-        $type = $field->type;
+        $type         = $field->type;
         $classNameCol = 'col-md-12';
         if (isset($field->className)) {
             if (strpos($field->className, 'form-col') !== false) {
                 $classNames = explode(' ', $field->className);
                 if (is_array($classNames)) {
                     $classNameColArray = array_filter($classNames, function ($class) {
-                        return _startsWith($class, 'form-col');
+                        return startsWith($class, 'form-col');
                     });
 
                     $classNameCol = implode(' ', $classNameColArray);
@@ -451,43 +452,53 @@ if (!function_exists('render_form_builder_field')) {
             }
         }
 
-        echo '<div class="'.$classNameCol.'">';
+        echo '<div class="' . $classNameCol . '">';
         if ($type == 'header' || $type == 'paragraph') {
-            echo '<'.$field->subtype.' class="'.(isset($field->className) ? $field->className : '').'">'.nl2br($field->label).'</'.$field->subtype.'>';
+            echo '<' . $field->subtype . ' class="' . (isset($field->className) ? $field->className : '') . '">' . check_for_links(nl2br($field->label)) . '</' . $field->subtype . '>';
         } else {
-            echo '<div class="form-group" data-type="'.$type.'" data-name="'.$field->name.'" data-required="'.(isset($field->required) ? true : 'false').'">';
-            echo '<label class="control-label" for="'.$field->name.'">'.(isset($field->required) ? ' <span class="text-danger">* </span> ': '').$field->label.''.(isset($field->description) ? ' <i class="fa fa-question-circle" data-toggle="tooltip" data-title="'.$field->description.'" data-placement="'.(is_rtl(true) ? 'left' : 'right').'"></i>' : '').'</label>';
-            if ($type == 'file' || $type == 'text' || $type == 'email') {
-                echo '<input'.(isset($field->required) ? ' required="true"': '') . (isset($field->placeholder) ? ' placeholder="'.$field->placeholder.'"' : '') . ' type="'.$type.'" name="'.$field->name.'" id="'.$field->name.'" class="'.(isset($field->className) ? $field->className : '').'" value="'.(isset($field->value) ? $field->value : '').'"'.($field->type == 'file' ? ' accept="'.get_form_accepted_mimes().'" filesize="'.file_upload_max_size().'"' : '').'>';
-            } elseif ($type == 'textarea') {
-                echo '<textarea'.(isset($field->required) ? ' required="true"': '').' id="'.$field->name.'" name="'.$field->name.'" rows="'.(isset($field->rows) ? $field->rows : '4').'" class="'.(isset($field->className) ? $field->className : '').'" placeholder="'.(isset($field->placeholder) ? $field->placeholder : '').'">'.(isset($field->value) ? $field->value : '').'</textarea>';
-            } elseif ($type == 'date') {
-                echo '<input'.(isset($field->required) ? ' required="true"': '').' placeholder="'.(isset($field->placeholder) ? $field->placeholder : '').'" type="text" class="'.(isset($field->className) ? $field->className : '').' datepicker" name="'.$field->name.'" id="'.$field->name.'" value="'.(isset($field->value) ? _d($field->value) : '').'">';
-            } elseif ($type == 'datetime') {
-                echo '<input'.(isset($field->required) ? ' required="true"': '').' placeholder="'.(isset($field->placeholder) ? $field->placeholder : '').'" type="text" class="'.(isset($field->className) ? $field->className : '').' datetimepicker" name="'.$field->name.'" id="'.$field->name.'" value="'.(isset($field->value) ? _dt($field->value) : '').'">';
-            } elseif ($type == 'color') {
+            echo '<div class="form-group" data-type="' . $type . '" data-name="' . $field->name . '" data-required="' . (isset($field->required) ? true : 'false') . '">';
+            echo '<label class="control-label" for="' . $field->name . '">' . (isset($field->required) ? ' <span class="text-danger">* </span> ': '') . $field->label . '' . (isset($field->description) ? ' <i class="fa fa-question-circle" data-toggle="tooltip" data-title="' . $field->description . '" data-placement="' . (is_rtl(true) ? 'left' : 'right') . '"></i>' : '') . '</label>';
+            if (isset($field->subtype) && $field->subtype == 'color') {
                 echo '<div class="input-group colorpicker-input">
-         <input'.(isset($field->required) ? ' required="true"': '').' placeholder="'.(isset($field->placeholder) ? $field->placeholder : '').'" type="text"' . (isset($field->value) ? ' value="'.$field->value.'"' : '') .  ' name="' . $field->name . '" id="' . $field->name . '" class="'.(isset($field->className) ? $field->className : '').'" />
+         <input' . (isset($field->required) ? ' required="true"': '') . ' placeholder="' . (isset($field->placeholder) ? $field->placeholder : '') . '" type="text"' . (isset($field->value) ? ' value="' . $field->value . '"' : '') . ' name="' . $field->name . '" id="' . $field->name . '" class="' . (isset($field->className) ? $field->className : '') . '" />
              <span class="input-group-addon"><i></i></span>
          </div>';
+            } elseif ($type == 'text' || $type == 'number') {
+                $ftype = isset($field->subtype) ? $field->subtype : $type;
+
+                if($field->name === 'email' && is_client_logged_in()) {
+                    $field->value = $GLOBALS['contact']->email;
+                }
+
+                echo '<input' . (isset($field->required) ? ' required="true"': '') . (isset($field->placeholder) ? ' placeholder="' . $field->placeholder . '"' : '') . ' type="' . $ftype . '" name="' . $field->name . '" id="' . $field->name . '" class="' . (isset($field->className) ? $field->className : '') . '" value="' . (isset($field->value) ? $field->value : '') . '"' . ($field->type == 'file' ? ' accept="' . get_form_accepted_mimes() . '" filesize="' . file_upload_max_size() . '"' : '') . (isset($field->step) ? 'step="'. $field->step.'"' : '')  . (isset($field->min) ? 'min="'. $field->min.'"' : '') . (isset($field->max) ? 'max="'. $field->max.'"' : '')  . (isset($field->maxlength) ? 'maxlength="'. $field->maxlength.'"' : '') . '>';
+            } elseif ($type == 'file') {
+                $ftype = isset($field->subtype) ? $field->subtype : $type;
+                echo '<input' . (isset($field->required) ? ' required="true"': '') . (isset($field->placeholder) ? ' placeholder="' . $field->placeholder . '"' : '') . ' type="' . $ftype . '" name="' . (isset($field->multiple) ? $field->name . "[]" : $field->name ) . '" id="' . $field->name . '" class="' . (isset($field->className) ? $field->className : '') . '" value="' . (isset($field->value) ? $field->value : '') . '"' . ($field->type == 'file' ? ' accept="' . get_form_accepted_mimes() . '" filesize="' . file_upload_max_size() . '"' : '') . (isset($field->step) ? 'step="'. $field->step.'"' : ''). (isset($field->multiple) ? 'multiple="'. $field->multiple.'"' : '').'>';
+            } elseif ($type == 'textarea') {
+                echo '<textarea' . (isset($field->required) ? ' required="true"': '') . ' id="' . $field->name . '" name="' . $field->name . '" rows="' . (isset($field->rows) ? $field->rows : '4') . '" class="' . (isset($field->className) ? $field->className : '') . '" placeholder="' . (isset($field->placeholder) ? $field->placeholder : '') . '"'. (isset($field->maxlength) ? 'maxlength="'. $field->maxlength.'"' : '') . '>'
+                 . (isset($field->value) ? $field->value : '') . '</textarea>';
+            } elseif ($type == 'date') {
+                echo '<input' . (isset($field->required) ? ' required="true"': '') . ' placeholder="' . (isset($field->placeholder) ? $field->placeholder : '') . '" type="text" class="' . (isset($field->className) ? $field->className : '') . ' datepicker" name="' . $field->name . '" id="' . $field->name . '" value="' . (isset($field->value) ? _d($field->value) : '') . '">';
+            } elseif ($type == 'datetime-local') {
+                echo '<input' . (isset($field->required) ? ' required="true"': '') . ' placeholder="' . (isset($field->placeholder) ? $field->placeholder : '') . '" type="text" class="' . (isset($field->className) ? $field->className : '') . ' datetimepicker" name="' . $field->name . '" id="' . $field->name . '" value="' . (isset($field->value) ? _dt($field->value) : '') . '">';
             } elseif ($type == 'select') {
-                echo '<select'.(isset($field->required) ? ' required="true"': '').''.(isset($field->multiple) ? ' multiple="true"' : '').' class="'.(isset($field->className) ? $field->className : '').'" name="'.$field->name.(isset($field->multiple) ? '[]' : '').'" id="'.$field->name.'"'.(isset($field->values) && count($field->values)> 10 ? 'data-live-search="true"': '').'data-none-selected-text="'.(isset($field->placeholder) ? $field->placeholder : '').'">';
-                $values = array();
+                echo '<select' . (isset($field->required) ? ' required="true"': '') . '' . (isset($field->multiple) ? ' multiple="true"' : '') . ' class="' . (isset($field->className) ? $field->className : '') . '" name="' . $field->name . (isset($field->multiple) ? '[]' : '') . '" id="' . $field->name . '"' . (isset($field->values) && count($field->values) > 10 ? 'data-live-search="true"': '') . 'data-none-selected-text="' . (isset($field->placeholder) ? $field->placeholder : '') . '">';
+                $values = [];
                 if (isset($field->values) && count($field->values) > 0) {
                     foreach ($field->values as $option) {
-                        echo '<option value="'.$option->value.'" '.(isset($option->selected) ? ' selected' : '').'>'.$option->label.'</option>';
+                        echo '<option value="' . $option->value . '" ' . (isset($option->selected) ? ' selected' : '') . '>' . $option->label . '</option>';
                     }
                 }
                 echo '</select>';
             } elseif ($type == 'checkbox-group') {
-                $values = array();
+                $values = [];
                 if (isset($field->values) && count($field->values) > 0) {
                     $i = 0;
                     echo '<div class="chk">';
                     foreach ($field->values as $checkbox) {
-                        echo '<div class="checkbox'.((isset($field->inline) && $field->inline == 'true') || (isset($field->className) && strpos($field->className, 'form-inline-checkbox') !== false) ? ' checkbox-inline' : '').'">';
-                        echo '<input'.(isset($field->required) ? ' required="true"': '').' class="'.(isset($field->className) ? $field->className : '').'" type="checkbox" id="chk_'.$field->name.'_'.$i.'" value="'.$checkbox->value.'" name="'.$field->name.'[]"'.(isset($checkbox->selected) ? ' checked' : '').'>';
-                        echo '<label for="chk_'.$field->name.'_'.$i.'">';
+                        echo '<div class="checkbox' . ((isset($field->inline) && $field->inline == 'true') || (isset($field->className) && strpos($field->className, 'form-inline-checkbox') !== false) ? ' checkbox-inline' : '') . '">';
+                        echo '<input' . (isset($field->required) ? ' required="true"': '') . ' class="' . (isset($field->className) ? $field->className : '') . '" type="checkbox" id="chk_' . $field->name . '_' . $i . '" value="' . $checkbox->value . '" name="' . $field->name . '[]"' . (isset($checkbox->selected) ? ' checked' : '') . '>';
+                        echo '<label for="chk_' . $field->name . '_' . $i . '">';
                         echo $checkbox->label;
                         echo '</label>';
                         echo '</div>';
@@ -495,7 +506,23 @@ if (!function_exists('render_form_builder_field')) {
                     }
                     echo '</div>';
                 }
+            } elseif ($type == 'radio-group') {
+                if (isset($field->values) && count($field->values) > 0) {
+                    $i = 0;
+                    foreach ($field->values as $radio) {
+                        echo '<div class="radio ' . ((isset($field->inline) && $field->inline == true) || (isset($field->className) && strpos($field->className, 'form-inline-radio') !== false) ? ' radio-inline' : '') . '">';
+                        echo '  <input '. (isset($field->required) ? ' required="true"': '') . ' class="' . (isset($field->className) ? $field->className : '') . '" type="radio"';
+                        echo 'name="' . $field->name . '" id="radio_' . $field->name . '_' . $i . '"';
+                        echo 'value="' . $radio->value . '"' . (isset($radio->selected) ? ' checked' : '') . '>';
+                       echo '<label for="radio_' . $field->name . '_' . $i . '">';
+                        echo $radio->label;
+                        echo '</label>';
+                        echo '</div>';
+                        $i++;
+                    }
+                }
             }
+
             echo '</div>';
         }
         echo '</div>';
@@ -509,18 +536,20 @@ if (!function_exists('render_form_builder_field')) {
  */
 function format_external_form_custom_fields($custom_fields)
 {
-    $cfields = array();
+    $cfields = [];
     foreach ($custom_fields as $f) {
         $_field_object = new stdClass();
         $type          = $f['type'];
+        $subtype       = '';
         $className     = 'form-control';
 
         if ($f['type'] == 'colorpicker') {
-            $type = 'color';
+            $type    = 'text';
+            $subtype = 'color';
         } elseif ($f['type'] == 'date_picker') {
             $type = 'date';
         } elseif ($f['type'] == 'date_picker_time') {
-            $type = 'datetime';
+            $type = 'datetime-local';
         } elseif ($f['type'] == 'checkbox') {
             $type      = 'checkbox-group';
             $className = '';
@@ -533,12 +562,13 @@ function format_external_form_custom_fields($custom_fields)
             $type = 'select';
         }
 
-        $field_array = array(
-                'type' => $type,
-                'label' => $f['name'],
+        $field_array = [
+                'subtype'   => $subtype,
+                'type'      => $type,
+                'label'     => $f['name'],
                 'className' => $className,
-                'name' => 'form-cf-' . $f['id'],
-            );
+                'name'      => 'form-cf-' . $f['id'],
+            ];
 
         if ($f['type'] == 'multiselect') {
             $field_array['multiple'] = true;
@@ -549,32 +579,49 @@ function format_external_form_custom_fields($custom_fields)
         }
 
         if ($f['type'] == 'checkbox' || $f['type'] == 'select' || $f['type'] == 'multiselect') {
-            $field_array['values'] = array();
+            $field_array['values'] = [];
             $options               = explode(',', $f['options']);
             // leave first field blank
             if ($f['type'] == 'select') {
-                array_push($field_array['values'], array(
+                array_push($field_array['values'], [
                         'label' => '',
                         'value' => '',
-                    ));
+                    ]);
             }
             foreach ($options as $option) {
                 $option = trim($option);
                 if ($option != '') {
-                    array_push($field_array['values'], array(
+                    array_push($field_array['values'], [
                             'label' => $option,
                             'value' => $option,
-                        ));
+                        ]);
                 }
             }
         }
 
         $_field_object->label    = $f['name'];
         $_field_object->name     = 'form-cf-' . $f['id'];
-        $_field_object->fields   = array();
+        $_field_object->fields   = [];
         $_field_object->fields[] = $field_array;
         $cfields[]               = $_field_object;
     }
 
     return $cfields;
+}
+
+
+/**
+ * Render Estimate request status select
+ */
+function render_estimate_request_status_select($statuses, $selected = '', $lang_key = '', $name = 'status', $select_attrs = [])
+{
+    if ($selected == '') {
+        foreach ($statuses as $key => $status) {
+            if ($status['flag'] == 'processing') {
+            $selected = $status['id'];
+                break;
+            }
+        }
+    }
+    return render_select($name, $statuses, ['id', 'name'], $lang_key, $selected, $select_attrs);
 }

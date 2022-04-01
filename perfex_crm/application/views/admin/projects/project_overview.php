@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="row">
    <div class="col-md-6 border-right project-overview-left">
       <div class="row">
@@ -49,14 +50,21 @@
       <div class="col-md-7">
          <table class="table no-margin project-overview-table">
             <tbody>
-               <?php if(has_permission('customers','','view') || is_customer_admin($project->clientid)){ ?>
-               <tr class="project-overview-customer">
-                  <td class="bold"><?php echo _l('project_customer'); ?></td>
-                  <td><a href="<?php echo admin_url(); ?>clients/client/<?php echo $project->clientid; ?>"><?php echo $project->client_data->company; ?></a>
+              <tr class="project-overview-id">
+                  <td class="bold"><?php echo _l('project'); ?> <?php echo _l('the_number_sign'); ?></td>
+                  <td>
+                      <?php echo $project->id; ?>
                   </td>
-               </tr>
-               <?php } ?>
-               <?php if(has_permission('projects','','create') || has_permission('projects','','edit')){ ?>
+              </tr>
+              <tr class="project-overview-customer">
+                  <td class="bold"><?php echo _l('project_customer'); ?></td>
+                  <td>
+                      <a href="<?php echo admin_url(); ?>clients/client/<?php echo $project->clientid; ?>">
+                        <?php echo $project->client_data->company; ?>
+                      </a>
+                  </td>
+              </tr>
+               <?php if(has_permission('projects','','edit')){ ?>
                <tr class="project-overview-billing">
                   <td class="bold"><?php echo _l('project_billing_type'); ?></td>
                   <td>
@@ -72,13 +80,13 @@
                     ?>
                  </td>
                  <?php if($project->billing_type == 1 || $project->billing_type == 2){
-                  echo '<tr>';
+                  echo '<tr class="project-overview-amount">';
                   if($project->billing_type == 1){
                     echo '<td class="bold">'._l('project_total_cost').'</td>';
-                    echo '<td>'.format_money($project->project_cost,$currency->symbol).'</td>';
+                    echo '<td>'.app_format_money($project->project_cost, $currency).'</td>';
                  } else {
                     echo '<td class="bold">'._l('project_rate_per_hour').'</td>';
-                    echo '<td>'.format_money($project->project_rate_per_hour,$currency->symbol).'</td>';
+                    echo '<td>'.app_format_money($project->project_rate_per_hour, $currency).'</td>';
                  }
                  echo '<tr>';
               }
@@ -135,10 +143,11 @@
    </table>
 </div>
 <div class="col-md-5 text-center project-percent-col mtop10">
-   <p class="bold"><?php echo _l('project'). ' ' . _l('project_progress'); ?></p>
+   <p class="bold"><?php echo _l('project_progress_text'); ?></p>
    <div class="project-progress relative mtop15" data-value="<?php echo $percent_circle; ?>" data-size="150" data-thickness="22" data-reverse="true">
       <strong class="project-percent"></strong>
    </div>
+   <?php hooks()->do_action('admin_area_after_project_progress') ?>
 </div>
 </div>
 <?php $tags = get_tags_in($project->id,'project'); ?>
@@ -161,7 +170,7 @@
 </div>
 <div class="team-members project-overview-team-members">
    <hr class="hr-panel-heading project-area-separation" />
-   <?php if(has_permission('projects','','edit') || has_permission('projects','','create')){ ?>
+   <?php if(has_permission('projects','','edit')){ ?>
    <div class="inline-block pull-right mright10 project-member-settings" data-toggle="tooltip" data-title="<?php echo _l('add_edit_members'); ?>">
       <a href="#" data-toggle="modal" class="pull-right" data-target="#add-edit-members"><i class="fa fa-cog"></i></a>
    </div>
@@ -182,7 +191,7 @@
          </a>
       </div>
       <div class="media-body">
-         <?php if(has_permission('projects','','edit') || has_permission('projects','','create')){ ?>
+         <?php if(has_permission('projects','','edit')){ ?>
          <a href="<?php echo admin_url('projects/remove_team_member/'.$project->id.'/'.$member['staff_id']); ?>" class="pull-right text-danger _delete"><i class="fa fa fa-times"></i></a>
          <?php } ?>
          <h5 class="media-heading mtop5"><a href="<?php echo admin_url('profile/'.$member["staff_id"]); ?>"><?php echo get_staff_full_name($member['staff_id']); ?></a>
@@ -198,13 +207,12 @@
 <div class="col-md-6 project-overview-right">
    <div class="row">
       <div class="col-md-<?php echo ($project->deadline ? 6 : 12); ?> project-progress-bars">
-         <?php $tasks_not_completed_progress = round($tasks_not_completed_progress,2); ?>
-         <?php $project_time_left_percent = round($project_time_left_percent,2); ?>
          <div class="row">
            <div class="project-overview-open-tasks">
             <div class="col-md-9">
                <p class="text-uppercase bold text-dark font-medium">
-                  <?php echo $tasks_not_completed; ?> / <?php echo $total_tasks; ?> <?php echo _l('project_open_tasks'); ?>
+                  <span dir="ltr"><?php echo $tasks_not_completed; ?> / <?php echo $total_tasks; ?></span>
+                  <?php echo _l('project_open_tasks'); ?>
                </p>
                <p class="text-muted bold"><?php echo $tasks_not_completed_progress; ?>%</p>
             </div>
@@ -213,7 +221,7 @@
             </div>
             <div class="col-md-12 mtop5">
                <div class="progress no-margin progress-bar-mini">
-                  <div class="progress-bar light-green-bg no-percent-text not-dynamic" role="progressbar" aria-valuenow="<?php echo $tasks_not_completed_progress; ?>" aria-valuemin="0" aria-valuemax="100" style="width: 0%" data-percent="<?php echo $tasks_not_completed_progress; ?>">
+                  <div class="progress-bar progress-bar-success no-percent-text not-dynamic" role="progressbar" aria-valuenow="<?php echo $tasks_not_completed_progress; ?>" aria-valuemin="0" aria-valuemax="100" style="width: 0%" data-percent="<?php echo $tasks_not_completed_progress; ?>">
                   </div>
                </div>
             </div>
@@ -225,7 +233,8 @@
       <div class="row">
          <div class="col-md-9">
             <p class="text-uppercase bold text-dark font-medium">
-               <?php echo $project_days_left; ?> / <?php echo $project_total_days; ?> <?php echo _l('project_days_left'); ?>
+               <span dir="ltr"><?php echo $project_days_left; ?> / <?php echo $project_total_days; ?></span>
+               <?php echo _l('project_days_left'); ?>
             </p>
             <p class="text-muted bold"><?php echo $project_time_left_percent; ?>%</p>
          </div>
@@ -253,28 +262,28 @@
          $data = $this->projects_model->total_logged_time_by_billing_type($project->id);
          ?>
          <p class="text-uppercase text-muted"><?php echo _l('project_overview_logged_hours'); ?> <span class="bold"><?php echo $data['logged_time']; ?></span></p>
-         <p class="bold font-medium"><?php echo format_money($data['total_money'],$currency->symbol); ?></p>
+         <p class="bold font-medium"><?php echo app_format_money($data['total_money'], $currency); ?></p>
       </div>
       <div class="col-md-3">
          <?php
          $data = $this->projects_model->data_billable_time($project->id);
          ?>
          <p class="text-uppercase text-info"><?php echo _l('project_overview_billable_hours'); ?> <span class="bold"><?php echo $data['logged_time'] ?></span></p>
-         <p class="bold font-medium"><?php echo format_money($data['total_money'],$currency->symbol); ?></p>
+         <p class="bold font-medium"><?php echo app_format_money($data['total_money'], $currency); ?></p>
       </div>
       <div class="col-md-3">
          <?php
          $data = $this->projects_model->data_billed_time($project->id);
          ?>
          <p class="text-uppercase text-success"><?php echo _l('project_overview_billed_hours'); ?> <span class="bold"><?php echo $data['logged_time']; ?></span></p>
-         <p class="bold font-medium"><?php echo format_money($data['total_money'],$currency->symbol); ?></p>
+         <p class="bold font-medium"><?php echo app_format_money($data['total_money'], $currency); ?></p>
       </div>
       <div class="col-md-3">
          <?php
          $data = $this->projects_model->data_unbilled_time($project->id);
          ?>
          <p class="text-uppercase text-danger"><?php echo _l('project_overview_unbilled_hours'); ?> <span class="bold"><?php echo $data['logged_time']; ?></span></p>
-         <p class="bold font-medium"><?php echo format_money($data['total_money'],$currency->symbol); ?></p>
+         <p class="bold font-medium"><?php echo app_format_money($data['total_money'], $currency); ?></p>
       </div>
       <div class="clearfix"></div>
       <hr class="hr-panel-heading" />
@@ -285,19 +294,19 @@
    <div class="col-md-12 project-overview-expenses-finance">
       <div class="col-md-3">
          <p class="text-uppercase text-muted"><?php echo _l('project_overview_expenses'); ?></p>
-         <p class="bold font-medium"><?php echo format_money(sum_from_table('tblexpenses',array('where'=>array('project_id'=>$project->id),'field'=>'amount')),$currency->symbol); ?></p>
+         <p class="bold font-medium"><?php echo app_format_money(sum_from_table(db_prefix().'expenses',array('where'=>array('project_id'=>$project->id),'field'=>'amount')), $currency); ?></p>
       </div>
       <div class="col-md-3">
          <p class="text-uppercase text-info"><?php echo _l('project_overview_expenses_billable'); ?></p>
-         <p class="bold font-medium"><?php echo format_money(sum_from_table('tblexpenses',array('where'=>array('project_id'=>$project->id,'billable'=>1),'field'=>'amount')),$currency->symbol); ?></p>
+         <p class="bold font-medium"><?php echo app_format_money(sum_from_table(db_prefix().'expenses',array('where'=>array('project_id'=>$project->id,'billable'=>1),'field'=>'amount')), $currency); ?></p>
       </div>
       <div class="col-md-3">
          <p class="text-uppercase text-success"><?php echo _l('project_overview_expenses_billed'); ?></p>
-         <p class="bold font-medium"><?php echo format_money(sum_from_table('tblexpenses',array('where'=>array('project_id'=>$project->id,'invoiceid !='=>'NULL','billable'=>1),'field'=>'amount')),$currency->symbol); ?></p>
+         <p class="bold font-medium"><?php echo app_format_money(sum_from_table(db_prefix().'expenses',array('where'=>array('project_id'=>$project->id,'invoiceid !='=>'NULL','billable'=>1),'field'=>'amount')), $currency); ?></p>
       </div>
       <div class="col-md-3">
          <p class="text-uppercase text-danger"><?php echo _l('project_overview_expenses_unbilled'); ?></p>
-         <p class="bold font-medium"><?php echo format_money(sum_from_table('tblexpenses',array('where'=>array('project_id'=>$project->id,'invoiceid IS NULL','billable'=>1),'field'=>'amount')),$currency->symbol); ?></p>
+         <p class="bold font-medium"><?php echo app_format_money(sum_from_table(db_prefix().'expenses',array('where'=>array('project_id'=>$project->id,'invoiceid IS NULL','billable'=>1),'field'=>'amount')), $currency); ?></p>
       </div>
    </div>
 </div>

@@ -1,15 +1,53 @@
-<?php do_action('before_leads_settings'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php hooks()->do_action('before_leads_settings'); ?>
+<?php echo form_hidden('settings[_leads_settings]','true'); ?>
 <?php echo render_input('settings[leads_kanban_limit]','settings_leads_kanban_limit',get_option('leads_kanban_limit'),'number'); ?>
 <hr />
 <?php
 foreach($leads_statuses as $subKey => $subArray){
   if($subArray['isdefault'] == '1'){
     unset($leads_statuses[$subKey]);
- }
+  }
 }
 echo render_select('settings[leads_default_status]',$leads_statuses,array('id','name'),'leads_default_status',get_option('leads_default_status')); ?>
 <hr />
 <?php echo render_select('settings[leads_default_source]',$leads_sources,array('id','name'),'leads_default_source',get_option('leads_default_source')); ?>
+<hr />
+<?php
+$savedValidation = json_decode(get_option('lead_unique_validation'));
+$validationFields = [
+  [
+    'value'=>'email',
+    'name'=>_l('lead_add_edit_email'),
+  ],
+  [
+    'value'=>'phonenumber',
+    'name'=>_l('lead_add_edit_phonenumber'),
+  ],
+  [
+    'value'=>'website',
+    'name'=>_l('lead_website'),
+  ],
+  [
+    'value'=>'company',
+    'name'=>_l('lead_company'),
+  ],
+];
+$validationFields = hooks()->apply_filters('lead_available_dupicate_validation_fields_option', $validationFields);
+?>
+<div class="form-group" id="unique_validation_wrapper">
+  <label for="lead_unique_validation"><?php echo _l('lead_unique_validation_on'); ?></label>
+  <select class="selectpicker" name="settings[lead_unique_validation][]" id="lead_unique_validation" data-width="100%" multiple="true" data-none-selected-text="<?php echo _l('no_validation'); ?>">
+    <?php foreach($validationFields as $leadField) {
+      ?>
+      <option value="<?php echo $leadField['value']; ?>"<?php if(in_array($leadField['value'], $savedValidation)){echo ' selected';} ?>>
+        <?php echo $leadField['name']; ?>
+      </option>
+      <?php
+    }
+    ?>
+  </select>
+</div>
 <hr />
 <?php render_yes_no_option('auto_assign_customer_admin_after_lead_convert','auto_assign_customer_admin_after_lead_convert','auto_assign_customer_admin_after_lead_convert_help'); ?>
 <hr />
@@ -47,4 +85,4 @@ echo render_select('settings[leads_default_status]',$leads_statuses,array('id','
   </label>
   <input type="text" id="settings[lead_modal_class]" name="settings[lead_modal_class]" class="form-control" value="<?php echo get_option('lead_modal_class'); ?>">
 </div>
-<?php do_action('after_leads_settings'); ?>
+<?php hooks()->do_action('after_leads_settings'); ?>

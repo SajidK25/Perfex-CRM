@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!-- Zip Estimates -->
 <div class="modal fade" id="client_zip_estimates" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
@@ -23,15 +24,8 @@
                             </div>
                             <?php } ?>
                         </div>
-                        <?php
-                        if($client->company != ''){
-                            $file_name = slug_it($client->company);
-                        } else {
-                            $file_name = slug_it(get_contact_full_name(get_primary_contact_user_id($client->userid)));
-                        }
-                        ?>
-                        <?php include(APPPATH .'views/admin/clients/modals/modal_zip_date_picker.php'); ?>
-                        <?php echo form_hidden('file_name',$file_name); ?>
+                        <?php $this->load->view('admin/clients/modals/modal_zip_date_picker'); ?>
+                        <?php echo form_hidden('file_name', $zip_in_folder); ?>
                     </div>
                 </div>
             </div>

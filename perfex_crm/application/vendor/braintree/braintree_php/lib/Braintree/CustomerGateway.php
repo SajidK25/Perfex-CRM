@@ -9,7 +9,7 @@ use InvalidArgumentException;
  *
  * <b>== More information ==</b>
  *
- * For more detailed information on Customers, see {@link http://www.braintreepayments.com/gateway/customer-api http://www.braintreepaymentsolutions.com/gateway/customer-api}
+ * For more detailed information on Customers, see {@link https://developers.braintreepayments.com/reference/response/customer/php https://developers.braintreepayments.com/reference/response/customer/php}
  *
  * @package    Braintree
  * @category   Resources
@@ -79,12 +79,13 @@ class CustomerGateway
      * </code>
      *
      * @access public
-     * @param array $attribs
-     * @return Braintree_Result_Successful|Braintree_Result_Error
+     * @param array $attribs (Note: $deviceSessionId and $fraudMerchantId params are deprecated. Use $deviceData instead)
+     * @return Result\Successful|Result\Error
      */
     public function create($attribs = [])
     {
         Util::verifyKeys(self::createSignature(), $attribs);
+        $this->_checkForDeprecatedAttributes($attribs);
         return $this->_doCreate('/customers', ['customer' => $attribs]);
     }
 
@@ -102,40 +103,6 @@ class CustomerGateway
         $result = $this->create($attribs);
         return Util::returnObjectOrThrowException(__CLASS__, $result);
     }
-    /**
-     * create a customer from a TransparentRedirect operation
-     *
-     * @deprecated since version 2.3.0
-     * @access public
-     * @param array $attribs
-     * @return Customer
-     */
-    public function createFromTransparentRedirect($queryString)
-    {
-        trigger_error("DEPRECATED: Please use TransparentRedirectRequest::confirm", E_USER_NOTICE);
-        $params = TransparentRedirect::parseAndValidateQueryString(
-                $queryString
-                );
-        return $this->_doCreate(
-                '/customers/all/confirm_transparent_redirect_request',
-                ['id' => $params['id']]
-        );
-    }
-
-    /**
-     *
-     * @deprecated since version 2.3.0
-     * @access public
-     * @param none
-     * @return string
-     */
-    public function createCustomerUrl()
-    {
-        trigger_error("DEPRECATED: Please use TransparentRedirectRequest::url", E_USER_NOTICE);
-        return $this->_config->baseUrl() . $this->_config->merchantPath() .
-                '/customers/all/create_via_transparent_redirect_request';
-    }
-
 
     /**
      * creates a full array signature of a valid create request
@@ -145,11 +112,10 @@ class CustomerGateway
     {
         $creditCardSignature = CreditCardGateway::createSignature();
         unset($creditCardSignature[array_search('customerId', $creditCardSignature)]);
-
         $signature = [
             'id', 'company', 'email', 'fax', 'firstName',
-            'lastName', 'phone', 'website', 'deviceData',
-            'deviceSessionId', 'fraudMerchantId', 'paymentMethodNonce',
+            'lastName', 'phone', 'website', 'deviceData', 'paymentMethodNonce',
+            'deviceSessionId', 'fraudMerchantId', // NEXT_MAJOR_VERSION remove deviceSessionId and fraudMerchantId
             ['riskData' =>
                 ['customerBrowser', 'customerIp', 'customer_browser', 'customer_ip']
             ],
@@ -177,7 +143,7 @@ class CustomerGateway
         ];
         return $signature;
     }
-
+ 
     /**
      * creates a full array signature of a valid update request
      * @return array update request format
@@ -195,13 +161,20 @@ class CustomerGateway
         $signature = [
             'id', 'company', 'email', 'fax', 'firstName',
             'lastName', 'phone', 'website', 'deviceData',
-            'deviceSessionId', 'fraudMerchantId', 'paymentMethodNonce', 'defaultPaymentMethodToken',
+            'paymentMethodNonce', 'defaultPaymentMethodToken',
+            'deviceSessionId', 'fraudMerchantId', // NEXT_MAJOR_VERSION Remove deviceSessionId and fraudMerchantId
             ['creditCard' => $creditCardSignature],
             ['customFields' => ['_anyKey_']],
             ['options' => [
                 ['paypal' => [
                     'payee_email',
                     'payeeEmail',
+                    'order_id',
+                    'orderId',
+                    'custom_field',
+                    'customField',
+                    'description',
+                    'amount',
                     ['shipping' =>
                         [
                             'firstName', 'lastName', 'company', 'countryName',
@@ -221,14 +194,19 @@ class CustomerGateway
      *
      * @access public
      * @param string id customer Id
+     * @param string associationFilterId association filter Id
      * @return Customer|boolean The customer object or false if the request fails.
      * @throws Exception\NotFound
      */
-    public function find($id)
+    public function find($id, $associationFilterId = null)
     {
         $this->_validateId($id);
         try {
-            $path = $this->_config->merchantPath() . '/customers/' . $id;
+            $queryParams = '';
+            if ($associationFilterId) {
+                $queryParams = '?association_filter_id=' . $associationFilterId;
+            }
+            $path = $this->_config->merchantPath() . '/customers/' . $id . $queryParams;
             $response = $this->_http->get($path);
             return Customer::factory($response['customer']);
         } catch (Exception\NotFound $e) {
@@ -326,7 +304,7 @@ class CustomerGateway
      *
      * If <b>query</b> is a string, the search will be a basic search.
      * If <b>query</b> is a hash, the search will be an advanced search.
-     * For more detailed information and examples, see {@link http://www.braintreepayments.com/gateway/customer-api#searching http://www.braintreepaymentsolutions.com/gateway/customer-api}
+     * For more detailed information and examples, see {@link https://developers.braintreepayments.com/reference/request/customer/search/php https://developers.braintreepayments.com/reference/request/customer/search/php}
      *
      * @param mixed $query search query
      * @return ResourceCollection
@@ -363,13 +341,14 @@ class CustomerGateway
      *
      * @access public
      * @param string $customerId (optional)
-     * @param array $attributes
+     * @param array $attributes (Note: $deviceSessionId and fraudMerchantId params are deprecated. Use $deviceData instead)
      * @return Result\Successful|Result\Error
      */
     public function update($customerId, $attributes)
     {
         Util::verifyKeys(self::updateSignature(), $attributes);
         $this->_validateId($customerId);
+        $this->_checkForDeprecatedAttributes($attributes);
         return $this->_doUpdate(
             'put',
             '/customers/' . $customerId,
@@ -394,39 +373,6 @@ class CustomerGateway
     {
         $result = $this->update($customerId, $attributes);
         return Util::returnObjectOrThrowException(__CLASS__, $result);
-    }
-    /**
-     *
-     * @deprecated since version 2.3.0
-     * @access public
-     * @return string
-     */
-    public function updateCustomerUrl()
-    {
-        trigger_error("DEPRECATED: Please use TransparentRedirectRequest::url", E_USER_NOTICE);
-        return $this->_config->baseUrl() . $this->_config->merchantPath() .
-                '/customers/all/update_via_transparent_redirect_request';
-    }
-
-    /**
-     * update a customer from a TransparentRedirect operation
-     *
-     * @deprecated since version 2.3.0
-     * @access public
-     * @param string $queryString
-     * @return object
-     */
-    public function updateFromTransparentRedirect($queryString)
-    {
-        trigger_error("DEPRECATED: Please use TransparentRedirectRequest::confirm", E_USER_NOTICE);
-        $params = TransparentRedirect::parseAndValidateQueryString(
-                $queryString
-        );
-        return $this->_doUpdate(
-                'post',
-                '/customers/all/confirm_transparent_redirect_request',
-                ['id' => $params['id']]
-        );
     }
 
     /* instance methods */
@@ -463,15 +409,6 @@ class CustomerGateway
         }
         $this->_set('creditCards', $creditCardArray);
 
-        // map each coinbaseAccount into its own object
-        $coinbaseAccountArray = [];
-        if (isset($customerAttribs['coinbaseAccounts'])) {
-            foreach ($customerAttribs['coinbaseAccounts'] AS $coinbaseAccount) {
-                $coinbaseAccountArray[] = CoinbaseAccount::factory($coinbaseAccount);
-            }
-        }
-        $this->_set('coinbaseAccounts', $coinbaseAccountArray);
-
         // map each paypalAccount into its own object
         $paypalAccountArray = [];
         if (isset($customerAttribs['paypalAccounts'])) {
@@ -491,6 +428,7 @@ class CustomerGateway
         $this->_set('applePayCards', $applePayCardArray);
 
         // map each androidPayCard into its own object
+        // NEXT_MAJOR_VERSION rename Android Pay to Google Pay
         $androidPayCardArray = [];
         if (isset($customerAttribs['androidPayCards'])) {
             foreach ($customerAttribs['androidPayCards'] AS $androidPayCard) {
@@ -499,7 +437,7 @@ class CustomerGateway
         }
         $this->_set('androidPayCards', $androidPayCardArray);
 
-        $this->_set('paymentMethods', array_merge($this->creditCards, $this->paypalAccounts, $this->applePayCards, $this->coinbaseAccounts, $this->androidPayCards));
+        $this->_set('paymentMethods', array_merge($this->creditCards, $this->paypalAccounts, $this->applePayCards, $this->androidPayCards));
     }
 
     /**
@@ -653,5 +591,14 @@ class CustomerGateway
             );
         }
     }
+
+    private function _checkForDeprecatedAttributes($attributes)
+    {
+        if (isset($attributes['deviceSessionId'])) {
+            trigger_error('$deviceSessionId is deprecated, use $deviceData instead', E_USER_DEPRECATED);
+        }
+        if (isset($attributes['fraudMerchantId'])) {
+            trigger_error('$fraudMerchantId is deprecated, use $deviceData instead', E_USER_DEPRECATED);
+        }
+    }
 }
-class_alias('Braintree\CustomerGateway', 'Braintree_CustomerGateway');

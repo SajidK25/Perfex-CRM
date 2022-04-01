@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
 	<div class="content">
@@ -18,6 +19,7 @@
 						$table_data = array(
 							_l('staff_dt_name'),
 							_l('staff_dt_email'),
+							_l('role'),
 							_l('staff_dt_last_Login'),
 							_l('staff_dt_active'),
 							);
@@ -25,7 +27,6 @@
 						foreach($custom_fields as $field){
 							array_push($table_data,$field['name']);
 						}
-						array_push($table_data,_l('options'));
 						render_datatable($table_data,'staff');
 						?>
 					</div>
@@ -62,9 +63,7 @@
 <?php init_tail(); ?>
 <script>
 	$(function(){
-		var headers_staff = $('.table-staff').find('th');
-		var not_sortable_staff = (headers_staff.length - 1);
-		initDataTable('.table-staff', window.location.href, [not_sortable_staff], [not_sortable_staff]);
+		initDataTable('.table-staff', window.location.href);
 	});
 	function delete_staff_member(id){
 		$('#delete_staff').modal('show');

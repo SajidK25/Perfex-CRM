@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php if((credits_can_be_applied_to_invoice($invoice->status) && $credits_available > 0)) { ?>
 <!-- Modal Apply Credits -->
 <div class="modal fade apply-credits-from-invoice" id="apply_credits" data-balance-due="<?php echo $invoice->total_left_to_pay; ?>" tabindex="-1" role="dialog" aria-labelledby="modalLabelApplyCredits">
@@ -38,8 +39,8 @@
                           echo '<td>' .get_custom_field_value($credit['id'],$field['id'],'credit_note') .'</td>';
                         }
                     ?>
-                    <td><?php echo format_money($credit['total'],$customer_currency->symbol) ?></td>
-                    <td><?php echo format_money($credit['available_credits'],$customer_currency->symbol) ?></td>
+                    <td><?php echo app_format_money($credit['total'], $customer_currency) ?></td>
+                    <td><?php echo app_format_money($credit['available_credits'], $customer_currency) ?></td>
                     <td>
                         <input type="number" max="<?php echo $credit['available_credits']; ?>" name="amount[<?php echo $credit['id']; ?>]" class="form-control apply-credits-field" value="0">
                     </td>
@@ -56,13 +57,13 @@
                      <tr>
                         <td class="bold"><?php echo _l('amount_to_credit'); ?>:</td>
                         <td class="amount-to-credit">
-                            <?php echo _format_number(0); ?>
+                            <?php echo app_format_money(0, $invoice->currency_name); ?>
                         </td>
                     </tr>
                     <tr>
                         <td class="bold"><?php echo _l('balance_due'); ?>:</td>
                         <td class="invoice-balance-due">
-                            <?php echo _format_number($invoice->total_left_to_pay); ?>
+                            <?php echo app_format_money($invoice->total_left_to_pay, $invoice->currency_name); ?>
                         </td>
                     </tr>
                 </tbody>
@@ -80,8 +81,10 @@
 </div>
 </div>
 <script>
+    $('body').addClass('no-calculate-total');
+    init_currency(<?php echo $invoice->currency; ?>);
     $(function(){
-        _validate_form('#apply_credits_form');
+        appValidateForm('#apply_credits_form');
     });
 </script>
 <?php } ?>

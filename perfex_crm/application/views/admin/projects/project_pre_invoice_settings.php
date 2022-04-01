@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!-- Copy Project -->
 <div class="modal fade" id="pre_invoice_project_settings" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg">
@@ -63,10 +64,10 @@
                             <hr />
                             <div id="tasks_who_will_be_billed">
                             <?php foreach($billable_tasks as $task){
-                                if($task['status'] != 5){ $not_finished_tasks_found = true; } ?>
+                                if($task['status'] != Tasks_model::STATUS_COMPLETE){ $not_finished_tasks_found = true; } ?>
                                 <div class="checkbox checkbox-primary mbot15">
-                                    <input type="checkbox" name="tasks[]" value="<?php echo $task['id']; ?>" <?php if($task['status'] == 5){echo 'checked ';} ?>id="<?php echo $task['id']; ?>">
-                                    <label class="inline-block full-width" for="<?php echo $task['id']; ?>"><?php echo $task['name']; ?> <?php if(total_rows('tbltaskstimers',array('task_id'=>$task['id'])) == 0 && $billing_type != 1){echo '<small class="text-danger">'._l('project_invoice_task_no_timers_found').'</small>';}; ?><small class="pull-right valign"><?php echo format_task_status($task['status']); ?></small></label>
+                                    <input type="checkbox" name="tasks[]" value="<?php echo $task['id']; ?>" <?php if($task['status'] == Tasks_model::STATUS_COMPLETE){echo 'checked ';} ?>id="<?php echo $task['id']; ?>">
+                                    <label class="inline-block full-width" for="<?php echo $task['id']; ?>"><?php echo $task['name']; ?> <?php if(total_rows(db_prefix().'taskstimers',array('task_id'=>$task['id'])) == 0 && $billing_type != 1){echo '<small class="text-danger">'._l('project_invoice_task_no_timers_found').'</small>';}; ?><small class="pull-right valign"><?php echo format_task_status($task['status']); ?></small></label>
                                 </div>
                                 <?php } ?>
                                 </div>
@@ -84,7 +85,7 @@
                             <?php
                             if(count($expenses) > 0){ ?>
                             <hr />
-                            <a href="#" onclick="slideToggle('# '); return false;"><span class="label label-info font-medium-xs inline-block">
+                            <a href="#" onclick="slideToggle('#expenses_who_will_be_billed'); return false;"><span class="label label-info font-medium-xs inline-block">
                              <?php echo _l('invoice_project_see_billed_expenses'); ?>
                          </span></a>
                          <div style="display:none;" id="expenses_who_will_be_billed">
@@ -118,7 +119,7 @@
                                 <?php if(!empty($expense->expense_name)){
                                     echo '('.$expense->expense_name.')';
                                 } ?>
-                                - <?php echo format_money($total,$expense->currency_data->symbol); ?>
+                                - <?php echo app_format_money($total, $expense->currency_data); ?>
                             </label>
                         </div>
                         <div class="<?php if(empty($expense->expense_name) && empty($expense->note)){echo 'hide';} ?>">

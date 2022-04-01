@@ -1,13 +1,12 @@
 <?php
-defined('BASEPATH') or exit('No direct script access allowed');
-class Dashboard_model extends CRM_Model
-{
-    private $is_admin;
 
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Dashboard_model extends App_Model
+{
     public function __construct()
     {
         parent::__construct();
-        $this->is_admin = is_admin();
     }
 
     /**
@@ -17,12 +16,15 @@ class Dashboard_model extends CRM_Model
      */
     public function get_upcoming_events()
     {
-        $this->db->where('(start BETWEEN "' . date('Y-m-d', strtotime('monday this week')) . '" AND "' . date('Y-m-d', strtotime('sunday this week')) . '")');
+        $monday_this_week = date('Y-m-d', strtotime('monday this week'));
+        $sunday_this_week = date('Y-m-d', strtotime('sunday this week'));
+
+        $this->db->where("(start BETWEEN '$monday_this_week' and '$sunday_this_week')");
         $this->db->where('(userid = ' . get_staff_user_id() . ' OR public = 1)');
         $this->db->order_by('start', 'desc');
         $this->db->limit(6);
 
-        return $this->db->get('tblevents')->result_array();
+        return $this->db->get(db_prefix() . 'events')->result_array();
     }
 
     /**
@@ -35,10 +37,10 @@ class Dashboard_model extends CRM_Model
     {
         $monday_this_week = date('Y-m-d', strtotime('monday next week'));
         $sunday_this_week = date('Y-m-d', strtotime('sunday next week'));
-        $this->db->where('(start BETWEEN "' . $monday_this_week . '" AND "' . $sunday_this_week . '")');
+        $this->db->where("(start BETWEEN '$monday_this_week' and '$sunday_this_week')");
         $this->db->where('(userid = ' . get_staff_user_id() . ' OR public = 1)');
 
-        return $this->db->count_all_results('tblevents');
+        return $this->db->count_all_results(db_prefix() . 'events');
     }
 
     /**
@@ -49,45 +51,50 @@ class Dashboard_model extends CRM_Model
      */
     public function get_weekly_payments_statistics($currency)
     {
-        $all_payments                 = array();
+        $all_payments                 = [];
         $has_permission_payments_view = has_permission('payments', '', 'view');
-        $this->db->select('amount,tblinvoicepaymentrecords.date');
-        $this->db->from('tblinvoicepaymentrecords');
-        $this->db->join('tblinvoices', 'tblinvoices.id = tblinvoicepaymentrecords.invoiceid');
-        $this->db->where('CAST(tblinvoicepaymentrecords.date as DATE) >= "' . date('Y-m-d', strtotime('monday this week')) . '" AND CAST(tblinvoicepaymentrecords.date as DATE) <= "' . date('Y-m-d', strtotime('sunday this week')) . '"');
-        $this->db->where('tblinvoices.status !=', 5);
+        $this->db->select(db_prefix() . 'invoicepaymentrecords.id, amount,' . db_prefix() . 'invoicepaymentrecords.date');
+        $this->db->from(db_prefix() . 'invoicepaymentrecords');
+        $this->db->join(db_prefix() . 'invoices', '' . db_prefix() . 'invoices.id = ' . db_prefix() . 'invoicepaymentrecords.invoiceid');
+        $this->db->where('YEARWEEK(' . db_prefix() . 'invoicepaymentrecords.date) = YEARWEEK(CURRENT_DATE)');
+        $this->db->where('' . db_prefix() . 'invoices.status !=', 5);
         if ($currency != 'undefined') {
             $this->db->where('currency', $currency);
         }
 
         if (!$has_permission_payments_view) {
-            $this->db->where('invoiceid IN (SELECT id FROM tblinvoices WHERE addedfrom=' . get_staff_user_id() . ')');
+            $this->db->where('invoiceid IN (SELECT id FROM ' . db_prefix() . 'invoices WHERE addedfrom=' . get_staff_user_id() . ' and addedfrom IN (SELECT staff_id FROM ' . db_prefix() . 'staff_permissions WHERE feature="invoices" AND capability="view_own"))');
         }
 
         // Current week
         $all_payments[] = $this->db->get()->result_array();
-        $this->db->select('amount,tblinvoicepaymentrecords.date');
-        $this->db->from('tblinvoicepaymentrecords');
-        $this->db->join('tblinvoices', 'tblinvoices.id = tblinvoicepaymentrecords.invoiceid');
-        $this->db->where('CAST(tblinvoicepaymentrecords.date as DATE) >= "' . date('Y-m-d', strtotime('monday last week', strtotime('last sunday'))) . '" AND CAST(tblinvoicepaymentrecords.date as DATE) <= "' . date('Y-m-d', strtotime('sunday last week', strtotime('last sunday'))) . '"');
+        $this->db->select(db_prefix() . 'invoicepaymentrecords.id, amount,' . db_prefix() . 'invoicepaymentrecords.date');
+        $this->db->from(db_prefix() . 'invoicepaymentrecords');
+        $this->db->join(db_prefix() . 'invoices', '' . db_prefix() . 'invoices.id = ' . db_prefix() . 'invoicepaymentrecords.invoiceid');
+        $this->db->where('YEARWEEK(' . db_prefix() . 'invoicepaymentrecords.date) = YEARWEEK(CURRENT_DATE - INTERVAL 7 DAY) ');
 
-        $this->db->where('tblinvoices.status !=', 5);
+        $this->db->where('' . db_prefix() . 'invoices.status !=', 5);
         if ($currency != 'undefined') {
             $this->db->where('currency', $currency);
         }
+
+        if (!$has_permission_payments_view) {
+            $this->db->where('invoiceid IN (SELECT id FROM ' . db_prefix() . 'invoices WHERE addedfrom=' . get_staff_user_id() . ' and addedfrom IN (SELECT staff_id FROM ' . db_prefix() . 'staff_permissions WHERE feature="invoices" AND capability="view_own"))');
+        }
+
         // Last Week
         $all_payments[] = $this->db->get()->result_array();
 
-        $chart = array(
-            'labels' => get_weekdays(),
-            'datasets' => array(
-                array(
-                    'label' => _l('this_week_payments'),
+        $chart = [
+            'labels'   => get_weekdays(),
+            'datasets' => [
+                [
+                    'label'           => _l('this_week_payments'),
                     'backgroundColor' => 'rgba(37,155,35,0.2)',
-                    'borderColor' => "#84c529",
-                    'borderWidth' => 1,
-                    'tension' => false,
-                    'data' => array(
+                    'borderColor'     => '#84c529',
+                    'borderWidth'     => 1,
+                    'tension'         => false,
+                    'data'            => [
                         0,
                         0,
                         0,
@@ -95,15 +102,15 @@ class Dashboard_model extends CRM_Model
                         0,
                         0,
                         0,
-                    ),
-                ),
-                array(
-                    'label' => _l('last_week_payments'),
+                    ],
+                ],
+                [
+                    'label'           => _l('last_week_payments'),
                     'backgroundColor' => 'rgba(197, 61, 169, 0.5)',
-                    'borderColor' => "#c53da9",
-                    'borderWidth' => 1,
-                    'tension' => false,
-                    'data' => array(
+                    'borderColor'     => '#c53da9',
+                    'borderWidth'     => 1,
+                    'tension'         => false,
+                    'data'            => [
                         0,
                         0,
                         0,
@@ -111,10 +118,10 @@ class Dashboard_model extends CRM_Model
                         0,
                         0,
                         0,
-                    ),
-                ),
-            ),
-        );
+                    ],
+                ],
+            ],
+        ];
 
 
         for ($i = 0; $i < count($all_payments); $i++) {
@@ -133,46 +140,101 @@ class Dashboard_model extends CRM_Model
         return $chart;
     }
 
+
+    /**
+     * @param  mixed
+     * @return array
+     * Used in home dashboard page, currency passed from javascript (undefined or integer)
+     * Displays monthly payment statistics (chart)
+     */
+    public function get_monthly_payments_statistics($currency)
+    {
+        $all_payments                 = [];
+        $has_permission_payments_view = has_permission('payments', '', 'view');
+        $this->db->select('SUM(amount) as total, MONTH(' . db_prefix() . 'invoicepaymentrecords.date) as month');
+        $this->db->from(db_prefix() . 'invoicepaymentrecords');
+        $this->db->join(db_prefix() . 'invoices', '' . db_prefix() . 'invoices.id = ' . db_prefix() . 'invoicepaymentrecords.invoiceid');
+        $this->db->where('YEAR(' . db_prefix() . 'invoicepaymentrecords.date) = YEAR(CURRENT_DATE)');
+        $this->db->where('' . db_prefix() . 'invoices.status !=', 5);
+        $this->db->group_by('month');
+
+        if ($currency != 'undefined') {
+            $this->db->where('currency', $currency);
+        }
+
+        if (!$has_permission_payments_view) {
+            $this->db->where('invoiceid IN (SELECT id FROM ' . db_prefix() . 'invoices WHERE addedfrom=' . get_staff_user_id() . ' and addedfrom IN (SELECT staff_id FROM ' . db_prefix() . 'staff_permissions WHERE feature="invoices" AND capability="view_own"))');
+        }
+
+        $all_payments = $this->db->get()->result_array();
+
+        for ($i = 1; $i <= 12; $i++) {
+            if (!isset($all_payments[$i])) {
+                $all_payments[$i]['total'] = 0;
+                $all_payments[$i]['month'] = $i;
+            }
+            $all_payments[$i]['label'] = _l(date("F", mktime(0, 0, 0, $i, 1)));
+        }
+        usort($all_payments, function($a, $b) {
+            return (int) $a['month'] <=> (int) $b['month'];
+        });
+
+        $chart = [
+            'labels'   => array_column($all_payments, 'label'),
+            'datasets' => [
+                [
+                    'label'           => _l('report_sales_type_income'),
+                    'backgroundColor' => 'rgba(37,155,35,0.2)',
+                    'borderColor'     => '#84c529',
+                    'borderWidth'     => 1,
+                    'tension'         => false,
+                    'data'            => array_column($all_payments, 'total'),
+                ],
+            ],
+        ];
+        return $chart;
+    }
+
     public function projects_status_stats()
     {
         $this->load->model('projects_model');
         $statuses = $this->projects_model->get_project_statuses();
         $colors   = get_system_favourite_colors();
 
-        $chart = array(
-            'labels' => array(),
-            'datasets' => array(),
-        );
+        $chart = [
+            'labels'   => [],
+            'datasets' => [],
+        ];
 
-        $_data                         = array();
-        $_data['data']                 = array();
-        $_data['backgroundColor']      = array();
-        $_data['hoverBackgroundColor'] = array();
-        $_data['statusLink'] = array();
+        $_data                         = [];
+        $_data['data']                 = [];
+        $_data['backgroundColor']      = [];
+        $_data['hoverBackgroundColor'] = [];
+        $_data['statusLink']           = [];
 
 
         $has_permission = has_permission('projects', '', 'view');
-        $sql = '';
+        $sql            = '';
         foreach ($statuses as $status) {
             $sql .= ' SELECT COUNT(*) as total';
-            $sql .= ' FROM tblprojects';
-            $sql .= ' WHERE status='.$status['id'];
+            $sql .= ' FROM ' . db_prefix() . 'projects';
+            $sql .= ' WHERE status=' . $status['id'];
             if (!$has_permission) {
-                $sql .= ' AND id IN (SELECT project_id FROM tblprojectmembers WHERE staff_id=' . get_staff_user_id() . ')';
+                $sql .= ' AND id IN (SELECT project_id FROM ' . db_prefix() . 'project_members WHERE staff_id=' . get_staff_user_id() . ')';
             }
             $sql .= ' UNION ALL ';
             $sql = trim($sql);
         }
 
-        $result = array();
+        $result = [];
         if ($sql != '') {
             // Remove the last UNION ALL
-            $sql = substr($sql, 0, -10);
+            $sql    = substr($sql, 0, -10);
             $result = $this->db->query($sql)->result();
         }
 
         foreach ($statuses as $key => $status) {
-            array_push($_data['statusLink'], admin_url('projects?status='.$status['id']));
+            array_push($_data['statusLink'], admin_url('projects?status=' . $status['id']));
             array_push($chart['labels'], $status['name']);
             array_push($_data['backgroundColor'], $status['color']);
             array_push($_data['hoverBackgroundColor'], adjust_color_brightness($status['color'], -20));
@@ -187,53 +249,30 @@ class Dashboard_model extends CRM_Model
 
     public function leads_status_stats()
     {
-        $this->load->model('leads_model');
+        $chart = [
+            'labels'   => [],
+            'datasets' => [],
+        ];
 
-        $statuses = $this->leads_model->get_status();
-        $colors   = get_system_favourite_colors();
+        $_data                         = [];
+        $_data['data']                 = [];
+        $_data['backgroundColor']      = [];
+        $_data['hoverBackgroundColor'] = [];
+        $_data['statusLink']           = [];
 
-        $chart    = array(
-            'labels' => array(),
-            'datasets' => array(),
-        );
+        $result = get_leads_summary();
 
-        $_data                         = array();
-        $_data['data']                 = array();
-        $_data['backgroundColor']      = array();
-        $_data['hoverBackgroundColor'] = array();
-        $_data['statusLink'] = array();
-
-        $has_permission_view = has_permission('leads', '', 'view');
-        $sql = '';
-
-        foreach ($statuses as $status) {
-            $sql .= ' SELECT COUNT(*) as total';
-            $sql .= ' FROM tblleads';
-            $sql .= ' WHERE status='.$status['id'];
-            if (!$has_permission_view) {
-                $sql .= ' AND (addedfrom = ' . get_staff_user_id() . ' OR is_public = 1 OR assigned = ' . get_staff_user_id() . ')';
-            }
-            $sql .= ' UNION ALL ';
-            $sql = trim($sql);
-        }
-
-        $result = array();
-        if ($sql != '') {
-            // Remove the last UNION ALL
-            $sql = substr($sql, 0, -10);
-            $result = $this->db->query($sql)->result();
-        }
-
-        foreach ($statuses as $key => $status) {
+        foreach ($result as $status) {
             if ($status['color'] == '') {
                 $status['color'] = '#737373';
             }
-
             array_push($chart['labels'], $status['name']);
             array_push($_data['backgroundColor'], $status['color']);
-            array_push($_data['statusLink'], admin_url('leads?status='.$status['id']));
+            if (!isset($status['junk']) && !isset($status['lost'])) {
+                array_push($_data['statusLink'], admin_url('leads?status=' . $status['id']));
+            }
             array_push($_data['hoverBackgroundColor'], adjust_color_brightness($status['color'], -20));
-            array_push($_data['data'], $result[$key]->total);
+            array_push($_data['data'], $status['total']);
         }
 
         $chart['datasets'][] = $_data;
@@ -250,22 +289,22 @@ class Dashboard_model extends CRM_Model
         $this->load->model('departments_model');
         $departments = $this->departments_model->get();
         $colors      = get_system_favourite_colors();
-        $chart       = array(
-            'labels' => array(),
-            'datasets' => array(),
-        );
+        $chart       = [
+            'labels'   => [],
+            'datasets' => [],
+        ];
 
-        $_data                         = array();
-        $_data['data']                 = array();
-        $_data['backgroundColor']      = array();
-        $_data['hoverBackgroundColor'] = array();
+        $_data                         = [];
+        $_data['data']                 = [];
+        $_data['backgroundColor']      = [];
+        $_data['hoverBackgroundColor'] = [];
 
         $i = 0;
         foreach ($departments as $department) {
-            if (!$this->is_admin) {
+            if (!is_admin()) {
                 if (get_option('staff_access_only_assigned_departments') == 1) {
                     $staff_deparments_ids = $this->departments_model->get_staff_departments(get_staff_user_id(), true);
-                    $departments_ids      = array();
+                    $departments_ids      = [];
                     if (count($staff_deparments_ids) == 0) {
                         $departments = $this->departments_model->get();
                         foreach ($departments as $department) {
@@ -275,18 +314,19 @@ class Dashboard_model extends CRM_Model
                         $departments_ids = $staff_deparments_ids;
                     }
                     if (count($departments_ids) > 0) {
-                        $this->db->where('department IN (SELECT departmentid FROM tblstaffdepartments WHERE departmentid IN (' . implode(',', $departments_ids) . ') AND staffid="' . get_staff_user_id() . '")');
+                        $this->db->where('department IN (SELECT departmentid FROM ' . db_prefix() . 'staff_departments WHERE departmentid IN (' . implode(',', $departments_ids) . ') AND staffid="' . get_staff_user_id() . '")');
                     }
                 }
             }
-            $this->db->where_in('status', array(
+            $this->db->where_in('status', [
                 1,
                 2,
                 4,
-            ));
+            ]);
 
             $this->db->where('department', $department['departmentid']);
-            $total = $this->db->count_all_results('tbltickets');
+            $this->db->where(db_prefix() . 'tickets.merged_ticket_id IS NULL', null, false);
+            $total = $this->db->count_all_results(db_prefix() . 'tickets');
 
             if ($total > 0) {
                 $color = '#333';
@@ -314,29 +354,29 @@ class Dashboard_model extends CRM_Model
     {
         $this->load->model('tickets_model');
         $statuses             = $this->tickets_model->get_ticket_status();
-        $_statuses_with_reply = array(
+        $_statuses_with_reply = [
             1,
             2,
             4,
-        );
+        ];
 
-        $chart = array(
-            'labels' => array(),
-            'datasets' => array(),
-        );
+        $chart = [
+            'labels'   => [],
+            'datasets' => [],
+        ];
 
-        $_data                         = array();
-        $_data['data']                 = array();
-        $_data['backgroundColor']      = array();
-        $_data['hoverBackgroundColor'] = array();
-        $_data['statusLink'] = array();
+        $_data                         = [];
+        $_data['data']                 = [];
+        $_data['backgroundColor']      = [];
+        $_data['hoverBackgroundColor'] = [];
+        $_data['statusLink']           = [];
 
         foreach ($statuses as $status) {
             if (in_array($status['ticketstatusid'], $_statuses_with_reply)) {
-                if (!$this->is_admin) {
+                if (!is_admin()) {
                     if (get_option('staff_access_only_assigned_departments') == 1) {
                         $staff_deparments_ids = $this->departments_model->get_staff_departments(get_staff_user_id(), true);
-                        $departments_ids      = array();
+                        $departments_ids      = [];
                         if (count($staff_deparments_ids) == 0) {
                             $departments = $this->departments_model->get();
                             foreach ($departments as $department) {
@@ -346,16 +386,17 @@ class Dashboard_model extends CRM_Model
                             $departments_ids = $staff_deparments_ids;
                         }
                         if (count($departments_ids) > 0) {
-                            $this->db->where('department IN (SELECT departmentid FROM tblstaffdepartments WHERE departmentid IN (' . implode(',', $departments_ids) . ') AND staffid="' . get_staff_user_id() . '")');
+                            $this->db->where('department IN (SELECT departmentid FROM ' . db_prefix() . 'staff_departments WHERE departmentid IN (' . implode(',', $departments_ids) . ') AND staffid="' . get_staff_user_id() . '")');
                         }
                     }
                 }
 
                 $this->db->where('status', $status['ticketstatusid']);
-                $total = $this->db->count_all_results('tbltickets');
+                $this->db->where(db_prefix() . 'tickets.merged_ticket_id IS NULL', null, false);
+                $total = $this->db->count_all_results(db_prefix() . 'tickets');
                 if ($total > 0) {
                     array_push($chart['labels'], ticket_status_translate($status['ticketstatusid']));
-                    array_push($_data['statusLink'], admin_url('tickets/index/'.$status['ticketstatusid']));
+                    array_push($_data['statusLink'], admin_url('tickets/index/' . $status['ticketstatusid']));
                     array_push($_data['backgroundColor'], $status['statuscolor']);
                     array_push($_data['hoverBackgroundColor'], adjust_color_brightness($status['statuscolor'], -20));
                     array_push($_data['data'], $total);

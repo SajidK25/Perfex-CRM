@@ -54,12 +54,12 @@ class Migration_Version_197 extends CI_Migration
         $this->db->where('slug', 'task-marked-as-finished');
         $this->db->where('active', 0);
         $this->db->where('language', 'english');
-        $task_marked_as_finished_inactive = $this->db->get('tblemailtemplates')->row();
+        $task_marked_as_finished_inactive = $this->db->get(db_prefix().'emailtemplates')->row();
 
         $this->db->where('slug', 'task-marked-as-finished-to-contacts');
         $this->db->where('active', 0);
         $this->db->where('language', 'english');
-        $task_marked_as_finished_inactive_contacts = $this->db->get('tblemailtemplates')->row();
+        $task_marked_as_finished_inactive_contacts = $this->db->get(db_prefix().'emailtemplates')->row();
 
         $this->db->query("DELETE FROM tblemailtemplates WHERE slug IN ('task-marked-as-finished','task-unmarked-as-finished','task-marked-as-finished-to-contacts')");
 
@@ -69,24 +69,24 @@ class Migration_Version_197 extends CI_Migration
 
         if ($task_marked_as_finished_inactive_contacts) {
             $this->db->where('slug', 'task-status-change-to-contacts');
-            $this->db->update('tblemailtemplates', array('active'=>0));
+            $this->db->update(db_prefix().'emailtemplates', array('active'=>0));
         }
 
         if ($task_marked_as_finished_inactive) {
             $this->db->where('slug', 'task-status-change-to-staff');
-            $this->db->update('tblemailtemplates', array('active'=>0));
+            $this->db->update(db_prefix().'emailtemplates', array('active'=>0));
         }
 
         $this->db->query("ALTER TABLE `tbldepartments` ADD `email_from_header` BOOLEAN NOT NULL DEFAULT FALSE AFTER `email`;");
         $this->db->query("ALTER TABLE `tblleadsintegration` ADD `create_task_if_customer` INT NOT NULL DEFAULT '0' AFTER `delete_after_import`;");
 
         $this->db->select('id');
-        $this->db->from('tblprojects');
+        $this->db->from(db_prefix().'projects');
 
         $projects = $this->db->get()->result_array();
 
         foreach ($projects as $project) {
-            $this->db->insert('tblprojectsettings', array('project_id'=>$project['id'], 'name'=>'available_features','value'=> 'a:14:{s:13:"project_tasks";i:1;s:18:"project_timesheets";i:1;s:18:"project_milestones";i:1;s:13:"project_files";i:1;s:19:"project_discussions";i:1;s:13:"project_gantt";i:1;s:15:"project_tickets";i:1;s:16:"project_invoices";i:1;s:17:"project_estimates";i:1;s:16:"project_expenses";i:1;s:20:"project_credit_notes";i:1;s:13:"project_notes";i:1;s:16:"project_activity";i:1;s:16:"project_overview";i:1;}'));
+            $this->db->insert(db_prefix().'projectsettings', array('project_id'=>$project['id'], 'name'=>'available_features','value'=> 'a:14:{s:13:"project_tasks";i:1;s:18:"project_timesheets";i:1;s:18:"project_milestones";i:1;s:13:"project_files";i:1;s:19:"project_discussions";i:1;s:13:"project_gantt";i:1;s:15:"project_tickets";i:1;s:16:"project_invoices";i:1;s:17:"project_estimates";i:1;s:16:"project_expenses";i:1;s:20:"project_credit_notes";i:1;s:13:"project_notes";i:1;s:16:"project_activity";i:1;s:16:"project_overview";i:1;}'));
         }
         if(file_exists(FCPATH.'pipe.php')){
              @chmod(FCPATH.'pipe.php', 0755);

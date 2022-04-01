@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!-- Modal Confirm Credit Note Creation -->
 <div class="modal fade" id="confirm_credit_note_create_from_invoice" data-balance-due="<?php echo $invoice->total_left_to_pay; ?>" tabindex="-1" role="dialog" aria-labelledby="modalLabelCreditNoteFromInvoice">
   <div class="modal-dialog" role="document">

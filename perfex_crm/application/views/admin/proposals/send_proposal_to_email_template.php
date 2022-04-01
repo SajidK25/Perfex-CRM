@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade email-template" data-editor-id=".<?php echo 'tinymce-'.$proposal->id; ?>" id="proposal_send_to_customer" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <?php echo form_open('admin/proposals/send_to_email/'.$proposal->id); ?>

@@ -7,32 +7,34 @@ namespace Braintree;
  *
  * <b>== More information ==</b>
  *
- * For more detailed information on Customers, see {@link http://www.braintreepayments.com/gateway/customer-api http://www.braintreepaymentsolutions.com/gateway/customer-api}
+ * For more detailed information on Customers, see {@link https://developers.braintreepayments.com/reference/response/customer/php https://developers.braintreepayments.com/reference/response/customer/php}
  *
  * @package    Braintree
  * @category   Resources
  *
- * @property-read array  $addresses
- * @property-read array  $paymentMethods
+ * @property-read \Braintree\Address[] $addresses
+ * @property-read \Braintree\AndroidPayCard[] $androidPayCards
+ * @property-read \Braintree\AmexExpressCheckoutCard[] $amexExpressCheckoutCards DEPRECATED
+ * @property-read \Braintree\ApplePayCard[] $applePayCards
  * @property-read string $company
- * @property-read string $createdAt
- * @property-read array  $creditCards
- * @property-read array  $paypalAccounts
- * @property-read array  $applePayCards
- * @property-read array  $androidPayCards
- * @property-read array  $amexExpressCheckoutCards
- * @property-read array  $venmoAccounts
- * @property-read array  $visaCheckoutCards
- * @property-read array  $masterpassCards
- * @property-read array  $coinbaseAccounts
+ * @property-read \DateTime $createdAt
+ * @property-read \Braintree\CreditCard[] $creditCards
  * @property-read array  $customFields custom fields passed with the request
  * @property-read string $email
  * @property-read string $fax
  * @property-read string $firstName
+ * @property-read string $graphQLId
  * @property-read string $id
  * @property-read string $lastName
+ * @property-read \Braintree\MasterpassCard[] $masterpassCards DEPRECATED
+ * @property-read \Braintree\PaymentMethod[] $paymentMethods
+ * @property-read \Braintree\PayPalAccount[] $paypalAccounts
  * @property-read string $phone
- * @property-read string $updatedAt
+ * @property-read \Braintree\SamsungPayCard[] $samsungPayCards
+ * @property-read \DateTime $updatedAt
+ * @property-read \Braintree\UsBankAccount[] $usBankAccounts
+ * @property-read \Braintree\VenmoAccount[] $venmoAccounts
+ * @property-read \Braintree\VisaCheckoutCard[] $visaCheckoutCards
  * @property-read string $website
  */
 class Customer extends Base
@@ -48,7 +50,7 @@ class Customer extends Base
 
     /**
      *
-     * @param string $query
+     * @param array $query
      * @param int[] $ids
      * @return Customer|Customer[]
      */
@@ -78,33 +80,14 @@ class Customer extends Base
     }
 
     /**
-     * @deprecated since version 2.3.0
-     * @param string $queryString
-     * @return Result\Successful
-     */
-    public static function createFromTransparentRedirect($queryString)
-    {
-        return Configuration::gateway()->customer()->createFromTransparentRedirect($queryString);
-    }
-
-    /**
-     * @deprecated since version 2.3.0
-     * @return string
-     */
-    public static function createCustomerUrl()
-    {
-        return Configuration::gateway()->customer()->createCustomerUrl();
-    }
-
-    /**
      *
      * @throws Exception\NotFound
      * @param string $id customer id
      * @return Customer
      */
-    public static function find($id)
+    public static function find($id, $associationFilterId = null)
     {
-        return Configuration::gateway()->customer()->find($id);
+        return Configuration::gateway()->customer()->find($id, $associationFilterId);
     }
 
     /**
@@ -166,7 +149,7 @@ class Customer extends Base
     /**
      *
      * @throws InvalidArgumentException
-     * @param string $query
+     * @param array $query
      * @return ResourceCollection
      */
     public static function search($query)
@@ -196,27 +179,6 @@ class Customer extends Base
     public static function updateNoValidate($customerId, $attributes)
     {
         return Configuration::gateway()->customer()->updateNoValidate($customerId, $attributes);
-    }
-
-    /**
-     *
-     * @deprecated since version 2.3.0
-     * @return string
-     */
-    public static function updateCustomerUrl()
-    {
-        return Configuration::gateway()->customer()->updateCustomerUrl();
-    }
-
-    /**
-     *
-     * @deprecated since version 2.3.0
-     * @param string $queryString
-     * @return Result\Successful|Result\Error
-     */
-    public static function updateFromTransparentRedirect($queryString)
-    {
-        return Configuration::gateway()->customer()->updateFromTransparentRedirect($queryString);
     }
 
     /* instance methods */
@@ -249,14 +211,6 @@ class Customer extends Base
         }
         $this->_set('creditCards', $creditCardArray);
 
-        $coinbaseAccountArray = [];
-        if (isset($customerAttribs['coinbaseAccounts'])) {
-            foreach ($customerAttribs['coinbaseAccounts'] AS $coinbaseAccount) {
-                $coinbaseAccountArray[] = CoinbaseAccount::factory($coinbaseAccount);
-            }
-        }
-        $this->_set('coinbaseAccounts', $coinbaseAccountArray);
-
         $paypalAccountArray = [];
         if (isset($customerAttribs['paypalAccounts'])) {
             foreach ($customerAttribs['paypalAccounts'] AS $paypalAccount) {
@@ -273,6 +227,7 @@ class Customer extends Base
         }
         $this->_set('applePayCards', $applePayCardArray);
 
+        // NEXT_MAJOR_VERSION rename Android Pay to Google Pay
         $androidPayCardArray = [];
         if (isset($customerAttribs['androidPayCards'])) {
             foreach ($customerAttribs['androidPayCards'] AS $androidPayCard) {
@@ -281,6 +236,7 @@ class Customer extends Base
         }
         $this->_set('androidPayCards', $androidPayCardArray);
 
+        // NEXT_MAJOR_VERSION remove deprecated AmexExpressCheckout
         $amexExpressCheckoutCardArray = [];
         if (isset($customerAttribs['amexExpressCheckoutCards'])) {
             foreach ($customerAttribs['amexExpressCheckoutCards'] AS $amexExpressCheckoutCard) {
@@ -305,6 +261,7 @@ class Customer extends Base
         }
         $this->_set('visaCheckoutCards', $visaCheckoutCardArray);
 
+        // NEXT_MAJOR_VERSION remove deprecated Masterpass
         $masterpassCardArray = [];
         if (isset($customerAttribs['masterpassCards'])) {
             foreach ($customerAttribs['masterpassCards'] AS $masterpassCard) {
@@ -312,6 +269,14 @@ class Customer extends Base
             }
         }
         $this->_set('masterpassCards', $masterpassCardArray);
+
+        $samsungPayCardArray = [];
+        if (isset($customerAttribs['samsungPayCards'])) {
+            foreach ($customerAttribs['samsungPayCards'] AS $samsungPayCard) {
+                $samsungPayCardArray[] = SamsungPayCard::factory($samsungPayCard);
+            }
+        }
+        $this->_set('samsungPayCards', $samsungPayCardArray);
 
         $usBankAccountArray = array();
         if (isset($customerAttribs['usBankAccounts'])) {
@@ -325,14 +290,20 @@ class Customer extends Base
             $this->creditCards,
             $this->paypalAccounts,
             $this->applePayCards,
-            $this->coinbaseAccounts,
             $this->androidPayCards,
             $this->amexExpressCheckoutCards,
             $this->venmoAccounts,
             $this->visaCheckoutCards,
             $this->masterpassCards,
+            $this->samsungPayCards,
             $this->usBankAccounts
         ));
+
+        $customFields = [];
+        if (isset($customerAttribs['customFields'])) {
+            $customFields = $customerAttribs['customFields'];
+        }
+        $this->_set('customFields', $customFields);
     }
 
     /**
@@ -355,18 +326,6 @@ class Customer extends Base
     public function isEqual($otherCust)
     {
         return !($otherCust instanceof Customer) ? false : $this->id === $otherCust->id;
-    }
-
-    /**
-     * returns an array containt all of the customer's payment methods
-     *
-     * @deprecated since version 3.1.0 - use the paymentMethods property directly
-     *
-     * @return array
-     */
-    public function paymentMethods()
-    {
-        return $this->paymentMethods;
     }
 
     /**
@@ -421,4 +380,3 @@ class Customer extends Base
         return $instance;
     }
 }
-class_alias('Braintree\Customer', 'Braintree_Customer');

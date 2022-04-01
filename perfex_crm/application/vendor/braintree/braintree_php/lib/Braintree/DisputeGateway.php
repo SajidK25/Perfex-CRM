@@ -5,7 +5,6 @@ use InvalidArgumentException;
 
 /**
  * Braintree DisputeGateway module
- * PHP Version 5
  * Creates and manages Braintree Disputes
  *
  * @package   Braintree
@@ -69,27 +68,32 @@ class DisputeGateway
      * Adds file evidence to a dispute, given a dispute ID and a document ID
      *
      * @param string $disputeId
-     * @param string $documentId
+     * @param string $documentIdOrRequest
      */
-    public function addFileEvidence($disputeId, $documentId)
+    public function addFileEvidence($disputeId, $documentIdOrRequest)
     {
+        $request = is_array($documentIdOrRequest) ? $documentIdOrRequest : ['documentId' => $documentIdOrRequest];
+
         if (trim($disputeId) == "") {
             throw new Exception\NotFound('dispute with id "' . $disputeId . '" not found');
         }
 
-        if (trim($documentId) == "") {
-            throw new Exception\NotFound('document with id "' . $documentId . '" not found');
+        if (trim($request['documentId']) == "") {
+            throw new Exception\NotFound('document with id "' . $request['documentId'] . '" not found');
         }
 
         try {
-            if (trim($disputeId) == "") {
-                throw new Exception\NotFound();
+            if (array_key_exists('category', $request)) {
+                if (trim($request['category']) == "") {
+                    throw new InvalidArgumentException('category cannot be blank');
+                }
             }
 
+            $request['document_upload_id'] = $request['documentId'];
+            unset($request['documentId']);
+
             $path = $this->_config->merchantPath() . '/disputes/' . $disputeId . '/evidence';
-            $response = $this->_http->post($path, [
-                'document_upload_id' => $documentId
-            ]);
+            $response = $this->_http->post($path, ['evidence' => $request]);
 
             if (isset($response['apiErrorResponse'])) {
                 return new Result\Error($response['apiErrorResponse']);
@@ -110,20 +114,46 @@ class DisputeGateway
      * @param string $id
      * @param string $content
      */
-    public function addTextEvidence($id, $content)
+    public function addTextEvidence($id, $contentOrRequest)
     {
-        if (trim($content) == "") {
+        $request = is_array($contentOrRequest) ? $contentOrRequest : ['content' => $contentOrRequest];
+        if (trim($request['content']) == "") {
             throw new InvalidArgumentException('content cannot be blank');
         }
 
         try {
+            $evidence = [
+                'comments' => $request['content'],
+            ];
+
             if (trim($id) == "") {
                 throw new Exception\NotFound();
             }
 
+            if (array_key_exists('tag', $request)) {
+                trigger_error('$tag is deprecated, use $category instead', E_USER_DEPRECATED);
+                $evidence['category'] = $request['tag'];
+            }
+
+            if (array_key_exists('category', $request)) {
+                if (trim($request['category']) == "") {
+                    throw new InvalidArgumentException('category cannot be blank');
+                }
+                $evidence['category'] = $request['category'];
+            }
+
+            if (array_key_exists('sequenceNumber', $request)) {
+                if (trim($request['sequenceNumber']) == "") {
+                    throw new InvalidArgumentException('sequenceNumber cannot be blank');
+                } else if ((string)(int)($request['sequenceNumber']) != $request['sequenceNumber']) {
+                    throw new InvalidArgumentException('sequenceNumber must be an integer');
+                }
+                $evidence['sequenceNumber'] = (int)$request['sequenceNumber'];
+            }
+
             $path = $this->_config->merchantPath() . '/disputes/' . $id . '/evidence';
             $response = $this->_http->post($path, [
-                'comments' => $content
+                'evidence' =>  $evidence
             ]);
 
             if (isset($response['apiErrorResponse'])) {
@@ -213,7 +243,7 @@ class DisputeGateway
     /**
      * Search for Disputes, given a DisputeSearch query
      *
-     * @param DisputeSearch $query
+     * @param array $query
      */
     public function search($query)
     {
@@ -241,4 +271,3 @@ class DisputeGateway
         return new PaginatedResult($totalItems, $pageSize, $disputes);
     }
 }
-class_alias('Braintree\DisputeGateway', 'Braintree_DisputeGateway');

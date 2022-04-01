@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
 	<div class="content">
@@ -13,17 +14,21 @@
 						<div class="clearfix"></div>
 						<hr class="hr-panel-heading" />
 						<?php if(count($statuses) > 0){ ?>
-						<table class="table dt-table scroll-responsive">
+						<table class="table dt-table" data-order-col="1" data-order-type="asc">
 							<thead>
+								<th><?php echo _l('id'); ?></th>
 								<th><?php echo _l('leads_status_table_name'); ?></th>
 								<th><?php echo _l('options'); ?></th>
 							</thead>
 							<tbody>
 								<?php foreach($statuses as $status){ ?>
 								<tr>
+									<td>
+										<?php echo $status['id']; ?>
+									</td>
 									<td><a href="#" onclick="edit_status(this,<?php echo $status['id']; ?>);return false;" data-color="<?php echo $status['color']; ?>" data-name="<?php echo $status['name']; ?>" data-order="<?php echo $status['statusorder']; ?>"><?php echo $status['name']; ?></a><br />
 										<span class="text-muted">
-											<?php echo _l('leads_table_total',total_rows('tblleads',array('status'=>$status['id']))); ?></span>
+											<?php echo _l('leads_table_total',total_rows(db_prefix().'leads',array('status'=>$status['id']))); ?></span>
 										</td>
 										<td>
 											<a href="#" onclick="edit_status(this,<?php echo $status['id']; ?>);return false;" data-color="<?php echo $status['color']; ?>" data-name="<?php echo $status['name']; ?>" data-order="<?php echo $status['statusorder']; ?>" class="btn btn-default btn-icon"><i class="fa fa-pencil-square-o"></i></a>

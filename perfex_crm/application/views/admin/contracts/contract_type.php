@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="type" tabindex="-1" role="dialog">
     <div class="modal-dialog">
         <?php echo form_open(admin_url('contracts/type'), array('id'=>'contract-type-form')); ?>
@@ -28,7 +29,7 @@
 
 <script>
   window.addEventListener('load',function(){
-      _validate_form($('#contract-type-form'),{name:'required'},manage_contract_types);
+      appValidateForm($('#contract-type-form'),{name:'required'},manage_contract_types);
       $('#type').on('hidden.bs.modal', function(event) {
         $('#additional').html('');
         $('#type input[name="name"]').val('');

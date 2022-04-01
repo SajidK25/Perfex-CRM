@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="kb_group_modal" tabindex="-1" role="dialog">
     <div class="modal-dialog">
         <?php echo form_open(admin_url('knowledge_base/group'),array('id'=>'kb_group_form')); ?>
@@ -14,9 +15,12 @@
                     <div class="col-md-12">
                         <div id="additional"></div>
                         <?php echo render_input('name','kb_group_add_edit_name'); ?>
+                        <div id="kb_group_slug" class="hide">
+                            <?php echo render_input('group_slug', 'kb_article_slug'); ?>
+                        </div>
                         <?php echo render_color_picker('color',_l('kb_group_color')); ?>
                         <?php echo render_textarea('description','kb_group_add_edit_description'); ?>
-                        <?php echo render_input('group_order','kb_group_order',total_rows('tblknowledgebasegroups') + 1,'number'); ?>
+                        <?php echo render_input('group_order','kb_group_order',total_rows(db_prefix().'knowledge_base_groups') + 1,'number'); ?>
                         <div class="kb-group-disable-option">
                             <div class="checkbox checkbox-primary">
                                 <input type="checkbox" name="disabled" id="disabled">
@@ -41,12 +45,14 @@
     window.addEventListener('load',function(){
 
     // Validating the knowledge group form
-    _validate_form($('#kb_group_form'), {
+    appValidateForm($('#kb_group_form'), {
         name: 'required'
     }, manage_kb_groups);
 
     // On hidden modal reset the values
     $('#kb_group_modal').on("hidden.bs.modal", function(event) {
+        $('#kb_group_slug').addClass('hide');
+        $('#kb_group_slug input').rules('remove', 'required');
         $('#additional').html('');
         $('#kb_group_modal input').not('[type="hidden"]').val('');
         $('#kb_group_modal textarea').val('');
@@ -55,7 +61,7 @@
         $('#kb_group_modal input[name="group_order"]').val($('table tbody tr').length + 1);
     });
 });
-    // Form handler function for knowledgebase group
+// Form handler function for knowledgebase group
 function manage_kb_groups(form) {
     var data = $(form).serialize();
     var url = form.action;
@@ -91,6 +97,9 @@ function new_kb_group() {
 // Edit KB group, 2 places groups view or articles view directly click on kanban
 function edit_kb_group(invoker, id) {
     $('#additional').append(hidden_input('id', id));
+    $('#kb_group_slug').removeClass('hide');
+    $('#kb_group_slug input').rules('add', {required:true});
+    $('#kb_group_slug input').val($(invoker).data('slug'));
     $('#kb_group_modal input[name="name"]').val($(invoker).data('name'));
     $('#kb_group_modal textarea[name="description"]').val($(invoker).data('description'));
     $('#kb_group_modal .colorpicker-input').colorpicker('setValue', $(invoker).data('color'));

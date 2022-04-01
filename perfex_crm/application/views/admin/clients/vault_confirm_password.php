@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="modal fade" id="vaultConfirmPassword" tabindex="-1" role="dialog">
    <div class="modal-dialog" role="document">
       <?php echo form_open(admin_url('clients/vault_encrypt_password')); ?>
@@ -29,7 +30,7 @@ function vault_re_enter_password(id, e) {
     var vaultEntry = $('#vaultEntry-' + id);
     var $confirmPasswordVaultModal = $('#vaultConfirmPassword');
 
-    _validate_form($confirmPasswordVaultModal.find('form'), {
+    appValidateForm($confirmPasswordVaultModal.find('form'), {
         user_password: 'required'
     }, vault_encrypt_password);
 

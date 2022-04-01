@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <div class="row">
  <?php
  $statuses = $this->tickets_model->get_ticket_status();
@@ -5,6 +6,7 @@
  <div class="_filters _hidden_inputs hidden tickets_filters">
   <?php
   echo form_hidden('my_tickets');
+  echo form_hidden('merged_tickets');
   if(is_admin()){
     $ticket_assignees = $this->tickets_model->get_tickets_assignes_disctinct();
     foreach($ticket_assignees as $assignee){
@@ -42,7 +44,7 @@
        $departments_ids = $staff_deparments_ids;
      }
      if(count($departments_ids) > 0){
-      $where = 'AND department IN (SELECT departmentid FROM tblstaffdepartments WHERE departmentid IN (' . implode(',', $departments_ids) . ') AND staffid="'.get_staff_user_id().'")';
+      $where = 'AND department IN (SELECT departmentid FROM '.db_prefix().'staff_departments WHERE departmentid IN (' . implode(',', $departments_ids) . ') AND staffid="'.get_staff_user_id().'")';
     }
   }
 }
@@ -56,10 +58,12 @@ foreach($statuses as $status){
   if(isset($project_id)){
     $_where = $_where . ' AND project_id='.$project_id;
   }
-  ?>
+  $_where = $_where . ' AND merged_ticket_id IS NULL';
+
+    ?>
   <div class="col-md-2 col-xs-6 mbot15 border-right">
     <a href="#" data-cview="ticket_status_<?php echo $status['ticketstatusid']; ?>" onclick="dt_custom_view('ticket_status_<?php echo $status['ticketstatusid']; ?>','.tickets-table','ticket_status_<?php echo $status['ticketstatusid']; ?>',true); return false;">
-      <h3 class="bold"><?php echo total_rows('tbltickets',$_where); ?></h3>
+      <h3 class="bold"><?php echo total_rows(db_prefix().'tickets',$_where); ?></h3>
       <span style="color:<?php echo $status['statuscolor']; ?>">
         <?php echo ticket_status_translate($status['ticketstatusid']); ?>
       </span>

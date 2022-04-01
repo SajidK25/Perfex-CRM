@@ -34,9 +34,13 @@
 class PasswordHash
 {
     private $itoa64;
+
     private $iteration_count_log2;
+
     private $portable_hashes;
+
     private $random_state;
+
     /**
      * Constructor
      *
@@ -50,12 +54,13 @@ class PasswordHash
             $iteration_count_log2 = 8;
         }
         $this->iteration_count_log2 = $iteration_count_log2;
-        $this->portable_hashes = $portable_hashes;
-        $this->random_state = microtime();
+        $this->portable_hashes      = $portable_hashes;
+        $this->random_state         = microtime();
         if (function_exists('getmypid')) {
             $this->random_state .= getmypid();
         }
     }
+
     /**
      * @param  int $count
      * @return String
@@ -71,15 +76,16 @@ class PasswordHash
         if (strlen($output) < $count) {
             $output = '';
             for ($i = 0; $i < $count; $i += 16) {
-                $this->random_state =
-                    md5(microtime() . $this->random_state);
+                $this->random_state = md5(microtime() . $this->random_state);
                 $output .=
                     pack('H*', md5($this->random_state));
             }
             $output = substr($output, 0, $count);
         }
+
         return $output;
     }
+
     /**
      * @param  String $input
      * @param  int $count
@@ -88,7 +94,7 @@ class PasswordHash
     public function encode64($input, $count)
     {
         $output = '';
-        $i = 0;
+        $i      = 0;
         do {
             $value = ord($input[$i++]);
             $output .= $this->itoa64[$value & 0x3f];
@@ -108,8 +114,10 @@ class PasswordHash
             }
             $output .= $this->itoa64[($value >> 18) & 0x3f];
         } while ($i < $count);
+
         return $output;
     }
+
     /**
      * @param  String $input
      * @return String
@@ -120,8 +128,10 @@ class PasswordHash
         $output .= $this->itoa64[min($this->iteration_count_log2 +
             ((PHP_VERSION >= '5') ? 5 : 3), 30)];
         $output .= $this->encode64($input, 6);
+
         return $output;
     }
+
     /**
      * @param  String $password
      * @param  String $setting
@@ -143,7 +153,7 @@ class PasswordHash
             return $output;
         }
         $count = 1 << $count_log2;
-        $salt = substr($setting, 4, 8);
+        $salt  = substr($setting, 4, 8);
         if (strlen($salt) != 8) {
             return $output;
         }
@@ -154,9 +164,9 @@ class PasswordHash
         // consequently in lower iteration counts and hashes that are
         // quicker to crack (by non-PHP code).
         if (PHP_VERSION >= '5') {
-            $hash = md5($salt . $password, TRUE);
+            $hash = md5($salt . $password, true);
             do {
-                $hash = md5($hash . $password, TRUE);
+                $hash = md5($hash . $password, true);
             } while (--$count);
         } else {
             $hash = pack('H*', md5($salt . $password));
@@ -166,8 +176,10 @@ class PasswordHash
         }
         $output = substr($setting, 0, 12);
         $output .= $this->encode64($hash, 16);
+
         return $output;
     }
+
     /**
      * @param  String $input
      * @return String
@@ -177,15 +189,17 @@ class PasswordHash
         $count_log2 = min($this->iteration_count_log2 + 8, 24);
         // This should be odd to not reveal weak DES keys, and the
         // maximum valid value is (2**24 - 1) which is odd anyway.
-        $count = (1 << $count_log2) - 1;
+        $count  = (1 << $count_log2) - 1;
         $output = '_';
         $output .= $this->itoa64[$count & 0x3f];
         $output .= $this->itoa64[($count >> 6) & 0x3f];
         $output .= $this->itoa64[($count >> 12) & 0x3f];
         $output .= $this->itoa64[($count >> 18) & 0x3f];
         $output .= $this->encode64($input, 3);
+
         return $output;
     }
+
     /**
      * @param  String $input
      * @return String
@@ -202,8 +216,8 @@ class PasswordHash
         // of entropy.
         $itoa64 = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         $output = '$2a$';
-        $output .= chr(ord('0') + $this->iteration_count_log2 / 10);
-        $output .= chr(ord('0') + $this->iteration_count_log2 % 10);
+        $output .= chr((int)(ord('0') + $this->iteration_count_log2 / 10));
+        $output .= chr((int)(ord('0') + $this->iteration_count_log2 % 10));
         $output .= '$';
         $i = 0;
         do {
@@ -212,6 +226,7 @@ class PasswordHash
             $c1 = ($c1 & 0x03) << 4;
             if ($i >= 16) {
                 $output .= $itoa64[$c1];
+
                 break;
             }
             $c2 = ord($input[$i++]);
@@ -223,8 +238,10 @@ class PasswordHash
             $output .= $itoa64[$c1];
             $output .= $itoa64[$c2 & 0x3f];
         } while (1);
+
         return $output;
     }
+
     /**
      * @param String $password
      */
@@ -233,8 +250,7 @@ class PasswordHash
         $random = '';
         if (CRYPT_BLOWFISH == 1 && !$this->portable_hashes) {
             $random = $this->get_random_bytes(16);
-            $hash =
-                crypt($password, $this->gensalt_blowfish($random));
+            $hash   = crypt($password, $this->gensalt_blowfish($random));
             if (strlen($hash) == 60) {
                 return $hash;
             }
@@ -243,8 +259,7 @@ class PasswordHash
             if (strlen($random) < 3) {
                 $random = $this->get_random_bytes(3);
             }
-            $hash =
-                crypt($password, $this->gensalt_extended($random));
+            $hash = crypt($password, $this->gensalt_extended($random));
             if (strlen($hash) == 20) {
                 return $hash;
             }
@@ -252,9 +267,10 @@ class PasswordHash
         if (strlen($random) < 6) {
             $random = $this->get_random_bytes(6);
         }
-        $hash =
-            $this->crypt_private($password,
-            $this->gensalt_private($random));
+        $hash = $this->crypt_private(
+                $password,
+            $this->gensalt_private($random)
+            );
         if (strlen($hash) == 34) {
             return $hash;
         }
@@ -263,6 +279,7 @@ class PasswordHash
         // hashes and for validating passwords against existing hashes.
         return '*';
     }
+
     /**
      * @param String $password
      * @param String $stored_hash
@@ -274,6 +291,7 @@ class PasswordHash
         if ($hash[0] == '*') {
             $hash = crypt($password, $stored_hash);
         }
+
         return hash_equals($stored_hash, $hash);
     }
 }

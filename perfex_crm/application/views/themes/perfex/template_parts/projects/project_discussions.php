@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php if(!isset($discussion)){
     if($project->settings->open_discussions == 1){ ?>
 <a href="#" onclick="new_discussion();return false;" class="btn btn-info mtop5"><?php echo _l('new_project_discussion'); ?></a>
@@ -79,8 +80,8 @@
         }
         ?>
 </p>
-<p><?php echo _l('project_discussion_total_comments'); ?>: <?php echo total_rows('tblprojectdiscussioncomments',array('discussion_id'=>$discussion->id)); ?>
+<p><?php echo _l('project_discussion_total_comments'); ?>: <?php echo total_rows(db_prefix().'projectdiscussioncomments',array('discussion_id'=>$discussion->id, 'discussion_type'=>'regular')); ?></p>
 <p class="text-muted"><?php echo $discussion->description; ?></p>
 <hr />
-<div id="discussion-comments"></div>
+<div id="discussion-comments" class="tc-content"></div>
 <?php } ?>

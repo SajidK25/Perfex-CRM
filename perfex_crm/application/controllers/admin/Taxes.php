@@ -1,6 +1,8 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Taxes extends Admin_controller
+
+class Taxes extends AdminController
 {
     public function __construct()
     {
@@ -32,10 +34,10 @@ class Taxes extends Admin_controller
                 if ($success == true) {
                     $message = _l('added_successfully', _l('tax'));
                 }
-                echo json_encode(array(
+                echo json_encode([
                     'success' => $success,
-                    'message' => $message
-                ));
+                    'message' => $message,
+                ]);
             } else {
                 $success = $this->taxes_model->edit($data);
                 $message = '';
@@ -45,10 +47,10 @@ class Taxes extends Admin_controller
                 } elseif ($success == true) {
                     $message = _l('updated_successfully', _l('tax'));
                 }
-                echo json_encode(array(
+                echo json_encode([
                     'success' => $success,
-                    'message' => $message
-                ));
+                    'message' => $message,
+                ]);
             }
         }
     }
@@ -76,14 +78,14 @@ class Taxes extends Admin_controller
             $tax_id = $this->input->post('taxid');
             if ($tax_id != '') {
                 $this->db->where('id', $tax_id);
-                $_current_tax = $this->db->get('tbltaxes')->row();
+                $_current_tax = $this->db->get(db_prefix().'taxes')->row();
                 if ($_current_tax->name == $this->input->post('name')) {
                     echo json_encode(true);
                     die();
                 }
             }
             $this->db->where('name', $this->input->post('name'));
-            $total_rows = $this->db->count_all_results('tbltaxes');
+            $total_rows = $this->db->count_all_results(db_prefix().'taxes');
             if ($total_rows > 0) {
                 echo json_encode(false);
             } else {

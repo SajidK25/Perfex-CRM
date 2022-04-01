@@ -1,57 +1,9 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <h4 class="customer-profile-group-heading"><?php echo _l('customer_statement'); ?></h4>
 <div class="row">
  <div class="col-md-4">
-    <div class="form-group select-placeholder">
-        <select class="selectpicker" name="range" id="range" data-width="100%" onchange="render_customer_statement();">
-            <option value='<?php echo json_encode(
-            array(
-            _d(date('Y-m-d')),
-            _d(date('Y-m-d'))
-            )); ?>'><?php echo _l('today'); ?>
-            </option>
-            <option value='<?php echo json_encode(
-            array(
-            _d(date('Y-m-d', strtotime('monday this week'))),
-            _d(date('Y-m-d', strtotime('sunday this week')))
-            )); ?>'><?php echo _l('this_week'); ?>
-            </option>
-            <option value='<?php echo json_encode(
-            array(
-            _d(date('Y-m-01')),
-            _d(date('Y-m-t'))
-            )); ?>' selected><?php echo _l('this_month'); ?>
-            </option>
-            <option value='<?php echo json_encode(
-            array(
-            _d(date('Y-m-01', strtotime("-1 MONTH"))),
-            _d(date('Y-m-t', strtotime('-1 MONTH')))
-            )); ?>'><?php echo _l('last_month'); ?>
-            </option>
-            <option value='<?php echo json_encode(
-            array(
-            _d(date('Y-m-d',strtotime(date('Y-01-01')))),
-            _d(date('Y-m-d',strtotime(date('Y-12-31'))))
-            )); ?>'><?php echo _l('this_year'); ?>
-            </option>
-            <option value='<?php echo json_encode(
-            array(
-            _d(date('Y-m-d',strtotime(date(date('Y',strtotime('last year')).'-01-01')))),
-            _d(date('Y-m-d',strtotime(date(date('Y',strtotime('last year')). '-12-31'))))
-            )); ?>'><?php echo _l('last_year'); ?>
-            </option>
-            <option value="period"><?php echo _l('period_datepicker'); ?></option>
-        </select>
-    </div>
-    <div class="row mtop15">
-       <div class="col-md-12 period hide">
-          <?php echo render_date_input('period-from','','',array('onchange'=>'render_customer_statement();')); ?>
-      </div>
-      <div class="col-md-12 period hide">
-          <?php echo render_date_input('period-to','','',array('onchange'=>'render_customer_statement();')); ?>
-      </div>
-  </div>
+   <?php $this->load->view('admin/clients/groups/_statement_period_select', ['onChange'=>'render_customer_statement()']); ?>
 </div>
-
 <div class="col-md-8 col-xs-12">
    <div class="text-right _buttons pull-right">
 
@@ -145,7 +97,7 @@
         <?php echo form_close(); ?>
     </div>
 </div>
-<?php add_action('after_js_scripts_render','parse_customer_statement_html');
+<?php hooks()->add_action('app_admin_footer','parse_customer_statement_html');
 function parse_customer_statement_html(){ ?>
 <script>
     $(function(){

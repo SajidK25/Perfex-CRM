@@ -1,4 +1,4 @@
-<?php
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $date_formats = get_available_date_formats();
 ?>
 <div class="form-group">
@@ -9,6 +9,7 @@ $date_formats = get_available_date_formats();
         <?php } ?>
     </select>
 </div>
+<hr />
 <div class="form-group">
     <label for="time_format" class="control-label"><?php echo _l('time_format'); ?></label>
     <select name="settings[time_format]" id="time_format" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
@@ -33,15 +34,10 @@ $date_formats = get_available_date_formats();
 <div class="form-group">
     <label for="active_language" class="control-label"><?php echo _l('settings_localization_default_language'); ?></label>
     <select name="settings[active_language]" data-live-search="true" id="active_language" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
-        <?php foreach($this->app->get_available_languages() as $language){
-            $subtext = '';
-            $_data['language'] = $language;
-            $_data['subtext'] = $subtext;
-            $_data = do_action('settings_language_subtext',$_data);
-            $language = $_data['language'];
-            $subtext = $_data['subtext'];
+        <?php foreach($this->app->get_available_languages() as $availableLanguage){
+                $subtext = hooks()->apply_filters('settings_language_subtext', '', $availableLanguage);
             ?>
-            <option value="<?php echo $language; ?>" data-subtext="<?php echo $subtext; ?>" <?php if($language == get_option('active_language')){echo ' selected'; } ?>><?php echo ucfirst($language); ?></option>
+            <option value="<?php echo $availableLanguage; ?>" data-subtext="<?php echo $subtext; ?>" <?php if($availableLanguage == get_option('active_language')){echo ' selected'; } ?>><?php echo ucfirst($availableLanguage); ?></option>
             <?php } ?>
         </select>
     </div>

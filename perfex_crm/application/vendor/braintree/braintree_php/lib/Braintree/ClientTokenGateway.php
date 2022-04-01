@@ -86,7 +86,7 @@ class ClientTokenGateway
         return [
             "version", "customerId", "proxyMerchantId",
             ["options" => ["makeDefault", "verifyCard", "failOnDuplicatePaymentMethod"]],
-            "merchantAccountId", "sepaMandateType", "sepaMandateAcceptanceLocation"];
+            "merchantAccountId"];
     }
 
     /**
@@ -126,4 +126,3 @@ class ClientTokenGateway
     }
 
 }
-class_alias('Braintree\ClientTokenGateway', 'Braintree_ClientTokenGateway');

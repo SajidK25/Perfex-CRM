@@ -1,4 +1,5 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
@@ -8,7 +9,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 function total_credits_applied_to_invoice($id)
 {
-    $total = sum_from_table('tblcredits', array('field'=>'amount', 'where'=>array('invoice_id'=>$id)));
+    $total = sum_from_table(db_prefix() . 'credits', ['field' => 'amount', 'where' => ['invoice_id' => $id]]);
 
     if ($total == 0) {
         return false;
@@ -44,7 +45,16 @@ function credit_note_status_color_pdf($status_id)
  */
 function invoices_statuses_available_for_credits()
 {
-    return array(1, 3, 6, 4);
+    if (!class_exists('Invoices_model', false)) {
+        get_instance()->load->model('invoices_model');
+    }
+
+    return hooks()->apply_filters('invoices_statuses_available_for_credits', [
+        Invoices_model::STATUS_UNPAID,
+        Invoices_model::STATUS_PARTIALLY,
+        Invoices_model::STATUS_DRAFT,
+        Invoices_model::STATUS_OVERDUE,
+    ]);
 }
 
 /**
@@ -64,9 +74,9 @@ function credits_can_be_applied_to_invoice($status_id)
  */
 function is_last_credit_note($id)
 {
-    $CI =& get_instance();
-    $CI->db->select('id')->from('tblcreditnotes')->order_by('id', 'desc')->limit(1);
-    $query           = $CI->db->get();
+    $CI = & get_instance();
+    $CI->db->select('id')->from(db_prefix() . 'creditnotes')->order_by('id', 'desc')->limit(1);
+    $query            = $CI->db->get();
     $last_credit_note = $query->row();
 
     if ($last_credit_note && $last_credit_note->id == $id) {
@@ -83,9 +93,9 @@ function is_last_credit_note($id)
  */
 function format_credit_note_number($id)
 {
-    $CI =& get_instance();
+    $CI = & get_instance();
     $CI->db->select('date,number,prefix,number_format')
-    ->from('tblcreditnotes')
+    ->from(db_prefix() . 'creditnotes')
     ->where('id', $id);
     $credit_note = $CI->db->get()->row();
 
@@ -93,33 +103,12 @@ function format_credit_note_number($id)
         return '';
     }
 
-    $prefix = $credit_note->prefix;
-    $number = $credit_note->number;
-    $format = $credit_note->number_format;
-    $date = $credit_note->date;
-    $prefixPadding = get_option('number_padding_prefixes');
+    $number = sales_number_format($credit_note->number, $credit_note->number_format, $credit_note->prefix, $credit_note->date);
 
-    if ($format == 1) {
-        // Number based
-        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
-    } elseif ($format == 2) {
-        // Year based
-        return $prefix . date('Y', strtotime($date)) . '/' . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
-    } else if($format == 3) {
-        // Number-yy based
-        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '-' . date('y', strtotime($date));
-    } else if($format == 4) {
-        // Number-mm-yyyy based
-        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '/' . date('m', strtotime($date)) . '/' . date('Y', strtotime($date));
-    }
-
-    $hook_data['id'] = $id;
-    $hook_data['credit_note'] = $credit_note;
-    $hook_data['formatted_number'] = $number;
-    $hook_data = do_action('format_credit_note_number',$hook_data);
-    $number = $hook_data['formatted_number'];
-
-    return $number;
+    return hooks()->apply_filters('format_credit_note_number', $number, [
+        'id'          => $id,
+        'credit_note' => $credit_note,
+    ]);
 }
 
 /**
@@ -135,11 +124,12 @@ function format_credit_note_status($status, $text = false)
         $CI->load->model('credit_notes_model');
     }
 
-    $statuses = $CI->credit_notes_model->get_statuses();
+    $statuses    = $CI->credit_notes_model->get_statuses();
     $statusArray = false;
     foreach ($statuses as $s) {
         if ($s['id'] == $status) {
             $statusArray = $s;
+
             break;
         }
     }
@@ -152,10 +142,10 @@ function format_credit_note_status($status, $text = false)
         return $statusArray['name'];
     }
 
-    $style = 'border: 1px solid '.$statusArray['color'].';color:'.$statusArray['color'].';';
+    $style = 'border: 1px solid ' . $statusArray['color'] . ';color:' . $statusArray['color'] . ';';
     $class = 'label s-status';
 
-    return '<span class="'.$class.'" style="'.$style.'">' . $statusArray['name'] . '</span>';
+    return '<span class="' . $class . '" style="' . $style . '">' . $statusArray['name'] . '</span>';
 }
 
 /**
@@ -165,10 +155,10 @@ function format_credit_note_status($status, $text = false)
  */
 function get_credit_note_item_taxes($itemid)
 {
-    $CI =& get_instance();
+    $CI = & get_instance();
     $CI->db->where('itemid', $itemid);
     $CI->db->where('rel_type', 'credit_note');
-    $taxes = $CI->db->get('tblitemstax')->result_array();
+    $taxes = $CI->db->get(db_prefix() . 'item_tax')->result_array();
     $i     = 0;
     foreach ($taxes as $tax) {
         $taxes[$i]['taxname'] = $tax['taxname'] . '|' . $tax['taxrate'];

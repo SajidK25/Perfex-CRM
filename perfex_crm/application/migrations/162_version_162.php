@@ -23,27 +23,27 @@ class Migration_Version_162 extends CI_Migration
             $this->db->query("ALTER TABLE `tblstafftaskcomments` ADD INDEX(`file_id`);");
 
             $this->db->where('name', 'defaut_leads_kanban_sort');
-            $this->db->update('tbloptions', array(
+            $this->db->update(db_prefix().'options', array(
                 'name' => 'default_leads_kanban_sort'
                 ));
 
             $this->db->where('name', 'defaut_leads_kanban_sort_type');
-            $this->db->update('tbloptions', array(
+            $this->db->update(db_prefix().'options', array(
                 'name' => 'default_leads_kanban_sort_type'
                 ));
 
             $this->db->where('name', 'defaut_proposals_pipeline_sort_type');
-            $this->db->update('tbloptions', array(
+            $this->db->update(db_prefix().'options', array(
                 'name' => 'default_proposals_pipeline_sort_type'
                 ));
 
             $this->db->where('name', 'defaut_estimates_pipeline_sort_type');
-            $this->db->update('tbloptions', array(
+            $this->db->update(db_prefix().'options', array(
                 'name' => 'default_estimates_pipeline_sort_type'
                 ));
 
             $this->db->where('name','pdf_text_color');
-            $this->db->delete('tbloptions');
+            $this->db->delete(db_prefix().'options');
 
             update_option('update_info_message', '<div class="col-md-12">
                 <div class="alert alert-success bold">

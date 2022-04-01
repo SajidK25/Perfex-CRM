@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
 	<div class="content">
@@ -23,6 +24,9 @@
                 <li>
                   <a href="" data-cview="my_tickets" onclick="dt_custom_view('my_tickets','.tickets-table','my_tickets'); return false;"><?php echo _l('my_tickets_assigned'); ?></a>
                 </li>
+                  <li>
+                      <a href="" data-cview="merged_tickets" onclick="dt_custom_view('merged_tickets','.tickets-table','merged_tickets'); return false;"><?php echo _l('merged'); ?></a>
+                  </li>
                 <li class="divider"></li>
                 <?php foreach($statuses as $status){ ?>
                 <li class="<?php if($status['ticketstatusid'] == $chosen_ticket_status || $chosen_ticket_status == '' && in_array($status['ticketstatusid'], $default_tickets_list_statuses)){echo 'active';} ?>">
@@ -48,8 +52,9 @@
             </ul>
           </div>
         </div>
-        <div class="panel_s weekly-ticket-opening" style="display:none;">
+        <div class="panel_s weekly-ticket-opening no-shadow" style="display:none;">
           <hr class="hr-panel-heading" />
+          <div class="clearfix"></div>
           <div class="panel-heading-bg">
             <?php echo _l('home_weekend_ticket_opening_statistics'); ?>
           </div>
@@ -60,11 +65,11 @@
           </div>
         </div>
         <hr class="hr-panel-heading" />
-        <?php do_action('before_render_tickets_list_table'); ?>
+        <?php hooks()->do_action('before_render_tickets_list_table'); ?>
         <?php $this->load->view('admin/tickets/summary'); ?>
         <a href="#" data-toggle="modal" data-target="#tickets_bulk_actions" class="bulk-actions-btn table-btn hide" data-table=".table-tickets"><?php echo _l('bulk_actions'); ?></a>
         <div class="clearfix"></div>
-        <?php echo AdminTicketsTableStructure('',true); ?>
+        <?php echo AdminTicketsTableStructure('', true); ?>
       </div>
     </div>
   </div>
@@ -79,8 +84,12 @@
         <h4 class="modal-title"><?php echo _l('bulk_actions'); ?></h4>
       </div>
       <div class="modal-body">
+          <div class="checkbox checkbox-primary merge_tickets_checkbox">
+              <input type="checkbox" name="merge_tickets" id="merge_tickets">
+              <label for="merge_tickets"><?php echo _l('merge_tickets'); ?></label>
+          </div>
         <?php if(is_admin()){ ?>
-        <div class="checkbox checkbox-danger">
+        <div class="checkbox checkbox-danger mass_delete_checkbox">
           <input type="checkbox" name="mass_delete" id="mass_delete">
           <label for="mass_delete"><?php echo _l('mass_delete'); ?></label>
         </div>
@@ -97,7 +106,26 @@
         <?php if(get_option('services') == 1){ ?>
         <?php echo render_select('move_to_service_tickets_bulk',$services,array('serviceid','name'),'service'); ?>
         <?php } ?>
-
+      </div>
+      <div id="merge_tickets_wrapper">
+          <div class="form-group">
+              <label for="primary_ticket_id">
+                  <span class="text-danger">*</span> <?php echo _l('primary_ticket'); ?>
+              </label>
+              <select id="primary_ticket_id" class="selectpicker" name="primary_ticket_id" data-width="100%" data-live-search="true" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex') ?>" required>
+                  <option></option>
+              </select>
+          </div>
+          <div class="form-group">
+              <label for="primary_ticket_status">
+                  <span class="text-danger">*</span> <?php echo _l('primary_ticket_status'); ?>
+              </label>
+              <select id="primary_ticket_status" class="selectpicker" name="primary_ticket_status" data-width="100%" data-live-search="true" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex') ?>" required>
+                  <?php foreach ($statuses as $status) { ?>
+                  <option value="<?php echo $status['ticketstatusid']; ?>"><?php echo $status['name']; ?></option>
+                  <?php } ?>
+              </select>
+          </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -108,7 +136,6 @@
 </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 <?php init_tail(); ?>
-<?php echo app_script('assets/js','tickets.js'); ?>
 <script>
   var chart;
   var chart_data = <?php echo $weekly_tickets_opening_statistics; ?>;

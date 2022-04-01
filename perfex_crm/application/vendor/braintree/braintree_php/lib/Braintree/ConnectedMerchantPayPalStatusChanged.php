@@ -21,6 +21,7 @@ class ConnectedMerchantPayPalStatusChanged extends Base
     {
         $instance = new self();
         $instance->_initialize($attributes);
+        $instance->_attributes['merchantId'] = $instance->_attributes['merchantPublicId'];
 
         return $instance;
     }
@@ -33,4 +34,3 @@ class ConnectedMerchantPayPalStatusChanged extends Base
         $this->_attributes = $attributes;
     }
 }
-class_alias('Braintree\ConnectedMerchantPayPalStatusChanged', 'Braintree_ConnectedMerchantPayPalStatusChanged');

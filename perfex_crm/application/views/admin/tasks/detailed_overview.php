@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
    <div class="content">
@@ -69,7 +70,7 @@
                      <?php if($this->input->get('project_id')){ echo ' - ' . get_project_name_by_id($this->input->get('project_id'));} ?>
                      <?php if(is_numeric($staff_id) && has_permission('tasks','','view')) { echo ' ('.get_staff_full_name($staff_id).')';} ?>
                   </h4>
-                  <table class="table tasks-overview dt-table scroll-responsive">
+                  <table class="table tasks-overview dt-table">
                      <thead>
                         <tr>
                            <th><?php echo _l('tasks_dt_name'); ?></th>
@@ -137,10 +138,10 @@
                            <?php
                               $finished_on_time_class = '';
                               $finishedOrder = 0;
-                              if(date('Y-m-d',strtotime($task['datefinished'])) > $task['duedate'] && $task['status'] == 5 && is_date($task['duedate'])){
+                              if(date('Y-m-d',strtotime($task['datefinished'])) > $task['duedate'] && $task['status'] == Tasks_model::STATUS_COMPLETE && is_date($task['duedate'])){
                                $finished_on_time_class = 'text-danger';
                                $finished_showcase = _l('task_not_finished_on_time_indicator');
-                              } else if(date('Y-m-d',strtotime($task['datefinished'])) <= $task['duedate'] && $task['status'] == 5 && is_date($task['duedate'])){
+                              } else if(date('Y-m-d',strtotime($task['datefinished'])) <= $task['duedate'] && $task['status'] == Tasks_model::STATUS_COMPLETE && is_date($task['duedate'])){
                                $finishedOrder = 1;
                                $finished_showcase = _l('task_finished_on_time_indicator');
                               } else {

@@ -18,7 +18,7 @@ public function up()
     update_option('aside_menu_active','{"aside_menu_active":[{"name":"als_dashboard","url":"\/","permission":"","icon":"fa fa-tachometer","id":"dashboard"},{"name":"als_clients","url":"clients","permission":"customers","icon":"fa fa-users","id":"customers"},{"name":"projects","url":"projects","permission":"","icon":"fa fa-bars","id":"projects"},{"name":"als_sales","url":"#","permission":"","icon":"fa fa-balance-scale","id":"sales","children":[{"name":"proposals","url":"proposals","permission":"proposals","icon":"","id":"child-proposals"},{"name":"estimates","url":"estimates\/list_estimates","permission":"estimates","icon":"","id":"child-estimates"},{"name":"invoices","url":"invoices\/list_invoices","permission":"invoices","icon":"","id":"child-invoices"},{"name":"payments","url":"payments","permission":"payments","icon":"","id":"child-payments"},{"name":"items","url":"invoice_items","permission":"is_admin","icon":"","id":"child-items"}]},{"name":"als_expenses","url":"expenses\/list_expenses","permission":"expenses","icon":"fa fa-heartbeat","id":"expenses"},{"name":"support","url":"#","permission":"","icon":"fa fa-ticket","id":"tickets","children":[{"name":"new_ticket","url":"tickets\/add","permission":"","icon":"","id":"child-new-ticket"},{"name":"Open","url":"tickets\/index\/1","permission":"","icon":"","id":"child-open"},{"name":"In progress","url":"tickets\/index\/2","permission":"","icon":"","id":"child-in-progress"},{"name":"Answered","url":"tickets\/index\/3","permission":"","icon":"","id":"child-answered"},{"name":"On Hold","url":"tickets\/index\/4","permission":"","icon":"","id":"child-on-hold"},{"name":"Closed","url":"tickets\/index\/5","permission":"","icon":"","id":"child-closed"},{"name":"als_all_tickets","url":"tickets","permission":"","icon":"","id":"child-all-tickets"}]},{"name":"als_contracts","url":"contracts","permission":"contracts","icon":"fa fa-file","id":"contracts"},{"name":"als_leads","url":"leads","permission":"is_staff_member","icon":"fa fa-tty","id":"leads"},{"name":"als_tasks","url":"tasks\/list_tasks","permission":"","icon":"fa fa-tasks","id":"tasks"},{"name":"als_kb","url":"#","permission":"knowledge_base","icon":"fa fa-folder-open-o","id":"knowledge-base","children":[{"name":"als_add_article","url":"knowledge_base\/article","permission":"","icon":"","id":"child-add-article"},{"name":"als_all_articles","url":"knowledge_base","permission":"","icon":"","id":"child-all-articles"},{"name":"als_kb_groups","url":"knowledge_base\/manage_groups","permission":"","icon":"","id":"child-groups"}]},{"name":"als_reports","url":"#","permission":"watchReports","icon":"fa fa-area-chart","id":"reports","children":[{"name":"als_reports_sales_submenu","url":"reports\/sales","permission":"","icon":"","id":"child-sales"},{"name":"als_reports_expenses","url":"reports\/expenses","permission":"","icon":"","id":"child-expenses"},{"name":"als_expenses_vs_income","url":"reports\/expenses_vs_income","permission":"","icon":"","id":"child-expenses-vs-income"},{"name":"als_reports_leads_submenu","url":"reports\/leads","permission":"","icon":"","id":"child-leads"},{"name":"als_kb_articles_submenu","url":"reports\/knowledge_base_articles","permission":"","icon":"","id":"child-kb-articles"}]},{"name":"als_utilities","url":"#","permission":"","icon":"fa fa-cogs","id":"utilities","children":[{"name":"als_media","url":"utilities\/media","permission":"","icon":"","id":"child-media"},{"name":"bulk_pdf_exporter","url":"utilities\/bulk_pdf_exporter","permission":"bulk_pdf_exporter","icon":"","id":"child-bulk-pdf-exporter"},{"name":"als_calendar_submenu","url":"utilities\/calendar","permission":"","icon":"","id":"child-calendar"},{"name":"als_goals_tracking","url":"goals","permission":"goals","icon":"","id":"child-goals-tracking"},{"name":"als_surveys","url":"surveys","permission":"surveys","icon":"","id":"child-surveys"},{"name":"als_announcements_submenu","url":"announcements","permission":"is_admin","icon":"","id":"child-announcements"},{"name":"utility_backup","url":"utilities\/backup","permission":"is_admin","icon":"","id":"child-database-backup"},{"name":"als_activity_log_submenu","url":"utilities\/activity_log","permission":"is_admin","icon":"","id":"child-activity-log"},{"name":"ticket_pipe_log","url":"utilities\/pipe_log","permission":"is_admin","icon":"","id":"ticket-pipe-log"}]}]}');
 
     $this->db->where('name','view_tasks_overview');
-    $this->db->update('tblprojectsettings',array('name'=>'view_finance_overview'));
+    $this->db->update(db_prefix().'projectsettings',array('name'=>'view_finance_overview'));
 
     add_option('show_proposals_on_calendar',1);
     add_option('show_help_on_setup_menu',1);
@@ -33,12 +33,12 @@ public function up()
 
     $this->db->query("ALTER TABLE `tblexpenses` ADD `currency` INT NOT NULL AFTER `category`;");
 
-    $expenses = $this->db->get('tblexpenses')->result_array();
+    $expenses = $this->db->get(db_prefix().'expenses')->result_array();
     $this->load->model('currencies_model');
     $currency = $this->currencies_model->get_base_currency();
     foreach($expenses as $expense){
         $this->db->where('id',$expense['id']);
-        $this->db->update('tblexpenses',array('currency'=>$currency->id));
+        $this->db->update(db_prefix().'expenses',array('currency'=>$currency->id));
     }
 
     $this->db->query("CREATE TABLE IF NOT EXISTS `tblpinnedprojects` (
@@ -52,14 +52,14 @@ public function up()
     $this->db->query("ALTER TABLE `tblproposals` ADD `pipeline_order` INT NOT NULL AFTER `date_converted`;");
     $this->db->query("ALTER TABLE `tblexpenses` ADD `project_id` INT NOT NULL DEFAULT '0' AFTER `clientid`;");
 
-    $this->db->empty_table('tblpermissions');
-    $this->db->query('ALTER TABLE tblpermissions AUTO_INCREMENT = 0');
+    $this->db->empty_table(db_prefix().'permissions');
+    $this->db->query('ALTER TABLE tblpermissions AUTO_INCREMENT = 1');
 
-    $this->db->empty_table('tblrolepermissions');
-    $this->db->query('ALTER TABLE tblrolepermissions AUTO_INCREMENT = 0');
+    $this->db->empty_table(db_prefix().'rolepermissions');
+    $this->db->query('ALTER TABLE tblrolepermissions AUTO_INCREMENT = 1');
 
-    $this->db->empty_table('tblstaffpermissions');
-    $this->db->query('ALTER TABLE tblstaffpermissions AUTO_INCREMENT = 0');
+    $this->db->empty_table(db_prefix().'staffpermissions');
+    $this->db->query('ALTER TABLE tblstaffpermissions AUTO_INCREMENT = 1');
 
 
     $this->db->query("INSERT INTO `tblpermissions` (`permissionid`, `name`, `shortname`) VALUES

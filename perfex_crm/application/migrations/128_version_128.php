@@ -25,21 +25,21 @@ ADD  `milestone_order` INT NOT NULL DEFAULT  '0' AFTER  `kanban_order` ;");
         $this->db->query("ALTER TABLE  `tblcustomfields` ADD  `bs_column` INT NOT NULL DEFAULT  '12' AFTER  `disalow_client_to_edit` ;");
 
         $this->db->where('fieldto', 'leads');
-        $cf_leads = $this->db->get('tblcustomfields')->result_array();
+        $cf_leads = $this->db->get(db_prefix().'customfields')->result_array();
         foreach ($cf_leads as $cf) {
             $col = 12;
             if ($cf['type'] != 'textarea') {
                 $col = 6;
             }
             $this->db->where('id', $cf['id']);
-            $this->db->update('tblcustomfields', array(
+            $this->db->update(db_prefix().'customfields', array(
                 'bs_column' => $col
             ));
         }
 
         $this->db->query("ALTER TABLE `tblstafftasks` ADD `status` INT NOT NULL DEFAULT '0' AFTER `finished`;");
 
-        $tasks = $this->db->get('tblstafftasks')->result_array();
+        $tasks = $this->db->get(db_prefix().'stafftasks')->result_array();
 
         foreach ($tasks as $task) {
             $status = 1;
@@ -52,7 +52,7 @@ ADD  `milestone_order` INT NOT NULL DEFAULT  '0' AFTER  `kanban_order` ;");
             }
 
             $this->db->where('id', $task['id']);
-            $this->db->update('tblstafftasks', array(
+            $this->db->update(db_prefix().'stafftasks', array(
                 'status' => $status
             ));
 

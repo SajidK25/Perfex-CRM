@@ -1,6 +1,8 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Currencies extends Admin_controller
+
+class Currencies extends AdminController
 {
     public function __construct()
     {
@@ -32,20 +34,20 @@ class Currencies extends Admin_controller
                 if ($success == true) {
                     $message = _l('added_successfully', _l('currency'));
                 }
-                echo json_encode(array(
+                echo json_encode([
                     'success' => $success,
-                    'message' => $message
-                ));
+                    'message' => $message,
+                ]);
             } else {
                 $success = $this->currencies_model->edit($data);
                 $message = '';
                 if ($success == true) {
                     $message = _l('updated_successfully', _l('currency'));
                 }
-                echo json_encode(array(
+                echo json_encode([
                     'success' => $success,
-                    'message' => $message
-                ));
+                    'message' => $message,
+                ]);
             }
         }
     }
@@ -88,9 +90,9 @@ class Currencies extends Admin_controller
     public function get_currency_symbol($id)
     {
         if ($this->input->is_ajax_request()) {
-            echo json_encode(array(
-                'symbol' => $this->currencies_model->get_currency_symbol($id)
-            ));
+            echo json_encode([
+                'symbol' => $this->currencies_model->get_currency_symbol($id),
+            ]);
         }
     }
 }

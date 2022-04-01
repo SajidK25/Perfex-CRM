@@ -1,5 +1,80 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
+
+
+/**
+ * Handle lead attachments if any
+ * @param  mixed $leadid
+ * @return boolean
+ */
+function handle_estimate_request_attachments($estimateRequestId, $index_name = 'file')
+{
+    $totalUploaded = 0;
+    if (
+        (isset($_FILES[$index_name]['name']) && !empty($_FILES[$index_name]['name'])) ||
+        (isset($_FILES[$index_name]) && is_array($_FILES[$index_name]['name']) && count($_FILES[$index_name]['name']) > 0)
+    ) {
+        if (!is_array($_FILES[$index_name]['name'])) {
+            $_FILES[$index_name]['name']     = [$_FILES[$index_name]['name']];
+            $_FILES[$index_name]['type']     = [$_FILES[$index_name]['type']];
+            $_FILES[$index_name]['tmp_name'] = [$_FILES[$index_name]['tmp_name']];
+            $_FILES[$index_name]['error']    = [$_FILES[$index_name]['error']];
+            $_FILES[$index_name]['size']     = [$_FILES[$index_name]['size']];
+        }
+
+        for ($i = 0; $i < count($_FILES[$index_name]['name']); $i++) {
+            if (isset($_FILES[$index_name]) && empty($_FILES[$index_name]['name'][$i])) {
+                continue;
+            }
+
+            if (isset($_FILES[$index_name][$i]) && _perfex_upload_error($_FILES[$index_name]['error'][$i])) {
+                header('HTTP/1.0 400 Bad error');
+                echo _perfex_upload_error($_FILES[$index_name]['error'][$i]);
+                die;
+            }
+
+            $CI = & get_instance();
+            if (isset($_FILES[$index_name]['name'][$i]) && $_FILES[$index_name]['name'][$i] != '') {
+                hooks()->do_action('before_upload_estimate_request_attachment', $estimateRequestId);
+                $path = get_upload_path_by_type('estimate_request') . $estimateRequestId . '/';
+                // Get the temp file path
+                $tmpFilePath = $_FILES[$index_name]['tmp_name'][$i];
+                // Make sure we have a filepath
+
+                if (!empty($tmpFilePath) && $tmpFilePath != '') {
+                    if (!_upload_extension_allowed($_FILES[$index_name]['name'][$i])) {
+                        continue;
+                    }
+
+                    _maybe_create_upload_path($path);
+
+                    $filename    = unique_filename($path, $_FILES[$index_name]['name'][$i]);
+                    $newFilePath = $path . $filename;
+                    // Upload the file into the company uploads dir
+                    if (move_uploaded_file($tmpFilePath, $newFilePath)) {
+                        $CI = & get_instance();
+                        $CI->load->model('estimate_request_model');
+                        $data   = [];
+                        $data[] = [
+                            'file_name' => $filename,
+                            'filetype'  => $_FILES[$index_name]['type'][$i],
+                            ];
+                        $CI->estimate_request_model->add_attachment_to_database($estimateRequestId, $data, false);
+                        $totalUploaded++;
+                    }
+                }
+            }
+        }
+    }
+
+    if ($totalUploaded > 0) {
+        return true;
+    }
+
+    return false;
+}
+
 /**
  * Handles uploads error with translation texts
  * @param  mixed $error type of error
@@ -7,7 +82,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 function _perfex_upload_error($error)
 {
-    $phpFileUploadErrors = array(
+    $uploadErrors = [
         0 => _l('file_uploaded_success'),
         1 => _l('file_exceeds_max_filesize'),
         2 => _l('file_exceeds_maxfile_size_in_form'),
@@ -16,10 +91,10 @@ function _perfex_upload_error($error)
         6 => _l('file_missing_temporary_folder'),
         7 => _l('file_failed_to_write_to_disk'),
         8 => _l('file_php_extension_blocked'),
-    );
+    ];
 
-    if (isset($phpFileUploadErrors[$error]) && $error != 0) {
-        return $phpFileUploadErrors[$error];
+    if (isset($uploadErrors[$error]) && $error != 0) {
+        return $uploadErrors[$error];
     }
 
     return false;
@@ -37,38 +112,41 @@ function handle_newsfeed_post_attachments($postid)
         die;
     }
     $path = get_upload_path_by_type('newsfeed') . $postid . '/';
-    $CI =& get_instance();
+    $CI   = & get_instance();
     if (isset($_FILES['file']['name'])) {
-        do_action('before_upload_newsfeed_attachment', $postid);
+        hooks()->do_action('before_upload_newsfeed_attachment', $postid);
         $uploaded_files = false;
         // Get the temp file path
-        $tmpFilePath    = $_FILES['file']['tmp_name'];
+        $tmpFilePath = $_FILES['file']['tmp_name'];
         // Make sure we have a filepath
         if (!empty($tmpFilePath) && $tmpFilePath != '') {
             _maybe_create_upload_path($path);
-            $filename    = unique_filename($path, $_FILES["file"]["name"]);
-            $newFilePath = $path . $filename;
-            // Upload the file into the temp dir
-            if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                $file_uploaded = true;
-                $attachment = array();
-                $attachment[] = array(
+            $filename = unique_filename($path, $_FILES['file']['name']);
+            // In case client side validation is bypassed
+            if (_upload_extension_allowed($filename)) {
+                $newFilePath = $path . $filename;
+                // Upload the file into the temp dir
+                if (move_uploaded_file($tmpFilePath, $newFilePath)) {
+                    $file_uploaded = true;
+                    $attachment    = [];
+                    $attachment[]  = [
                     'file_name' => $filename,
-                    'filetype' => $_FILES["file"]["type"],
-                    );
-                $CI->misc_model->add_attachment_to_database($postid, 'newsfeed_post', $attachment);
+                    'filetype'  => $_FILES['file']['type'],
+                    ];
+                    $CI->misc_model->add_attachment_to_database($postid, 'newsfeed_post', $attachment);
+                }
             }
         }
         if ($file_uploaded == true) {
-            echo json_encode(array(
+            echo json_encode([
                 'success' => true,
-                'postid' => $postid
-            ));
+                'postid'  => $postid,
+            ]);
         } else {
-            echo json_encode(array(
+            echo json_encode([
                 'success' => false,
-                'postid' => $postid
-            ));
+                'postid'  => $postid,
+            ]);
         }
     }
 }
@@ -79,26 +157,27 @@ function handle_newsfeed_post_attachments($postid)
  */
 function handle_project_file_uploads($project_id)
 {
-    $filesIDS = array();
-    $errors = array();
+    $filesIDS = [];
+    $errors   = [];
 
     if (isset($_FILES['file']['name'])
         && ($_FILES['file']['name'] != '' || is_array($_FILES['file']['name']) && count($_FILES['file']['name']) > 0)) {
-        do_action('before_upload_project_attachment', $project_id);
+        hooks()->do_action('before_upload_project_attachment', $project_id);
 
         if (!is_array($_FILES['file']['name'])) {
-            $_FILES['file']['name'] = array($_FILES['file']['name']);
-            $_FILES['file']['type'] = array($_FILES['file']['type']);
-            $_FILES['file']['tmp_name'] = array($_FILES['file']['tmp_name']);
-            $_FILES['file']['error'] = array($_FILES['file']['error']);
-            $_FILES['file']['size'] = array($_FILES['file']['size']);
+            $_FILES['file']['name']     = [$_FILES['file']['name']];
+            $_FILES['file']['type']     = [$_FILES['file']['type']];
+            $_FILES['file']['tmp_name'] = [$_FILES['file']['tmp_name']];
+            $_FILES['file']['error']    = [$_FILES['file']['error']];
+            $_FILES['file']['size']     = [$_FILES['file']['size']];
         }
 
-        $path        = get_upload_path_by_type('project') . $project_id . '/';
+        $path = get_upload_path_by_type('project') . $project_id . '/';
 
         for ($i = 0; $i < count($_FILES['file']['name']); $i++) {
             if (_perfex_upload_error($_FILES['file']['error'][$i])) {
                 $errors[$_FILES['file']['name'][$i]] = _perfex_upload_error($_FILES['file']['error'][$i]);
+
                 continue;
             }
 
@@ -107,33 +186,41 @@ function handle_project_file_uploads($project_id)
             // Make sure we have a filepath
             if (!empty($tmpFilePath) && $tmpFilePath != '') {
                 _maybe_create_upload_path($path);
-                $filename    = unique_filename($path, $_FILES["file"]["name"][$i]);
+                $originalFilename = unique_filename($path, $_FILES['file']['name'][$i]);
+                $filename = app_generate_hash() . '.' . get_file_extension($originalFilename);
+
+                // In case client side validation is bypassed
+                if (!_upload_extension_allowed($filename)) {
+                    continue;
+                }
+
                 $newFilePath = $path . $filename;
                 // Upload the file into the company uploads dir
                 if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                    $CI =& get_instance();
+                    $CI = & get_instance();
                     if (is_client_logged_in()) {
                         $contact_id = get_contact_user_id();
-                        $staffid = 0;
+                        $staffid    = 0;
                     } else {
-                        $staffid = get_staff_user_id();
+                        $staffid    = get_staff_user_id();
                         $contact_id = 0;
                     }
-                        $data = array(
+                    $data = [
                             'project_id' => $project_id,
-                            'file_name' => $filename,
-                            'filetype' => $_FILES["file"]["type"][$i],
-                            'dateadded' => date('Y-m-d H:i:s'),
-                            'staffid' => $staffid,
+                            'file_name'  => $filename,
+                            'original_file_name'  => $originalFilename,
+                            'filetype'   => $_FILES['file']['type'][$i],
+                            'dateadded'  => date('Y-m-d H:i:s'),
+                            'staffid'    => $staffid,
                             'contact_id' => $contact_id,
-                            'subject' => $filename,
-                        );
+                            'subject'    => $originalFilename,
+                        ];
                     if (is_client_logged_in()) {
                         $data['visible_to_customer'] = 1;
                     } else {
                         $data['visible_to_customer'] = ($CI->input->post('visible_to_customer') == 'true' ? 1 : 0);
                     }
-                    $CI->db->insert('tblprojectfiles', $data);
+                    $CI->db->insert(db_prefix() . 'project_files', $data);
 
                     $insert_id = $CI->db->insert_id();
                     if ($insert_id) {
@@ -158,17 +245,17 @@ function handle_project_file_uploads($project_id)
         $CI->projects_model->new_project_file_notification($filesIDS[$lastFileID], $project_id);
     }
 
-    if(count($errors) > 0){
+    if (count($errors) > 0) {
         $message = '';
-        foreach($errors as $filename => $error_message){
-            $message .= $filename . ' - ' . $error_message .'<br />';
+        foreach ($errors as $filename => $error_message) {
+            $message .= $filename . ' - ' . $error_message . '<br />';
         }
         header('HTTP/1.0 400 Bad error');
         echo $message;
         die;
     }
 
-    if(count($filesIDS) > 0){
+    if (count($filesIDS) > 0) {
         return true;
     }
 
@@ -187,23 +274,23 @@ function handle_contract_attachment($id)
         die;
     }
     if (isset($_FILES['file']['name']) && $_FILES['file']['name'] != '') {
-        do_action('before_upload_contract_attachment', $id);
-        $path        = get_upload_path_by_type('contract') . $id . '/';
+        hooks()->do_action('before_upload_contract_attachment', $id);
+        $path = get_upload_path_by_type('contract') . $id . '/';
         // Get the temp file path
         $tmpFilePath = $_FILES['file']['tmp_name'];
         // Make sure we have a filepath
         if (!empty($tmpFilePath) && $tmpFilePath != '') {
             _maybe_create_upload_path($path);
-            $filename    = unique_filename($path, $_FILES["file"]["name"]);
+            $filename    = unique_filename($path, $_FILES['file']['name']);
             $newFilePath = $path . $filename;
             // Upload the file into the company uploads dir
             if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                $CI =& get_instance();
-                $attachment = array();
-                $attachment[] = array(
-                    'file_name'=>$filename,
-                    'filetype'=>$_FILES["file"]["type"],
-                    );
+                $CI           = & get_instance();
+                $attachment   = [];
+                $attachment[] = [
+                    'file_name' => $filename,
+                    'filetype'  => $_FILES['file']['type'],
+                    ];
                 $CI->misc_model->add_attachment_to_database($id, 'contract', $attachment);
 
                 return true;
@@ -220,49 +307,51 @@ function handle_contract_attachment($id)
  */
 function handle_lead_attachments($leadid, $index_name = 'file', $form_activity = false)
 {
-    if (isset($_FILES[$index_name]) && empty($_FILES[$index_name]['name']) && $form_activity) {
-        return;
-    }
+    $uploaded_files = [];
+    $path           = get_upload_path_by_type('lead') . $leadid . '/';
+    $CI             = &get_instance();
+    $CI->load->model('leads_model');
 
-    if (isset($_FILES[$index_name]) && _perfex_upload_error($_FILES[$index_name]['error'])) {
-        header('HTTP/1.0 400 Bad error');
-        echo _perfex_upload_error($_FILES[$index_name]['error']);
-        die;
-    }
+    if (isset($_FILES[$index_name]['name'])
+        && ($_FILES[$index_name]['name'] != ''
+                || is_array($_FILES[$index_name]['name']) && count($_FILES[$index_name]['name']) > 0)) {
+        if (!is_array($_FILES[$index_name]['name'])) {
+            $_FILES[$index_name]['name']     = [$_FILES[$index_name]['name']];
+            $_FILES[$index_name]['type']     = [$_FILES[$index_name]['type']];
+            $_FILES[$index_name]['tmp_name'] = [$_FILES[$index_name]['tmp_name']];
+            $_FILES[$index_name]['error']    = [$_FILES[$index_name]['error']];
+            $_FILES[$index_name]['size']     = [$_FILES[$index_name]['size']];
+        }
 
-    $CI =& get_instance();
-    if (isset($_FILES[$index_name]['name']) && $_FILES[$index_name]['name'] != '') {
-        do_action('before_upload_lead_attachment', $leadid);
-        $path        = get_upload_path_by_type('lead') . $leadid . '/';
-        // Get the temp file path
-        $tmpFilePath = $_FILES[$index_name]['tmp_name'];
-        // Make sure we have a filepath
-        if (!empty($tmpFilePath) && $tmpFilePath != '') {
-            if (!_upload_extension_allowed($_FILES[$index_name]["name"])) {
-                return false;
-            }
+        _file_attachments_index_fix($index_name);
 
-            _maybe_create_upload_path($path);
+        for ($i = 0; $i < count($_FILES[$index_name]['name']); $i++) {
+            // Get the temp file path
+            $tmpFilePath = $_FILES[$index_name]['tmp_name'][$i];
 
-            $filename    = unique_filename($path, $_FILES[$index_name]["name"]);
-            $newFilePath = $path . $filename;
-            // Upload the file into the company uploads dir
-            if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                $CI =& get_instance();
-                $CI->load->model('leads_model');
-                $data = array();
-                $data[] = array(
-                    'file_name' => $filename,
-                    'filetype' => $_FILES[$index_name]["type"],
-                    );
-                $CI->leads_model->add_attachment_to_database($leadid, $data, false, $form_activity);
+            // Make sure we have a filepath
+            if (!empty($tmpFilePath) && $tmpFilePath != '') {
+                if (_perfex_upload_error($_FILES[$index_name]['error'][$i])
+                    || !_upload_extension_allowed($_FILES[$index_name]['name'][$i])) {
+                    continue;
+                }
 
-                return true;
+                _maybe_create_upload_path($path);
+                $filename = unique_filename($path, $_FILES[$index_name]['name'][$i]);
+
+                $newFilePath = $path . $filename;
+
+                if (move_uploaded_file($tmpFilePath, $newFilePath)) {
+                    $CI->leads_model->add_attachment_to_database($leadid, [[
+                        'file_name' => $filename,
+                        'filetype'  => $_FILES[$index_name]['type'][$i],
+                    ]], false, $form_activity);
+                }
             }
         }
     }
 
-    return false;
+    return true;
 }
 
 /**
@@ -274,19 +363,18 @@ function handle_lead_attachments($leadid, $index_name = 'file', $form_activity =
  */
 function handle_task_attachments_array($taskid, $index_name = 'attachments')
 {
-    $uploaded_files = array();
+    $uploaded_files = [];
     $path           = get_upload_path_by_type('task') . $taskid . '/';
-    $CI = &get_instance();
+    $CI             = &get_instance();
 
     if (isset($_FILES[$index_name]['name'])
         && ($_FILES[$index_name]['name'] != '' || is_array($_FILES[$index_name]['name']) && count($_FILES[$index_name]['name']) > 0)) {
-
         if (!is_array($_FILES[$index_name]['name'])) {
-            $_FILES[$index_name]['name'] = array($_FILES[$index_name]['name']);
-            $_FILES[$index_name]['type'] = array($_FILES[$index_name]['type']);
-            $_FILES[$index_name]['tmp_name'] = array($_FILES[$index_name]['tmp_name']);
-            $_FILES[$index_name]['error'] = array($_FILES[$index_name]['error']);
-            $_FILES[$index_name]['size'] = array($_FILES[$index_name]['size']);
+            $_FILES[$index_name]['name']     = [$_FILES[$index_name]['name']];
+            $_FILES[$index_name]['type']     = [$_FILES[$index_name]['type']];
+            $_FILES[$index_name]['tmp_name'] = [$_FILES[$index_name]['tmp_name']];
+            $_FILES[$index_name]['error']    = [$_FILES[$index_name]['error']];
+            $_FILES[$index_name]['size']     = [$_FILES[$index_name]['size']];
         }
 
         _file_attachments_index_fix($index_name);
@@ -296,22 +384,22 @@ function handle_task_attachments_array($taskid, $index_name = 'attachments')
 
             // Make sure we have a filepath
             if (!empty($tmpFilePath) && $tmpFilePath != '') {
-
                 if (_perfex_upload_error($_FILES[$index_name]['error'][$i])
-                    || !_upload_extension_allowed($_FILES[$index_name]["name"][$i])) {
+                    || !_upload_extension_allowed($_FILES[$index_name]['name'][$i])) {
                     continue;
                 }
 
                 _maybe_create_upload_path($path);
-                $filename    = unique_filename($path, $_FILES[$index_name]["name"][$i]);
+                $filename    = unique_filename($path, $_FILES[$index_name]['name'][$i]);
                 $newFilePath = $path . $filename;
 
                 // Upload the file into the temp dir
                 if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                    array_push($uploaded_files, array(
-                    'file_name' => $filename,
-                    'filetype' => $_FILES[$index_name]["type"][$i]
-                    ));
+                    array_push($uploaded_files, [
+                        'file_name' => $filename,
+                        'filetype'  => $_FILES[$index_name]['type'][$i],
+                    ]);
+
                     if (is_image($newFilePath)) {
                         create_img_thumb($path, $filename);
                     }
@@ -342,31 +430,32 @@ function handle_sales_attachments($rel_id, $rel_type)
 
     $path = get_upload_path_by_type($rel_type) . $rel_id . '/';
 
-    $CI =& get_instance();
+    $CI = & get_instance();
     if (isset($_FILES['file']['name'])) {
         $uploaded_files = false;
+        $file_uploaded  = false;
         // Get the temp file path
-        $tmpFilePath    = $_FILES['file']['tmp_name'];
+        $tmpFilePath = $_FILES['file']['tmp_name'];
         // Make sure we have a filepath
         if (!empty($tmpFilePath) && $tmpFilePath != '') {
             // Getting file extension
-            $type        = $_FILES["file"]["type"];
+            $type = $_FILES['file']['type'];
             _maybe_create_upload_path($path);
-            $filename    = unique_filename($path, $_FILES["file"]["name"]);
+            $filename    = unique_filename($path, $_FILES['file']['name']);
             $newFilePath = $path . $filename;
             // Upload the file into the temp dir
             if (move_uploaded_file($tmpFilePath, $newFilePath)) {
                 $file_uploaded = true;
-                $attachment = array();
-                $attachment[] = array(
+                $attachment    = [];
+                $attachment[]  = [
                     'file_name' => $filename,
-                    'filetype' => $type,
-                    );
+                    'filetype'  => $type,
+                    ];
                 $insert_id = $CI->misc_model->add_attachment_to_database($rel_id, $rel_type, $attachment);
                 // Get the key so we can return to ajax request and show download link
                 $CI->db->where('id', $insert_id);
-                $_attachment = $CI->db->get('tblfiles')->row();
-                $key = $_attachment->attachment_key;
+                $_attachment = $CI->db->get(db_prefix() . 'files')->row();
+                $key         = $_attachment->attachment_key;
 
                 if ($rel_type == 'invoice') {
                     $CI->load->model('invoices_model');
@@ -377,21 +466,22 @@ function handle_sales_attachments($rel_id, $rel_type)
                 }
             }
         }
+
         if ($file_uploaded == true) {
-            echo json_encode(array(
-                'success' => true,
+            echo json_encode([
+                'success'       => true,
                 'attachment_id' => $insert_id,
-                'filetype' => $type,
-                'rel_id'=>$rel_id,
-                'file_name' => $filename,
-                'key' => $key,
-            ));
+                'filetype'      => $type,
+                'rel_id'        => $rel_id,
+                'file_name'     => $filename,
+                'key'           => $key,
+            ]);
         } else {
-            echo json_encode(array(
-                'success' => false,
-                'rel_id' => $rel_id,
-                'file_name' => $filename
-            ));
+            echo json_encode([
+                'success'   => false,
+                'rel_id'    => $rel_id,
+                'file_name' => $filename,
+            ]);
         }
     }
 }
@@ -402,38 +492,61 @@ function handle_sales_attachments($rel_id, $rel_type)
  */
 function handle_client_attachments_upload($id, $customer_upload = false)
 {
-    $path = get_upload_path_by_type('customer') . $id . '/';
-    $CI =& get_instance();
-    if (isset($_FILES['file']['name'])) {
-        do_action('before_upload_client_attachment', $id);
-        // Get the temp file path
-        $tmpFilePath = $_FILES['file']['tmp_name'];
-        // Make sure we have a filepath
-        if (!empty($tmpFilePath) && $tmpFilePath != '') {
-            _maybe_create_upload_path($path);
-            $filename    = unique_filename($path, $_FILES['file']['name']);
-            $newFilePath = $path . $filename;
-            // Upload the file into the temp dir
-            if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                $attachment = array();
-                $attachment[]= array(
-                    'file_name'=>$filename,
-                    'filetype'=>$_FILES["file"]["type"],
-                    );
-                if (is_image($newFilePath)) {
-                    create_img_thumb($newFilePath, $filename);
+    $path          = get_upload_path_by_type('customer') . $id . '/';
+    $CI            = & get_instance();
+    $totalUploaded = 0;
+
+    if (isset($_FILES['file']['name'])
+        && ($_FILES['file']['name'] != '' || is_array($_FILES['file']['name']) && count($_FILES['file']['name']) > 0)) {
+        if (!is_array($_FILES['file']['name'])) {
+            $_FILES['file']['name']     = [$_FILES['file']['name']];
+            $_FILES['file']['type']     = [$_FILES['file']['type']];
+            $_FILES['file']['tmp_name'] = [$_FILES['file']['tmp_name']];
+            $_FILES['file']['error']    = [$_FILES['file']['error']];
+            $_FILES['file']['size']     = [$_FILES['file']['size']];
+        }
+
+        _file_attachments_index_fix('file');
+        for ($i = 0; $i < count($_FILES['file']['name']); $i++) {
+            hooks()->do_action('before_upload_client_attachment', $id);
+            // Get the temp file path
+            $tmpFilePath = $_FILES['file']['tmp_name'][$i];
+            // Make sure we have a filepath
+            if (!empty($tmpFilePath) && $tmpFilePath != '') {
+                if (_perfex_upload_error($_FILES['file']['error'][$i])
+                    || !_upload_extension_allowed($_FILES['file']['name'][$i])) {
+                    continue;
                 }
 
-                if ($customer_upload == true) {
-                    $attachment[0]['staffid'] = 0;
-                    $attachment[0]['contact_id'] = get_contact_user_id();
-                    $attachment['visible_to_customer'] = 1;
-                }
+                _maybe_create_upload_path($path);
+                $filename    = unique_filename($path, $_FILES['file']['name'][$i]);
+                $newFilePath = $path . $filename;
+                // Upload the file into the temp dir
+                if (move_uploaded_file($tmpFilePath, $newFilePath)) {
+                    $attachment   = [];
+                    $attachment[] = [
+                    'file_name' => $filename,
+                    'filetype'  => $_FILES['file']['type'][$i],
+                    ];
 
-                $CI->misc_model->add_attachment_to_database($id, 'customer', $attachment);
+                    if (is_image($newFilePath)) {
+                        create_img_thumb($newFilePath, $filename);
+                    }
+
+                    if ($customer_upload == true) {
+                        $attachment[0]['staffid']          = 0;
+                        $attachment[0]['contact_id']       = get_contact_user_id();
+                        $attachment['visible_to_customer'] = 1;
+                    }
+
+                    $CI->misc_model->add_attachment_to_database($id, 'customer', $attachment);
+                    $totalUploaded++;
+                }
             }
         }
     }
+
+    return (bool) $totalUploaded;
 }
 /**
  * Handles upload for expenses receipt
@@ -448,24 +561,24 @@ function handle_expense_attachments($id)
         die;
     }
     $path = get_upload_path_by_type('expense') . $id . '/';
-    $CI =& get_instance();
+    $CI   = & get_instance();
 
     if (isset($_FILES['file']['name'])) {
-        do_action('before_upload_expense_attachment', $id);
+        hooks()->do_action('before_upload_expense_attachment', $id);
         // Get the temp file path
         $tmpFilePath = $_FILES['file']['tmp_name'];
         // Make sure we have a filepath
         if (!empty($tmpFilePath) && $tmpFilePath != '') {
             _maybe_create_upload_path($path);
-            $filename    = $_FILES["file"]["name"];
+            $filename    = $_FILES['file']['name'];
             $newFilePath = $path . $filename;
             // Upload the file into the temp dir
             if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                $attachment = array();
-                $attachment[]= array(
-                    'file_name'=>$filename,
-                    'filetype'=>$_FILES["file"]["type"],
-                    );
+                $attachment   = [];
+                $attachment[] = [
+                    'file_name' => $filename,
+                    'filetype'  => $_FILES['file']['type'],
+                    ];
 
                 $CI->misc_model->add_attachment_to_database($id, 'expense', $attachment);
             }
@@ -480,38 +593,36 @@ function handle_expense_attachments($id)
 function handle_ticket_attachments($ticketid, $index_name = 'attachments')
 {
     $path           = get_upload_path_by_type('ticket') . $ticketid . '/';
-    $uploaded_files = array();
+    $uploaded_files = [];
 
     if (isset($_FILES[$index_name])) {
         _file_attachments_index_fix($index_name);
 
         for ($i = 0; $i < count($_FILES[$index_name]['name']); $i++) {
-            do_action('before_upload_ticket_attachment', $ticketid);
+            hooks()->do_action('before_upload_ticket_attachment', $ticketid);
             if ($i <= get_option('maximum_allowed_ticket_attachments')) {
                 // Get the temp file path
                 $tmpFilePath = $_FILES[$index_name]['tmp_name'][$i];
                 // Make sure we have a filepath
                 if (!empty($tmpFilePath) && $tmpFilePath != '') {
                     // Getting file extension
-                    $path_parts         = pathinfo($_FILES[$index_name]["name"][$i]);
-                    $extension          = $path_parts['extension'];
+                    $extension = strtolower(pathinfo($_FILES[$index_name]['name'][$i], PATHINFO_EXTENSION));
 
-                    $extension = strtolower($extension);
                     $allowed_extensions = explode(',', get_option('ticket_attachments_file_extensions'));
                     $allowed_extensions = array_map('trim', $allowed_extensions);
                     // Check for all cases if this extension is allowed
-                    if (!in_array('.'.$extension, $allowed_extensions)) {
+                    if (!in_array('.' . $extension, $allowed_extensions)) {
                         continue;
                     }
                     _maybe_create_upload_path($path);
-                    $filename    = unique_filename($path, $_FILES[$index_name]["name"][$i]);
+                    $filename    = unique_filename($path, $_FILES[$index_name]['name'][$i]);
                     $newFilePath = $path . $filename;
                     // Upload the file into the temp dir
                     if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                        array_push($uploaded_files, array(
+                        array_push($uploaded_files, [
                                 'file_name' => $filename,
-                                'filetype' => $_FILES[$index_name]["type"][$i]
-                                ));
+                                'filetype'  => $_FILES[$index_name]['type'][$i],
+                                ]);
                     }
                 }
             }
@@ -529,49 +640,59 @@ function handle_ticket_attachments($ticketid, $index_name = 'attachments')
  */
 function handle_company_logo_upload()
 {
-    if (isset($_FILES['company_logo']) && _perfex_upload_error($_FILES['company_logo']['error'])) {
-        set_alert('warning', _perfex_upload_error($_FILES['company_logo']['error']));
+    $logoIndex = ['logo', 'logo_dark'];
+    $success   = false;
 
-        return false;
-    }
-    if (isset($_FILES['company_logo']['name']) && $_FILES['company_logo']['name'] != '') {
-        do_action('before_upload_company_logo_attachment');
-        $path        = get_upload_path_by_type('company');
-        // Get the temp file path
-        $tmpFilePath = $_FILES['company_logo']['tmp_name'];
-        // Make sure we have a filepath
-        if (!empty($tmpFilePath) && $tmpFilePath != '') {
-            // Getting file extension
-            $path_parts         = pathinfo($_FILES["company_logo"]["name"]);
-            $extension          = $path_parts['extension'];
-            $extension = strtolower($extension);
-            $allowed_extensions = array(
-                'jpg',
-                'jpeg',
-                'png',
-                'gif',
-            );
+    foreach ($logoIndex as $logo) {
+        $index = 'company_' . $logo;
 
-            if (!in_array($extension, $allowed_extensions)) {
-                set_alert('warning', 'Image extension not allowed.');
+        if (isset($_FILES[$index]) && !empty($_FILES[$index]['name']) && _perfex_upload_error($_FILES[$index]['error'])) {
+            set_alert('warning', _perfex_upload_error($_FILES[$index]['error']));
 
-                return false;
-            }
+            return false;
+        }
+        if (isset($_FILES[$index]['name']) && $_FILES[$index]['name'] != '') {
+            hooks()->do_action('before_upload_company_logo_attachment');
+            $path = get_upload_path_by_type('company');
+            // Get the temp file path
+            $tmpFilePath = $_FILES[$index]['tmp_name'];
+            // Make sure we have a filepath
+            if (!empty($tmpFilePath) && $tmpFilePath != '') {
+                // Getting file extension
+                $extension          = strtolower(pathinfo($_FILES[$index]['name'], PATHINFO_EXTENSION));
+                $allowed_extensions = [
+                    'jpg',
+                    'jpeg',
+                    'png',
+                    'gif',
+                    'svg',
+                ];
 
-            // Setup our new file path
-            $filename    = 'logo' . '.' . $extension;
-            $newFilePath = $path . $filename;
-            _maybe_create_upload_path($path);
-            // Upload the file into the company uploads dir
-            if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                update_option('company_logo', $filename);
+                $allowed_extensions = array_unique(
+                    hooks()->apply_filters('company_logo_upload_allowed_extensions', $allowed_extensions)
+                );
 
-                return true;
+                if (!in_array($extension, $allowed_extensions)) {
+                    set_alert('warning', 'Image extension not allowed.');
+
+                    continue;
+                }
+
+                // Setup our new file path
+                $filename    = md5($logo . time()) . '.' . $extension;
+                $newFilePath = $path . $filename;
+                _maybe_create_upload_path($path);
+                // Upload the file into the company uploads dir
+                if (move_uploaded_file($tmpFilePath, $newFilePath)) {
+                    update_option($index, $filename);
+                    $success = true;
+                }
             }
         }
     }
 
-    return false;
+
+    return $success;
 }
 /**
  * Check for company logo upload
@@ -585,22 +706,22 @@ function handle_company_signature_upload()
         return false;
     }
     if (isset($_FILES['signature_image']['name']) && $_FILES['signature_image']['name'] != '') {
-        do_action('before_upload_signature_image_attachment');
-        $path        = get_upload_path_by_type('company');
+        hooks()->do_action('before_upload_signature_image_attachment');
+        $path = get_upload_path_by_type('company');
         // Get the temp file path
         $tmpFilePath = $_FILES['signature_image']['tmp_name'];
         // Make sure we have a filepath
         if (!empty($tmpFilePath) && $tmpFilePath != '') {
             // Getting file extension
-            $path_parts         = pathinfo($_FILES["signature_image"]["name"]);
-            $extension          = $path_parts['extension'];
-            $extension = strtolower($extension);
+            $path_parts = pathinfo($_FILES['signature_image']['name']);
+            $extension  = $path_parts['extension'];
+            $extension  = strtolower($extension);
 
-            $allowed_extensions = array(
+            $allowed_extensions = [
                 'jpg',
                 'jpeg',
                 'png',
-            );
+            ];
             if (!in_array($extension, $allowed_extensions)) {
                 set_alert('warning', 'Image extension not allowed.');
 
@@ -628,16 +749,16 @@ function handle_company_signature_upload()
 function handle_favicon_upload()
 {
     if (isset($_FILES['favicon']['name']) && $_FILES['favicon']['name'] != '') {
-        do_action('before_upload_favicon_attachment');
-        $path        = get_upload_path_by_type('company');
+        hooks()->do_action('before_upload_favicon_attachment');
+        $path = get_upload_path_by_type('company');
         // Get the temp file path
         $tmpFilePath = $_FILES['favicon']['tmp_name'];
         // Make sure we have a filepath
         if (!empty($tmpFilePath) && $tmpFilePath != '') {
             // Getting file extension
-            $path_parts  = pathinfo($_FILES["favicon"]["name"]);
-            $extension   = $path_parts['extension'];
-            $extension = strtolower($extension);
+            $path_parts = pathinfo($_FILES['favicon']['name']);
+            $extension  = $path_parts['extension'];
+            $extension  = strtolower($extension);
             // Setup our new file path
             $filename    = 'favicon' . '.' . $extension;
             $newFilePath = $path . $filename;
@@ -665,39 +786,40 @@ function handle_staff_profile_image_upload($staff_id = '')
         $staff_id = get_staff_user_id();
     }
     if (isset($_FILES['profile_image']['name']) && $_FILES['profile_image']['name'] != '') {
-        do_action('before_upload_staff_profile_image');
-        $path        = get_upload_path_by_type('staff') . $staff_id . '/';
+        hooks()->do_action('before_upload_staff_profile_image');
+        $path = get_upload_path_by_type('staff') . $staff_id . '/';
         // Get the temp file path
         $tmpFilePath = $_FILES['profile_image']['tmp_name'];
         // Make sure we have a filepath
         if (!empty($tmpFilePath) && $tmpFilePath != '') {
             // Getting file extension
-            $path_parts         = pathinfo($_FILES["profile_image"]["name"]);
-            $extension          = $path_parts['extension'];
-            $extension = strtolower($extension);
-            $allowed_extensions = array(
+            $extension          = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
+            $allowed_extensions = [
                 'jpg',
                 'jpeg',
-                'png'
-            );
+                'png',
+            ];
+
+            $allowed_extensions = hooks()->apply_filters('staff_profile_image_upload_allowed_extensions', $allowed_extensions);
+
             if (!in_array($extension, $allowed_extensions)) {
                 set_alert('warning', _l('file_php_extension_blocked'));
 
                 return false;
             }
             _maybe_create_upload_path($path);
-            $filename    = unique_filename($path, $_FILES["profile_image"]["name"]);
+            $filename    = unique_filename($path, $_FILES['profile_image']['name']);
             $newFilePath = $path . '/' . $filename;
             // Upload the file into the company uploads dir
             if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                $CI =& get_instance();
-                $config                   = array();
+                $CI                       = & get_instance();
+                $config                   = [];
                 $config['image_library']  = 'gd2';
                 $config['source_image']   = $newFilePath;
                 $config['new_image']      = 'thumb_' . $filename;
                 $config['maintain_ratio'] = true;
-                $config['width']          = 160;
-                $config['height']         = 160;
+                $config['width']          = hooks()->apply_filters('staff_profile_image_thumb_width', 320);
+                $config['height']         = hooks()->apply_filters('staff_profile_image_thumb_height', 320);
                 $CI->image_lib->initialize($config);
                 $CI->image_lib->resize();
                 $CI->image_lib->clear();
@@ -705,14 +827,14 @@ function handle_staff_profile_image_upload($staff_id = '')
                 $config['source_image']   = $newFilePath;
                 $config['new_image']      = 'small_' . $filename;
                 $config['maintain_ratio'] = true;
-                $config['width']          = 32;
-                $config['height']         = 32;
+                $config['width']          = hooks()->apply_filters('staff_profile_image_small_width', 96);
+                $config['height']         = hooks()->apply_filters('staff_profile_image_small_height', 96);
                 $CI->image_lib->initialize($config);
                 $CI->image_lib->resize();
                 $CI->db->where('staffid', $staff_id);
-                $CI->db->update('tblstaff', array(
-                    'profile_image' => $filename
-                ));
+                $CI->db->update(db_prefix() . 'staff', [
+                    'profile_image' => $filename,
+                ]);
                 // Remove original image
                 unlink($newFilePath);
 
@@ -732,42 +854,44 @@ function handle_staff_profile_image_upload($staff_id = '')
 function handle_contact_profile_image_upload($contact_id = '')
 {
     if (isset($_FILES['profile_image']['name']) && $_FILES['profile_image']['name'] != '') {
-        do_action('before_upload_contact_profile_image');
+        hooks()->do_action('before_upload_contact_profile_image');
         if ($contact_id == '') {
             $contact_id = get_contact_user_id();
         }
-        $path        = get_upload_path_by_type('contact_profile_images') . $contact_id . '/';
+        $path = get_upload_path_by_type('contact_profile_images') . $contact_id . '/';
         // Get the temp file path
         $tmpFilePath = $_FILES['profile_image']['tmp_name'];
         // Make sure we have a filepath
         if (!empty($tmpFilePath) && $tmpFilePath != '') {
             // Getting file extension
-            $path_parts         = pathinfo($_FILES["profile_image"]["name"]);
-            $extension          = $path_parts['extension'];
-            $extension = strtolower($extension);
-            $allowed_extensions = array(
+            $extension = strtolower(pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION));
+
+            $allowed_extensions = [
                 'jpg',
                 'jpeg',
-                'png'
-            );
+                'png',
+            ];
+
+            $allowed_extensions = hooks()->apply_filters('contact_profile_image_upload_allowed_extensions', $allowed_extensions);
+
             if (!in_array($extension, $allowed_extensions)) {
                 set_alert('warning', _l('file_php_extension_blocked'));
 
                 return false;
             }
             _maybe_create_upload_path($path);
-            $filename    = unique_filename($path, $_FILES["profile_image"]["name"]);
+            $filename    = unique_filename($path, $_FILES['profile_image']['name']);
             $newFilePath = $path . $filename;
             // Upload the file into the company uploads dir
             if (move_uploaded_file($tmpFilePath, $newFilePath)) {
-                $CI =& get_instance();
-                $config                   = array();
+                $CI                       = & get_instance();
+                $config                   = [];
                 $config['image_library']  = 'gd2';
                 $config['source_image']   = $newFilePath;
                 $config['new_image']      = 'thumb_' . $filename;
                 $config['maintain_ratio'] = true;
-                $config['width']          = 160;
-                $config['height']         = 160;
+                $config['width']          = hooks()->apply_filters('contact_profile_image_thumb_width', 320);
+                $config['height']         = hooks()->apply_filters('contact_profile_image_thumb_height', 320);
                 $CI->image_lib->initialize($config);
                 $CI->image_lib->resize();
                 $CI->image_lib->clear();
@@ -775,15 +899,15 @@ function handle_contact_profile_image_upload($contact_id = '')
                 $config['source_image']   = $newFilePath;
                 $config['new_image']      = 'small_' . $filename;
                 $config['maintain_ratio'] = true;
-                $config['width']          = 32;
-                $config['height']         = 32;
+                $config['width']          = hooks()->apply_filters('contact_profile_image_small_width', 32);
+                $config['height']         = hooks()->apply_filters('contact_profile_image_small_height', 32);
                 $CI->image_lib->initialize($config);
                 $CI->image_lib->resize();
 
                 $CI->db->where('id', $contact_id);
-                $CI->db->update('tblcontacts', array(
-                    'profile_image' => $filename
-                ));
+                $CI->db->update(db_prefix() . 'contacts', [
+                    'profile_image' => $filename,
+                ]);
                 // Remove original image
                 unlink($newFilePath);
 
@@ -806,17 +930,18 @@ function handle_project_discussion_comment_attachments($discussion_id, $post_dat
 {
     if (isset($_FILES['file']['name']) && _perfex_upload_error($_FILES['file']['error'])) {
         header('HTTP/1.0 400 Bad error');
-        echo json_encode(array('message'=>_perfex_upload_error($_FILES['file']['error'])));
+        echo json_encode(['message' => _perfex_upload_error($_FILES['file']['error'])]);
         die;
     }
 
     if (isset($_FILES['file']['name'])) {
-        do_action('before_upload_project_discussion_comment_attachment');
-        $path = PROJECT_DISCUSSION_ATTACHMENT_FOLDER .$discussion_id . '/';
+        hooks()->do_action('before_upload_project_discussion_comment_attachment');
+        $path = PROJECT_DISCUSSION_ATTACHMENT_FOLDER . $discussion_id . '/';
+
         // Check for all cases if this extension is allowed
-        if (!_upload_extension_allowed($_FILES["file"]["name"])) {
+        if (!_upload_extension_allowed($_FILES['file']['name'])) {
             header('HTTP/1.0 400 Bad error');
-            echo json_encode(array('message'=>_l('file_php_extension_blocked')));
+            echo json_encode(['message' => _l('file_php_extension_blocked')]);
             die;
         }
 
@@ -855,18 +980,18 @@ function create_img_thumb($path, $filename, $width = 300, $height = 300)
 {
     $CI = &get_instance();
 
-    $source_path = rtrim($path, '/') . '/' . $filename;
-    $target_path = $path;
-    $config_manip = array(
-        'image_library' => 'gd2',
-        'source_image' => $source_path,
-        'new_image' => $target_path,
+    $source_path  = rtrim($path, '/') . '/' . $filename;
+    $target_path  = $path;
+    $config_manip = [
+        'image_library'  => 'gd2',
+        'source_image'   => $source_path,
+        'new_image'      => $target_path,
         'maintain_ratio' => true,
-        'create_thumb' => true,
-        'thumb_marker' => '_thumb',
-        'width' => $width,
-        'height' => $height
-    );
+        'create_thumb'   => true,
+        'thumb_marker'   => '_thumb',
+        'width'          => $width,
+        'height'         => $height,
+    ];
 
     $CI->image_lib->initialize($config_manip);
     $CI->image_lib->resize();
@@ -880,13 +1005,23 @@ function create_img_thumb($path, $filename, $width = 300, $height = 300)
  */
 function _upload_extension_allowed($filename)
 {
-    $path_parts         = pathinfo($filename);
-    $extension          = $path_parts['extension'];
-    $extension = strtolower($extension);
+    $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+    $browser = get_instance()->agent->browser();
+
     $allowed_extensions = explode(',', get_option('allowed_files'));
     $allowed_extensions = array_map('trim', $allowed_extensions);
+
+    //  https://discussions.apple.com/thread/7229860
+    //  Used in main.js too for Dropzone
+    if (strtolower($browser) === 'safari'
+        && in_array('.jpg', $allowed_extensions)
+        && !in_array('.jpeg', $allowed_extensions)
+    ) {
+        $allowed_extensions[] = '.jpeg';
+    }
     // Check for all cases if this extension is allowed
-    if (!in_array('.'.$extension, $allowed_extensions)) {
+    if (!in_array('.' . $extension, $allowed_extensions)) {
         return false;
     }
 
@@ -932,8 +1067,8 @@ function _file_attachments_index_fix($index_name)
 function _maybe_create_upload_path($path)
 {
     if (!file_exists($path)) {
-        mkdir($path);
-        fopen($path . 'index.html', 'w');
+        mkdir($path, 0755);
+        fopen(rtrim($path, '/') . '/' . 'index.html', 'w');
     }
 }
 
@@ -944,53 +1079,73 @@ function _maybe_create_upload_path($path)
  */
 function get_upload_path_by_type($type)
 {
+    $path = '';
     switch ($type) {
         case 'lead':
-            return LEAD_ATTACHMENTS_FOLDER;
+            $path = LEAD_ATTACHMENTS_FOLDER;
+
         break;
         case 'expense':
-            return EXPENSE_ATTACHMENTS_FOLDER;
+            $path = EXPENSE_ATTACHMENTS_FOLDER;
+
         break;
         case 'project':
-            return PROJECT_ATTACHMENTS_FOLDER;
+            $path = PROJECT_ATTACHMENTS_FOLDER;
+
         break;
         case 'proposal':
-            return PROPOSAL_ATTACHMENTS_FOLDER;
+            $path = PROPOSAL_ATTACHMENTS_FOLDER;
+
         break;
         case 'estimate':
-            return ESTIMATE_ATTACHMENTS_FOLDER;
+            $path = ESTIMATE_ATTACHMENTS_FOLDER;
+
         break;
         case 'invoice':
-            return INVOICE_ATTACHMENTS_FOLDER;
+            $path = INVOICE_ATTACHMENTS_FOLDER;
+
         break;
         case 'credit_note':
-            return CREDIT_NOTES_ATTACHMENTS_FOLDER;
+            $path = CREDIT_NOTES_ATTACHMENTS_FOLDER;
+
         break;
         case 'task':
-            return TASKS_ATTACHMENTS_FOLDER;
+            $path = TASKS_ATTACHMENTS_FOLDER;
+
         break;
         case 'contract':
-            return CONTRACTS_UPLOADS_FOLDER;
+            $path = CONTRACTS_UPLOADS_FOLDER;
+
         break;
         case 'customer':
-            return CLIENT_ATTACHMENTS_FOLDER;
+            $path = CLIENT_ATTACHMENTS_FOLDER;
+
         break;
         case 'staff':
-        return STAFF_PROFILE_IMAGES_FOLDER;
+        $path = STAFF_PROFILE_IMAGES_FOLDER;
+
         break;
         case 'company':
-        return COMPANY_FILES_FOLDER;
+        $path = COMPANY_FILES_FOLDER;
+
         break;
         case 'ticket':
-        return TICKET_ATTACHMENTS_FOLDER;
+        $path = TICKET_ATTACHMENTS_FOLDER;
+
         break;
         case 'contact_profile_images':
-        return CONTACT_PROFILE_IMAGES_FOLDER;
+        $path = CONTACT_PROFILE_IMAGES_FOLDER;
+
         break;
         case 'newsfeed':
-        return NEWSFEED_FOLDER;
+        $path = NEWSFEED_FOLDER;
+
         break;
-        default:
-        return false;
+        case 'estimate_request':
+        $path = NEWSFEED_FOLDER;
+
+        break;
     }
+
+    return hooks()->apply_filters('get_upload_path_by_type', $path, $type);
 }

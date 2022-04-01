@@ -1,4 +1,4 @@
-<?php
+<?php defined('BASEPATH') or exit('No direct script access allowed');
    if ($estimate['status'] == $status) { ?>
 <li data-estimate-id="<?php echo $estimate['id']; ?>" class="<?php if($estimate['invoiceid'] != NULL){echo 'not-sortable';} ?>">
    <div class="panel-body">
@@ -19,7 +19,7 @@
             <div class="row">
                <div class="col-md-8">
                   <span class="bold">
-                  <?php echo _l('estimate_total') . ':' . format_money($estimate['total'],$estimate['symbol']); ?>
+                  <?php echo _l('estimate_total') . ':' . app_format_money($estimate['total'], $estimate['currency_name']); ?>
                   </span>
                   <br />
                   <?php echo _l('estimate_data_date') . ': ' . _d($estimate['date']); ?>
@@ -29,7 +29,7 @@
                      } ?>
                </div>
                <div class="col-md-4 text-right">
-                  <small><i class="fa fa-paperclip"></i> <?php echo _l('estimate_notes'); ?>: <?php echo total_rows('tblnotes', array(
+                  <small><i class="fa fa-paperclip"></i> <?php echo _l('estimate_notes'); ?>: <?php echo total_rows(db_prefix().'notes', array(
                      'rel_id' => $estimate['id'],
                      'rel_type' => 'estimate',
                      )); ?></small>

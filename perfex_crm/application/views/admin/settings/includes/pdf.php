@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <ul class="nav nav-tabs" role="tablist">
     <li role="presentation" class="active">
         <a href="#general" aria-controls="general" role="tab" data-toggle="tab"><?php echo _l('settings_group_general'); ?></a>
@@ -13,7 +14,7 @@
 
     <div role="tabpanel" class="tab-pane active" id="general">
 
-        <?php $fonts = $this->pdf->get_fonts_list(); ?>
+        <?php $fonts = get_pdf_fonts_list(); ?>
         <label class="control-label"><?php echo _l('settings_pdf_font'); ?></label>
         <select name="settings[pdf_font]" class="selectpicker" data-width="100%" data-live-search="true" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
             <?php
@@ -55,6 +56,8 @@
      <hr />
      <?php render_yes_no_option('show_pdf_signature_credit_note','show_pdf_signature_credit_note'); ?>
      <hr />
+     <?php render_yes_no_option('show_pdf_signature_contract','show_pdf_signature_contract'); ?>
+     <hr />
      <?php $signature = get_option('signature_image'); ?>
      <?php if($signature != ''){ ?>
      <div class="form-group">
@@ -76,6 +79,7 @@
         <input type="file" name="signature_image" class="form-control">
     </div>
     <?php } ?>
+    <?php hooks()->do_action('after_pdf_signature_settings_fields'); ?>
 </div>
 <div role="tabpanel" class="tab-pane" id="formats">
   <label for="pdf_format_invoice" class="control-label"><?php echo _l('invoice'); ?></label>
@@ -138,6 +142,8 @@
     <option value="LETTER-PORTRAIT" <?php if(get_option('pdf_format_statement') == 'LETTER-PORTRAIT'){echo 'selected'; }?>><?php echo _l('format_letter_portrait'); ?></option>
     <option value="LETTER-LANDSCAPE" <?php if(get_option('pdf_format_statement') == 'LETTER-LANDSCAPE'){echo 'selected'; }?>><?php echo _l('format_letter_landscape'); ?></option>
 </select>
+
+<?php hooks()->do_action('after_pdf_document_formats'); ?>
 
 </div>
 </div>

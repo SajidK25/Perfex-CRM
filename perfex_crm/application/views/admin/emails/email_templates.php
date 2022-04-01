@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
     <div class="content email-templates">
@@ -6,6 +7,7 @@
                 <div class="panel_s">
                     <div class="panel-body">
                         <div class="row">
+                            <?php hooks()->do_action('before_tickets_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="no-margin"><?php echo _l('email_templates'); ?></h4>
                                  <hr class="hr-panel-heading" />
@@ -41,6 +43,7 @@
                                     </table>
                                 </div>
                             </div>
+                            <?php hooks()->do_action('before_estimates_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('estimates'); ?>
@@ -76,6 +79,7 @@
                                 </div>
                             </div>
                             <div class="clearfix"></div>
+                            <?php hooks()->do_action('before_contracts_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('email_template_contracts_fields_heading'); ?>
@@ -110,6 +114,7 @@
                                     </table>
                                 </div>
                             </div>
+                            <?php hooks()->do_action('before_invoices_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('email_template_invoices_fields_heading'); ?>
@@ -144,7 +149,44 @@
                                     </table>
                                 </div>
                             </div>
+                                <div class="clearfix"></div>
+                                <?php hooks()->do_action('before_subscriptions_email_templates'); ?>
+                             <div class="col-md-12">
+                                <h4 class="bold well email-template-heading">
+                                    <?php echo _l('subscriptions'); ?>
+                                      <?php if($hasPermissionEdit){ ?>
+                                      <a href="<?php echo admin_url('emails/disable_by_type/subscriptions'); ?>" class="pull-right mleft5 mright25"><small><?php echo _l('disable_all'); ?></small></a>
+                                      <a href="<?php echo admin_url('emails/enable_by_type/subscriptions'); ?>" class="pull-right"><small><?php echo _l('enable_all'); ?></small></a>
+                                     <?php } ?>
+
+                                    </h4>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th><?php echo _l('email_templates_table_heading_name'); ?></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach($subscriptions as $subscription_template){ ?>
+                                            <tr>
+                                                <td class="<?php if($subscription_template['active'] == 0){echo 'text-throught';} ?>">
+                                                    <a href="<?php echo admin_url('emails/email_template/'.$subscription_template['emailtemplateid']); ?>"><?php echo $subscription_template['name']; ?></a>
+                                                    <?php if(ENVIRONMENT !== 'production'){ ?>
+                                                    <br/><small><?php echo $subscription_template['slug']; ?></small>
+                                                    <?php } ?>
+                                                    <?php if($hasPermissionEdit){ ?>
+                                                    <a href="<?php echo admin_url('emails/'.($subscription_template['active'] == '1' ? 'disable/' : 'enable/').$subscription_template['emailtemplateid']); ?>" class="pull-right"><small><?php echo _l($subscription_template['active'] == 1 ? 'disable' : 'enable'); ?></small></a>
+                                                    <?php } ?>
+                                                </td>
+                                            </tr>
+                                            <?php } ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                             <div class="clearfix"></div>
+                            <?php hooks()->do_action('before_credit_notes_email_templates'); ?>
                               <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('credit_note'); ?>
@@ -180,6 +222,7 @@
                                 </div>
                             </div>
                             <div class="clearfix"></div>
+                            <?php hooks()->do_action('before_tasks_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('tasks'); ?>
@@ -214,6 +257,7 @@
                                     </table>
                                 </div>
                             </div>
+                            <?php hooks()->do_action('before_customers_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('email_template_clients_fields_heading'); ?>
@@ -231,7 +275,11 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach($client as $client_template){ ?>
+                                            <?php foreach($client as $client_template){
+                                                if($client_template['slug'] == 'client-registration-confirmed' && get_option('customers_register_require_confirmation') == '0' && total_rows(db_prefix().'clients','registration_confirmed=0') == 0) {
+                                                    continue;
+                                                }
+                                             ?>
                                             <tr>
                                                 <td class="<?php if($client_template['active'] == 0){echo 'text-throught';} ?>">
                                                     <a href="<?php echo admin_url('emails/email_template/'.$client_template['emailtemplateid']); ?>"><?php echo $client_template['name']; ?></a>
@@ -249,6 +297,7 @@
                                 </div>
                             </div>
                             <div class="clearfix"></div>
+                            <?php hooks()->do_action('before_proposals_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('email_template_proposals_fields_heading'); ?>
@@ -283,6 +332,7 @@
                                     </table>
                                 </div>
                             </div>
+                            <?php hooks()->do_action('before_projects_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('projects'); ?>
@@ -316,6 +366,7 @@
                                     </table>
                                 </div>
                             </div>
+                            <?php hooks()->do_action('before_staff_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('staff_members'); ?>
@@ -340,7 +391,7 @@
                                                     <?php if(ENVIRONMENT !== 'production'){ ?>
                                                     <br/><small><?php echo $staff_template['slug']; ?></small>
                                                     <?php } ?>
-                                                    <?php if($hasPermissionEdit){ ?>
+                                                    <?php if($hasPermissionEdit && $staff_template['slug'] != 'two-factor-authentication'){ ?>
                                                     <a href="<?php echo admin_url('emails/'.($staff_template['active'] == '1' ? 'disable/' : 'enable/').$staff_template['emailtemplateid']); ?>" class="pull-right"><small><?php echo _l($staff_template['active'] == 1 ? 'disable' : 'enable'); ?></small></a>
                                                     <?php } ?>
                                                 </td>
@@ -350,12 +401,118 @@
                                     </table>
                                 </div>
                             </div>
+                            <?php hooks()->do_action('before_leads_email_templates'); ?>
                             <div class="col-md-12">
                                 <h4 class="bold well email-template-heading">
                                     <?php echo _l('leads'); ?>
+                                    <?php if($hasPermissionEdit){ ?>
+                                        <a href="<?php echo admin_url('emails/disable_by_type/leads'); ?>" class="pull-right mleft5 mright25"><small><?php echo _l('disable_all'); ?></small></a>
+                                        <a href="<?php echo admin_url('emails/enable_by_type/leads'); ?>" class="pull-right"><small><?php echo _l('enable_all'); ?></small></a>
+                                    <?php } ?>
+
+                                </h4>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                        <tr>
+                                            <th><?php echo _l('email_templates_table_heading_name'); ?></th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <?php foreach($leads as $lead_template){ ?>
+                                            <tr>
+                                                <td class="<?php if($lead_template['active'] == 0){echo 'text-throught';} ?>">
+                                                    <a href="<?php echo admin_url('emails/email_template/'.$lead_template['emailtemplateid']); ?>"><?php echo $lead_template['name']; ?></a>
+                                                    <?php if(ENVIRONMENT !== 'production'){ ?>
+                                                        <br/><small><?php echo $lead_template['slug']; ?></small>
+                                                    <?php } ?>
+                                                    <?php if($hasPermissionEdit){ ?>
+                                                        <a href="<?php echo admin_url('emails/'.($lead_template['active'] == '1' ? 'disable/' : 'enable/').$lead_template['emailtemplateid']); ?>" class="pull-right"><small><?php echo _l($lead_template['active'] == 1 ? 'disable' : 'enable'); ?></small></a>
+                                                    <?php } ?>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <?php hooks()->do_action('before_estimate_request_email_templates'); ?>
+                            <div class="col-md-12">
+                                <h4 class="bold well email-template-heading">
+                                    <?php echo _l('estimate_request'); ?>
+                                    <?php if($hasPermissionEdit){ ?>
+                                        <a href="<?php echo admin_url('emails/disable_by_type/estimate_request'); ?>" class="pull-right mleft5 mright25"><small><?php echo _l('disable_all'); ?></small></a>
+                                        <a href="<?php echo admin_url('emails/enable_by_type/estimate_request'); ?>" class="pull-right"><small><?php echo _l('enable_all'); ?></small></a>
+                                    <?php } ?>
+
+                                </h4>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                        <tr>
+                                            <th><?php echo _l('email_templates_table_heading_name'); ?></th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <?php foreach($estimate_request as $estimate_request){ ?>
+                                            <tr>
+                                                <td class="<?php if($estimate_request['active'] == 0){echo 'text-throught';} ?>">
+                                                    <a href="<?php echo admin_url('emails/email_template/'.$estimate_request['emailtemplateid']); ?>"><?php echo $estimate_request['name']; ?></a>
+                                                    <?php if(ENVIRONMENT !== 'production'){ ?>
+                                                        <br/><small><?php echo $estimate_request['slug']; ?></small>
+                                                    <?php } ?>
+                                                    <?php if($hasPermissionEdit){ ?>
+                                                        <a href="<?php echo admin_url('emails/'.($estimate_request['active'] == '1' ? 'disable/' : 'enable/').$estimate_request['emailtemplateid']); ?>" class="pull-right"><small><?php echo _l($estimate_request['active'] == 1 ? 'disable' : 'enable'); ?></small></a>
+                                                    <?php } ?>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <?php hooks()->do_action('before_notifications_email_templates'); ?>
+                            <div class="col-md-12">
+                                <h4 class="bold well email-template-heading">
+                                    <?php echo _l('notifications'); ?>
+                                    <?php if($hasPermissionEdit){ ?>
+                                        <a href="<?php echo admin_url('emails/disable_by_type/notifications'); ?>" class="pull-right mleft5 mright25"><small><?php echo _l('disable_all'); ?></small></a>
+                                        <a href="<?php echo admin_url('emails/enable_by_type/notifications'); ?>" class="pull-right"><small><?php echo _l('enable_all'); ?></small></a>
+                                    <?php } ?>
+
+                                </h4>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                        <tr>
+                                            <th><?php echo _l('email_templates_table_heading_name'); ?></th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <?php foreach($notifications as $notification){ ?>
+                                            <tr>
+                                                <td class="<?php if($notification['active'] == 0){echo 'text-throught';} ?>">
+                                                    <a href="<?php echo admin_url('emails/email_template/'.$notification['emailtemplateid']); ?>"><?php echo $notification['name']; ?></a>
+                                                    <?php if(ENVIRONMENT !== 'production'){ ?>
+                                                        <br/><small><?php echo $notification['slug']; ?></small>
+                                                    <?php } ?>
+                                                    <?php if($hasPermissionEdit){ ?>
+                                                        <a href="<?php echo admin_url('emails/'.($notification['active'] == '1' ? 'disable/' : 'enable/').$notification['emailtemplateid']); ?>" class="pull-right"><small><?php echo _l($notification['active'] == 1 ? 'disable' : 'enable'); ?></small></a>
+                                                    <?php } ?>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <?php hooks()->do_action('before_gdpr_email_templates'); ?>
+                            <div class="col-md-12<?php if(!is_gdpr()){echo ' hide';} ?>">
+                                <h4 class="bold well email-template-heading">
+                                    <?php echo _l('gdpr'); ?>
                                        <?php if($hasPermissionEdit){ ?>
-                                      <a href="<?php echo admin_url('emails/disable_by_type/leads'); ?>" class="pull-right mleft5 mright25"><small><?php echo _l('disable_all'); ?></small></a>
-                                      <a href="<?php echo admin_url('emails/enable_by_type/leads'); ?>" class="pull-right"><small><?php echo _l('enable_all'); ?></small></a>
+                                      <a href="<?php echo admin_url('emails/disable_by_type/gdpr'); ?>" class="pull-right mleft5 mright25"><small><?php echo _l('disable_all'); ?></small></a>
+                                      <a href="<?php echo admin_url('emails/enable_by_type/gdpr'); ?>" class="pull-right"><small><?php echo _l('enable_all'); ?></small></a>
                                      <?php } ?>
 
                                     </h4>
@@ -367,15 +524,15 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach($leads as $lead_template){ ?>
+                                            <?php foreach($gdpr as $gdpr_template){ ?>
                                             <tr>
-                                                <td class="<?php if($lead_template['active'] == 0){echo 'text-throught';} ?>">
-                                                    <a href="<?php echo admin_url('emails/email_template/'.$lead_template['emailtemplateid']); ?>"><?php echo $lead_template['name']; ?></a>
+                                                <td class="<?php if($gdpr_template['active'] == 0){echo 'text-throught';} ?>">
+                                                    <a href="<?php echo admin_url('emails/email_template/'.$gdpr_template['emailtemplateid']); ?>"><?php echo $gdpr_template['name']; ?></a>
                                                     <?php if(ENVIRONMENT !== 'production'){ ?>
-                                                    <br/><small><?php echo $lead_template['slug']; ?></small>
+                                                    <br/><small><?php echo $gdpr_template['slug']; ?></small>
                                                     <?php } ?>
                                                     <?php if($hasPermissionEdit){ ?>
-                                                    <a href="<?php echo admin_url('emails/'.($lead_template['active'] == '1' ? 'disable/' : 'enable/').$lead_template['emailtemplateid']); ?>" class="pull-right"><small><?php echo _l($lead_template['active'] == 1 ? 'disable' : 'enable'); ?></small></a>
+                                                    <a href="<?php echo admin_url('emails/'.($gdpr_template['active'] == '1' ? 'disable/' : 'enable/').$gdpr_template['emailtemplateid']); ?>" class="pull-right"><small><?php echo _l($gdpr_template['active'] == 1 ? 'disable' : 'enable'); ?></small></a>
                                                     <?php } ?>
                                                 </td>
                                             </tr>
@@ -384,6 +541,7 @@
                                     </table>
                                 </div>
                             </div>
+                            <?php hooks()->do_action('after_email_templates'); ?>
                             <div class="clearfix"></div>
                         </div>
                     </div>

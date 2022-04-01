@@ -1,340 +1,251 @@
 <?php
+
 defined('BASEPATH') or exit('No direct script access allowed');
-/**
- * String starts with
- * @param  string $haystack
- * @param  string $needle
- * @return boolean
- */
-if (!function_exists('_startsWith')) {
-    function _startsWith($haystack, $needle)
+
+if (!function_exists('startsWith')) {
+    /**
+     * String starts with
+     * @param  string $haystack
+     * @param  string $needle
+     * @return boolean
+     */
+    function startsWith($haystack, $needle)
     {
-        // search backwards starting from haystack length characters from the end
-        return $needle === "" || strrpos($haystack, $needle, -strlen($haystack)) !== false;
+        return \app\services\utilities\Str::startsWith($haystack, $needle);
     }
 }
-/**
- * String ends with
- * @param  string $haystack
- * @param  string $needle
- * @return boolean
- */
+
 if (!function_exists('endsWith')) {
+    /**
+    * String ends with
+    * @param  string $haystack
+    * @param  string $needle
+    * @return boolean
+    */
     function endsWith($haystack, $needle)
     {
-        // search forward starting from end minus needle length characters
-        return $needle === "" || (($temp = strlen($haystack) - strlen($needle)) >= 0 && strpos($haystack, $needle, $temp) !== false);
+        return \app\services\utilities\Str::endsWith($haystack, $needle);
     }
 }
-/**
- * Check if there is html in string
- */
+
 if (!function_exists('is_html')) {
+    /**
+     * Check if there is html in string
+     */
     function is_html($string)
     {
-        return preg_match("/<[^<]+>/", $string, $m) != 0;
+        return \app\services\utilities\Str::isHtml($string);
     }
 }
-/**
- * Get string after specific charcter/word
- * @param  string $string    string from where to get
- * @param  substring $substring search for
- * @return string
- */
-function strafter($string, $substring)
-{
-    $pos = strpos($string, $substring);
-    if ($pos === false) {
-        return $string;
-    } else {
-        return (substr($string, $pos + strlen($substring)));
+
+if (!function_exists('strafter')) {
+    /**
+     * Get string after specific charcter/word
+     * @param  string $string    string from where to get
+     * @param  substring $substring search for
+     * @return string
+     */
+    function strafter($string, $substring)
+    {
+        return \app\services\utilities\Str::after($string, $substring);
     }
 }
-/**
- * Get string before specific charcter/word
- * @param  string $string    string from where to get
- * @param  substring $substring search for
- * @return string
- */
-function strbefore($string, $substring)
-{
-    $pos = strpos($string, $substring);
-    if ($pos === false) {
-        return $string;
-    } else {
-        return (substr($string, 0, $pos));
+
+if (!function_exists('strbefore')) {
+    /**
+     * Get string before specific charcter/word
+     * @param  string $string    string from where to get
+     * @param  substring $substring search for
+     * @return string
+     */
+    function strbefore($string, $substring)
+    {
+        return \app\services\utilities\Str::before($string, $substring);
     }
 }
-/**
- * Is internet connection open
- * @param  string  $domain
- * @return boolean
- */
-function is_connected($domain = 'www.perfexcrm.com')
-{
-    $connected = @fsockopen($domain, 80);
-    //website, port  (try 80 or 443)
-    if ($connected) {
-        $is_conn = true; //action when connected
-        fclose($connected);
-    } else {
-        $is_conn = false; //action in connection failure
-    }
 
-    return $is_conn;
-}
-/**
- * Replace Last Occurence of a String in a String
- * @since  Version 1.0.1
- * @param  string $search  string to be replaced
- * @param  string $replace replace with
- * @param  string $subject [the string to search
- * @return string
- */
-function str_lreplace($search, $replace, $subject)
-{
-    $pos = strrpos($subject, $search);
-    if ($pos !== false) {
-        $subject = substr_replace($subject, $replace, $pos, strlen($search));
-    }
-
-    return $subject;
-}
-/**
- * Get string bettween words
- * @param  string $string the string to get from
- * @param  string $start  where to start
- * @param  string $end    where to end
- * @return string formatted string
- */
-function get_string_between($string, $start, $end)
-{
-    $string = ' ' . $string;
-    $ini    = strpos($string, $start);
-    if ($ini == 0) {
-        return '';
-    }
-    $ini += strlen($start);
-    $len = strpos($string, $end, $ini) - $ini;
-
-    return substr($string, $ini, $len);
-}
-/**
- * Format datetime to time ago with specific hours mins and seconds
- * @param  datetime $lastreply
- * @param  string $from      Optional
- * @return mixed
- */
-function time_ago_specific($date, $from = "now")
-{
-    $datetime   = strtotime($from);
-    $date2      = strtotime("" . $date);
-    $holdtotsec = $datetime - $date2;
-    $holdtotmin = ($datetime - $date2) / 60;
-    $holdtothr  = ($datetime - $date2) / 3600;
-    $holdtotday = intval(($datetime - $date2) / 86400);
-    $str        = '';
-    if (0 < $holdtotday) {
-        $str .= $holdtotday . "d ";
-    }
-    $holdhr = intval($holdtothr - $holdtotday * 24);
-    $str .= $holdhr . "h ";
-    $holdmr = intval($holdtotmin - ($holdhr * 60 + $holdtotday * 1440));
-    $str .= $holdmr . "m";
-
-    return $str;
-}
-/**
- * Format seconds to quantity
- * @param  mixed  $sec      total seconds
- * @return [integer]
- */
-
-function sec2qty($sec)
-{
-    $seconds = $sec / 3600;
-
-    $qty = round($seconds, 2);
-
-    $hookData = do_action('sec2qty_formatted', array('seconds'=>$sec, 'qty'=>$qty));
-
-    return $hookData['qty'];
-}
-
-/**
- * Format seconds to H:I:S
- * @param  integer $seconds         mixed
- * @param  boolean $include_seconds
- * @return string
- */
-function seconds_to_time_format($seconds = 0, $include_seconds = false)
-{
-    $hours = floor($seconds / 3600);
-    $mins = floor(($seconds - ($hours * 3600)) / 60);
-    $secs = floor($seconds % 60);
-
-    $hours = ($hours < 10) ? "0" . $hours : $hours;
-    $mins = ($mins < 10) ? "0" . $mins : $mins;
-    $secs = ($secs < 10) ? "0" . $secs : $secs;
-    $sprintF = $include_seconds == true ? '%02d:%02d:%02d' : '%02d:%02d';
-
-    return sprintf($sprintF, $hours, $mins, $secs);
-}
-/**
- * Converts hours to minutes timestamp
- * @param  mixed $hours     total hours in format HH:MM or HH.MMM
- * @return int
- */
-function hours_to_seconds_format($hours)
-{
-    if (strpos($hours, '.') !== false) {
-        $hours = str_replace('.', ':', $hours);
-    }
-    $tmp = explode(':', $hours);
-    $hours = $tmp[0];
-    $minutesFromHour = isset($tmp[1]) ? $tmp[1] : 0;
-
-    return $hours*3600 + $minutesFromHour*60;
-}
-
-/*
- * ip_in_range.php - Function to determine if an IP is located in a
- *                   specific range as specified via several alternative
- *                   formats.
- *
- * Network ranges can be specified as:
- * 1. Wildcard format:     1.2.3.*
- * 2. CIDR format:         1.2.3/24  OR  1.2.3.4/255.255.255.0
- * 3. Start-End IP format: 1.2.3.0-1.2.3.255
- *
- * Return value BOOLEAN : ip_in_range($ip, $range);
- *
- * Copyright 2008: Paul Gregg <pgregg@pgregg.com>
- * 10 January 2008
- * Version: 1.2
- *
- * Source website: http://www.pgregg.com/projects/php/ip_in_range/
- * Version 1.2
- *
- * This software is Donationware - if you feel you have benefited from
- * the use of this tool then please consider a donation. The value of
- * which is entirely left up to your discretion.
- * http://www.pgregg.com/donate/
- *
- * Please do not remove this header, or source attibution from this file.
- */
-
-// ip_in_range
-// This function takes 2 arguments, an IP address and a "range" in several
-// different formats.
-// Network ranges can be specified as:
-// 1. Wildcard format:     1.2.3.*
-// 2. CIDR format:         1.2.3/24  OR  1.2.3.4/255.255.255.0
-// 3. Start-End IP format: 1.2.3.0-1.2.3.255
-// The function will return true if the supplied IP is within the range.
-// Note little validation is done on the range inputs - it expects you to
-// use one of the above 3 formats.
-function ip_in_range($ip, $range)
-{
-    if (strpos($range, '/') !== false) {
-        // $range is in IP/NETMASK format
-        list($range, $netmask) = explode('/', $range, 2);
-        if (strpos($netmask, '.') !== false) {
-            // $netmask is a 255.255.0.0 format
-            $netmask = str_replace('*', '0', $netmask);
-            $netmask_dec = ip2long($netmask);
-
-            return ((ip2long($ip) & $netmask_dec) == (ip2long($range) & $netmask_dec));
-        } else {
-            // $netmask is a CIDR size block
-            // fix the range argument
-            $x = explode('.', $range);
-            while (count($x)<4) {
-                $x[] = '0';
-            }
-            list($a, $b, $c, $d) = $x;
-            $range = sprintf("%u.%u.%u.%u", empty($a)?'0':$a, empty($b)?'0':$b, empty($c)?'0':$c, empty($d)?'0':$d);
-            $range_dec = ip2long($range);
-            $ip_dec = ip2long($ip);
-
-            # Strategy 1 - Create the netmask with 'netmask' 1s and then fill it to 32 with 0s
-            #$netmask_dec = bindec(str_pad('', $netmask, '1') . str_pad('', 32-$netmask, '0'));
-
-            # Strategy 2 - Use math to create it
-            $wildcard_dec = pow(2, (32-$netmask)) - 1;
-            $netmask_dec = ~ $wildcard_dec;
-
-            return (($ip_dec & $netmask_dec) == ($range_dec & $netmask_dec));
-        }
-    } else {
-        // range might be 255.255.*.* or 1.2.3.0-1.2.3.255
-    if (strpos($range, '*') !==false) { // a.b.*.* format
-      // Just convert to A-B format by setting * to 0 for A and 255 for B
-      $lower = str_replace('*', '0', $range);
-        $upper = str_replace('*', '255', $range);
-        $range = "$lower-$upper";
-    }
-
-        if (strpos($range, '-')!==false) { // A-B format
-            list($lower, $upper) = explode('-', $range, 2);
-            $lower_dec = (float) sprintf("%u", ip2long($lower));
-            $upper_dec = (float) sprintf("%u", ip2long($upper));
-            $ip_dec = (float) sprintf("%u", ip2long($ip));
-
-            return (($ip_dec>=$lower_dec) && ($ip_dec<=$upper_dec));
-        }
-
-        echo 'Range argument is not in 1.2.3.4/24 or 1.2.3.4/255.255.255.0 format';
-
-        return false;
+if (!function_exists('is_connected')) {
+    /**
+     * Is internet connection open
+     * @param  string  $domain
+     * @return boolean
+     */
+    function is_connected($domain = 'www.google.com')
+    {
+        return \app\services\utilities\Utils::isConnected($domain);
     }
 }
-/**
- * Flatten multidimensional array
- * @param  array  $array
- * @return array
- */
-function array_flatten(array $array)
-{
-    $return = array();
-    array_walk_recursive($array, function ($a) use (&$return) {
-        $return[] = $a;
-    });
 
-    return $return;
-}
-/**
- * Check if value exist in array by key
- * @param  array $array
- * @param  string $key   key to check
- * @param  mixed $val   value
- * @return boolean
- */
-function value_exists_in_array_by_key($array, $key, $val)
-{
-    foreach ($array as $item) {
-        if (isset($item[$key]) && $item[$key] == $val) {
-            return true;
-        }
+if (!function_exists('str_lreplace')) {
+    /**
+     * Replace Last Occurence of a String in a String
+     * @since  Version 1.0.1
+     * @param  string $search  string to be replaced
+     * @param  string $replace replace with
+     * @param  string $subject [the string to search
+     * @return string
+     */
+    function str_lreplace($search, $replace, $subject)
+    {
+        return \app\services\utilities\Str::replaceLast($search, $replace, $subject);
     }
+}
 
-    return false;
+if (!function_exists('get_string_between')) {
+    /**
+     * Get string bettween words
+     * @param  string $string the string to get from
+     * @param  string $start  where to start
+     * @param  string $end    where to end
+     * @return string formatted string
+     */
+    function get_string_between($string, $start, $end)
+    {
+        return \app\services\utilities\Str::between($string, $start, $end);
+    }
+}
+
+if (!function_exists('time_ago_specific')) {
+    /**
+     * Format datetime to time ago with specific hours mins and seconds
+     * @param  datetime $lastreply
+     * @param  string $from      Optional
+     * @return mixed
+     */
+    function time_ago_specific($date, $from = 'now')
+    {
+        return \app\services\utilities\Date::timeAgo($date, $from);
+    }
+}
+
+if (!function_exists('sec2qty')) {
+    /**
+     * Format seconds to quantity
+     * @param  mixed  $sec      total seconds
+     * @return [integer]
+     */
+    function sec2qty($sec)
+    {
+        $qty = \app\services\utilities\Format::sec2qty($sec);
+
+        return hooks()->apply_filters('sec2qty_formatted', $qty, $sec);
+    }
+}
+
+if (!function_exists('seconds_to_time_format')) {
+    /**
+     * Format seconds to H:I:S
+     * @param  integer $seconds         mixed
+     * @param  boolean $include_seconds
+     * @return string
+     */
+    function seconds_to_time_format($seconds = 0, $include_seconds = false)
+    {
+        return \app\services\utilities\Format::secondsToTime($seconds, $include_seconds);
+    }
+}
+
+if (!function_exists('hours_to_seconds_format')) {
+    /**
+     * Converts hours to minutes timestamp
+     * @param  mixed $hours     total hours in format HH:MM or HH.MMM
+     * @return int
+     */
+    function hours_to_seconds_format($hours)
+    {
+        return \app\services\utilities\Format::hoursToSeconds($hours);
+    }
+}
+
+if (!function_exists('ip_in_range')) {
+    /**
+     * Check whether ip is in range
+     * @param  string $ip    ip address to check
+     * @param  string $range range
+     * @return boolean
+     */
+    function ip_in_range($ip, $range)
+    {
+        return \app\services\utilities\Utils::ipInRage($ip, $range);
+    }
+}
+
+if (!function_exists('array_merge_recursive_distinct')) {
+    /**
+     * @since  2.3.4
+     *
+     * Array merge recursive distinct
+     *
+     * @param  array  &$array1
+     * @param  array  &$array2
+     * @return array
+     */
+    function array_merge_recursive_distinct(array &$array1, array &$array2)
+    {
+        return \app\services\utilities\Arr::merge_recursive_distinct($array1, $array2);
+    }
+}
+
+if (!function_exists('array_to_object')) {
+    /**
+     * Convert array to oobject
+     * @param  array $array array to convert
+     * @return object
+     */
+    function array_to_object($array)
+    {
+        return \app\services\utilities\Arr::toObject($array);
+    }
+}
+
+if (!function_exists('array_flatten')) {
+    /**
+     * Flatten multidimensional array
+     * @param  array  $array
+     * @return array
+     */
+    function array_flatten(array $array)
+    {
+        return \app\services\utilities\Arr::flatten($array);
+    }
+}
+
+if (!function_exists('value_exists_in_array_by_key')) {
+    /**
+     * Check if value exist in array by key
+     * @param  array $array
+     * @param  string $key   key to check
+     * @param  mixed $val   value
+     * @return boolean
+     */
+    function value_exists_in_array_by_key($array, $key, $val)
+    {
+        return \app\services\utilities\Arr::valueExistsByKey($array, $key, $val);
+    }
 }
 
 if (!function_exists('in_array_multidimensional')) {
+    /**
+     * Check if in array multidimensional
+     * @param  array $array  array to perform the checks
+     * @param  mixed $key    array key
+     * @param  mixed $val    the value to check
+     * @return boolean
+     */
     function in_array_multidimensional($array, $key, $val)
     {
-        foreach ($array as $item) {
-            if (isset($item[$key]) && $item[$key] == $val) {
-                return true;
-            }
-        }
-
-        return false;
+        return \app\services\utilities\Arr::inMultidimensional($array, $key, $val);
     }
 }
 
 if (!function_exists('in_object_multidimensional')) {
+    /**
+     * Check if in object multidimensional
+     * @param  object $object  object to perform the checks
+     * @param  mixed $key      object key
+     * @param  mixed $val      the value to check
+     * @return boolean
+     */
     function in_object_multidimensional($object, $key, $val)
     {
         foreach ($object as $item) {
@@ -346,70 +257,139 @@ if (!function_exists('in_object_multidimensional')) {
         return false;
     }
 }
-/**
- *
- * @param  $array - data
- * @param  $key - value you want to pluck from array
- *
- * @return plucked array only with key data
- */
+
 if (!function_exists('array_pluck')) {
+    /**
+     *
+     * @param  $array - data
+     * @param  $key - value you want to pluck from array
+     *
+     * @return plucked array only with key data
+     */
     function array_pluck($array, $key)
     {
-        return array_map(function ($v) use ($key) {
-            return is_object($v) ? $v->$key : $v[$key];
-        }, $array);
+        return \app\services\utilities\Arr::pluck($array, $key);
+    }
+}
+
+if (!function_exists('adjust_color_brightness')) {
+    /**
+     * Adjust color brightness
+     * @param  string $hex   hex color to adjust from
+     * @param  mixed $steps eq -20 or 20
+     * @return string
+     */
+    function adjust_color_brightness($hex, $steps)
+    {
+        return \app\services\utilities\Utils::adjustColorBrightness($hex, $steps);
+    }
+}
+
+if (!function_exists('hex2rgb')) {
+    /**
+     * Convert hex color to rgb
+     * @param  string $color color hex code
+     * @return string
+     */
+    function hex2rgb($color)
+    {
+        return \app\services\utilities\Utils::hex2rgb($color);
+    }
+}
+
+if (!function_exists('check_for_links')) {
+    /**
+     * Check for links/emails/ftp in string to wrap in href
+     * @param  string $ret
+     * @return string      formatted string with href in any found
+     */
+    function check_for_links($ret)
+    {
+        return \app\services\utilities\Str::clickable($ret);
+    }
+}
+
+if (!function_exists('time_ago')) {
+    /**
+     * Short Time ago function
+     * @param  datetime $date
+     * @return mixed
+     */
+    function time_ago($date)
+    {
+        $CI = &get_instance();
+
+        $localization = [];
+
+        foreach (['time_ago_just_now', 'time_ago_minute', 'time_ago_minutes', 'time_ago_hour', 'time_ago_hours', 'time_ago_yesterday', 'time_ago_days', 'time_ago_week', 'time_ago_weeks', 'time_ago_month', 'time_ago_months', 'time_ago_year', 'time_ago_years'] as $langKey) {
+            if (isset($CI->lang->language[$langKey])) {
+                $localization[$langKey] = $CI->lang->language[$langKey];
+            }
+        }
+
+        return \app\services\utilities\Date::timeAgoString($date, $localization);
+    }
+}
+
+if (!function_exists('slug_it')) {
+    /**
+     * Slug function
+     * @param  string $str
+     * @param  array  $options Additional Options
+     * @return mixed
+     */
+    function slug_it($str, $options = [])
+    {
+        $defaults = ['lang' => get_option('active_language')];
+        $settings = array_merge($defaults, $options);
+
+        return \app\services\utilities\Str::slug($str, $settings);
+    }
+}
+
+if (!function_exists('similarity')) {
+    /**
+     * Check 2 string similarity
+     * @param  string $str1
+     * @param  string $str2
+     * @return float
+     */
+    function similarity($str1, $str2)
+    {
+        return \app\services\utilities\Str::similarity($str1, $str2);
     }
 }
 
 /**
- * Adjust color brightness
- * @param  string $hex   hex color to adjust from
- * @param  mixed $steps eq -20 or 20
- * @return string
+ * @since  2.3.0
+ * Sort array by position
+ * @param  array  $array     the arry to sort
+ * @param  boolean $keepIndex whether to keep the indexes
+ * @return array
  */
-function adjust_color_brightness($hex, $steps)
+function app_sort_by_position($array, $keepIndex = false)
 {
-    // Steps should be between -255 and 255. Negative = darker, positive = lighter
-    $steps = max(-255, min(255, $steps));
-    // Normalize into a six character long hex string
-    $hex   = str_replace('#', '', $hex);
-    if (strlen($hex) == 3) {
-        $hex = str_repeat(substr($hex, 0, 1), 2) . str_repeat(substr($hex, 1, 1), 2) . str_repeat(substr($hex, 2, 1), 2);
-    }
-    // Split into three parts: R, G and B
-    $color_parts = str_split($hex, 2);
-    $return      = '#';
-    foreach ($color_parts as $color) {
-        $color = hexdec($color); // Convert to decimal
-        $color = max(0, min(255, $color + $steps)); // Adjust color
-        $return .= str_pad(dechex($color), 2, '0', STR_PAD_LEFT); // Make two char hex code
-    }
-
-    return $return;
+    return \app\services\utilities\Arr::sortBy($array, 'position', $keepIndex);
 }
+
 /**
- * Convert hex color to rgb
- * @param  string $color color hex code
- * @return string
+ * Fill common empty attributes used for various function e.q. menu, tabs etc...
+ * This is used e.q. if user didn't added icon array attribute but there are no checks performed if(iseet($item['icon'])) to prevent
+ * throwing errors.
+ * @param  array $array
+ * @return array
  */
-function hex2rgb($color)
+function app_fill_empty_common_attributes($array)
 {
-    $color = str_replace('#', '', $color);
-    if (strlen($color) != 6) {
-        return array(
-            0,
-            0,
-            0,
-        );
-    }
-    $rgb = array();
-    for ($x = 0; $x < 3; $x++) {
-        $rgb[$x] = hexdec(substr($color, (2 * $x), 2));
-    }
+    $array['icon'] = isset($array['icon']) ? $array['icon'] : '';
 
-    return $rgb;
+    $array['href'] = isset($array['href']) && $array['href'] != '' ? $array['href'] : '#';
+
+    $array['position'] = isset($array['position']) ? $array['position'] : null;
+
+    return $array;
 }
+
 /**
  * Function that strip all html tags from string/text/html
  * @param  string $str
@@ -419,7 +399,7 @@ function hex2rgb($color)
 function strip_html_tags($str, $allowed = '')
 {
     $str = preg_replace('/(<|>)\1{2}/is', '', $str);
-    $str = preg_replace(array(
+    $str = preg_replace([
         // Remove invisible content
         '@<head[^>]*?>.*?</head>@siu',
         '@<style[^>]*?>.*?</style>@siu',
@@ -438,7 +418,7 @@ function strip_html_tags($str, $allowed = '')
         '@</?((form)|(button)|(fieldset)|(legend)|(input))@iu',
         '@</?((label)|(select)|(optgroup)|(option)|(textarea))@iu',
         '@</?((frameset)|(frame)|(iframe))@iu',
-    ), array(
+    ], [
         ' ',
         ' ',
         ' ',
@@ -456,234 +436,17 @@ function strip_html_tags($str, $allowed = '')
         "\n\$0",
         "\n\$0",
         "\n\$0",
-    ), $str);
+    ], $str);
 
     $str = strip_tags($str, $allowed);
 
     // Remove on events from attributes
-    $re = '/\bon[a-z]+\s*=\s*(?:([\'"]).+?\1|(?:\S+?\(.*?\)(?=[\s>])))/i';
+    $re  = '/\bon[a-z]+\s*=\s*(?:([\'"]).+?\1|(?:\S+?\(.*?\)(?=[\s>])))/i';
     $str = preg_replace($re, '', $str);
 
+    $str = trim($str);
+    $str = trim($str, '&nbsp;');
+    $str = trim($str);
+
     return $str;
-}
-
-
-/**
- * Callback for check_for_links
- */
-function _make_url_clickable_cb($matches)
-{
-    $ret = '';
-    $url = $matches[2];
-    if (empty($url)) {
-        return $matches[0];
-    }
-    // removed trailing [.,;:] from URL
-    if (in_array(substr($url, -1), array(
-        '.',
-        ',',
-        ';',
-        ':',
-    )) === true) {
-        $ret = substr($url, -1);
-        $url = substr($url, 0, strlen($url) - 1);
-    }
-
-    return $matches[1] . "<a href=\"$url\" rel=\"nofollow\" target='_blank'>$url</a>" . $ret;
-}
-/**
- * Callback for check_for_links
- */
-function _make_web_ftp_clickable_cb($matches)
-{
-    $ret  = '';
-    $dest = $matches[2];
-    $dest = 'http://' . $dest;
-    if (empty($dest)) {
-        return $matches[0];
-    }
-    // removed trailing [,;:] from URL
-    if (in_array(substr($dest, -1), array(
-        '.',
-        ',',
-        ';',
-        ':',
-    )) === true) {
-        $ret  = substr($dest, -1);
-        $dest = substr($dest, 0, strlen($dest) - 1);
-    }
-
-    return $matches[1] . "<a href=\"$dest\" rel=\"nofollow\" target='_blank'>$dest</a>" . $ret;
-}
-/**
- * Callback for check_for_links
- */
-function _make_email_clickable_cb($matches)
-{
-    $email = $matches[2] . '@' . $matches[3];
-
-    return $matches[1] . "<a href=\"mailto:$email\">$email</a>";
-}
-/**
- * Check for links/emails/ftp in string to wrap in href
- * @param  string $ret
- * @return string      formatted string with href in any found
- */
-function check_for_links($ret)
-{
-    $ret = ' ' . $ret;
-    // in testing, using arrays here was found to be faster
-    $ret = preg_replace_callback('#([\s>])([\w]+?://[\w\\x80-\\xff\#$%&~/.\-;:=,?@\[\]+]*)#is', '_make_url_clickable_cb', $ret);
-    $ret = preg_replace_callback('#([\s>])((www|ftp)\.[\w\\x80-\\xff\#$%&~/.\-;:=,?@\[\]+]*)#is', '_make_web_ftp_clickable_cb', $ret);
-    $ret = preg_replace_callback('#([\s>])([.0-9a-z_+-]+)@(([0-9a-z-]+\.)+[0-9a-z]{2,})#i', '_make_email_clickable_cb', $ret);
-    // this one is not in an array because we need it to run last, for cleanup of accidental links within links
-    $ret = preg_replace("#(<a( [^>]+?>|>))<a [^>]+?>([^>]+?)</a></a>#i", "$1$3</a>", $ret);
-    $ret = trim($ret);
-
-    return $ret;
-}
-
-/**
- * Short Time ago function
- * @param  datetime $time_ago
- * @return mixed
- */
-function time_ago($time_ago)
-{
-    $time_ago     = strtotime($time_ago);
-    $cur_time     = time();
-    $time_elapsed = $cur_time - $time_ago;
-    $seconds      = $time_elapsed;
-    $minutes      = round($time_elapsed / 60);
-    $hours        = round($time_elapsed / 3600);
-    $days         = round($time_elapsed / 86400);
-    $weeks        = round($time_elapsed / 604800);
-    $months       = round($time_elapsed / 2600640);
-    $years        = round($time_elapsed / 31207680);
-    // Seconds
-    if ($seconds <= 60) {
-        return _l('time_ago_just_now');
-    }
-    //Minutes
-    elseif ($minutes <= 60) {
-        if ($minutes == 1) {
-            return _l('time_ago_minute');
-        } else {
-            return _l('time_ago_minutes', $minutes);
-        }
-    }
-    //Hours
-    elseif ($hours <= 24) {
-        if ($hours == 1) {
-            return _l('time_ago_hour');
-        } else {
-            return _l('time_ago_hours', $hours);
-        }
-    }
-    //Days
-    elseif ($days <= 7) {
-        if ($days == 1) {
-            return _l('time_ago_yesterday');
-        } else {
-            return _l('time_ago_days', $days);
-        }
-    }
-    //Weeks
-    elseif ($weeks <= 4.3) {
-        if ($weeks == 1) {
-            return _l('time_ago_week');
-        } else {
-            return _l('time_ago_weeks', $weeks);
-        }
-    }
-    //Months
-    elseif ($months <= 12) {
-        if ($months == 1) {
-            return _l('time_ago_month');
-        } else {
-            return _l('time_ago_months', $months);
-        }
-    }
-    //Years
-    else {
-        if ($years == 1) {
-            return _l('time_ago_year');
-        } else {
-            return _l('time_ago_years', $years);
-        }
-    }
-}
-
-/**
- * Slug function
- * @param  string $str
- * @param  array  $options Additional Options
- * @return mixed
- */
-function slug_it($str, $options = array())
-{
-    if (version_compare(phpversion(), '5.5.9', '<')) {
-        return slug_it_old($str, $options);
-    }
-
-    $defaults = array();
-
-    // Deprecated
-    if (isset($options['delimiter'])) {
-        $defaults['separator'] = $options['delimiter'];
-        unset($options['delimiter']);
-    }
-
-    //  Version 3.0.1 (24 September 2017)
-    //  Using composer
-    //  require_once(APPPATH.'third_party/slugify/src/RuleProvider/RuleProviderInterface.php');
-    //  require_once(APPPATH.'third_party/slugify/src/RuleProvider/DefaultRuleProvider.php');
-    //  require_once(APPPATH.'third_party/slugify/src/RuleProvider/FileRuleProvider.php');
-    //  require_once(APPPATH.'third_party/slugify/src/SlugifyInterface.php');
-    //  require_once(APPPATH.'third_party/slugify/src/Slugify.php');
-
-    $m = new Cocur\Slugify\RuleProvider\DefaultRuleProvider();
-
-    $lang = get_option('active_language');
-    $set = $lang == 'english' ? 'default' : $lang;
-
-    $default_active_rule_sets = array(
-            'default',
-            'azerbaijani',
-            'burmese',
-            'hindi',
-            'georgian',
-            'norwegian',
-            'vietnamese',
-            'ukrainian',
-            'latvian',
-            'finnish',
-            'greek',
-            'czech',
-            'arabic',
-            'turkish',
-            'polish',
-            'german',
-            'russian',
-            'romanian'
-    );
-
-    // Set for portuguese in Slugify is named portuguese-brazil
-    if ($set == 'portuguese_br' || $set == 'portuguese') {
-        $set = 'portuguese-brazil';
-    }
-
-    if (!in_array($set, $default_active_rule_sets)) {
-        $r = @$m->getRules($set);
-        // Check if set exist
-        if ($r) {
-            $defaults['rulesets'] = array($set);
-        }
-    }
-
-    $options = array_merge($defaults, $options);
-
-    $slugify = new Cocur\Slugify\Slugify($options);
-
-    return $slugify->slugify($str);
 }

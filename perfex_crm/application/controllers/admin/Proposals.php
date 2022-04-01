@@ -1,6 +1,10 @@
 <?php
+
+use app\services\proposals\ProposalsPipeline;
+
 defined('BASEPATH') or exit('No direct script access allowed');
-class Proposals extends Admin_controller
+
+class Proposals extends AdminController
 {
     public function __construct()
     {
@@ -18,7 +22,7 @@ class Proposals extends Admin_controller
     {
         close_setup_menu();
 
-        if (!has_permission('proposals', '', 'view') && !has_permission('proposals', '', 'view_own') && get_option('allow_staff_view_proposals_assigned') == 0) {
+        if (!has_permission('proposals', '', 'view') && !has_permission('proposals', '', 'view_own') && get_option('allow_staff_view_estimates_assigned') == 0) {
             access_denied('proposals');
         }
 
@@ -43,7 +47,7 @@ class Proposals extends Admin_controller
                 $this->pipeline(0, true);
             }
 
-            $data['proposal_id'] = $proposal_id;
+            $data['proposal_id']           = $proposal_id;
             $data['switch_pipeline']       = true;
             $data['title']                 = _l('proposals');
             $data['statuses']              = $this->proposals_model->get_statuses();
@@ -55,9 +59,11 @@ class Proposals extends Admin_controller
 
     public function table()
     {
-        if (!has_permission('proposals', '', 'view')
+        if (
+            !has_permission('proposals', '', 'view')
             && !has_permission('proposals', '', 'view_own')
-            && get_option('allow_staff_view_proposals_assigned') == 0) {
+            && get_option('allow_staff_view_proposals_assigned') == 0
+        ) {
             ajax_access_denied();
         }
 
@@ -66,10 +72,10 @@ class Proposals extends Admin_controller
 
     public function proposal_relations($rel_id, $rel_type)
     {
-        $this->app->get_table_data('proposals_relations', array(
-            'rel_id' => $rel_id,
+        $this->app->get_table_data('proposals_relations', [
+            'rel_id'   => $rel_id,
             'rel_type' => $rel_type,
-        ));
+        ]);
     }
 
     public function delete_attachment($id)
@@ -80,6 +86,15 @@ class Proposals extends Admin_controller
         } else {
             ajax_access_denied();
         }
+    }
+
+    public function clear_signature($id)
+    {
+        if (has_permission('proposals', '', 'delete')) {
+            $this->proposals_model->clear_signature($id);
+        }
+
+        redirect(admin_url('proposals/list_proposals/' . $id));
     }
 
     public function sync_data()
@@ -96,23 +111,23 @@ class Proposals extends Admin_controller
 
             $address = trim($this->input->post('address'));
             $address = nl2br($address);
-            $this->db->update('tblproposals', array(
-                'phone' => $this->input->post('phone'),
-                'zip' => $this->input->post('zip'),
+            $this->db->update(db_prefix() . 'proposals', [
+                'phone'   => $this->input->post('phone'),
+                'zip'     => $this->input->post('zip'),
                 'country' => $this->input->post('country'),
-                'state' => $this->input->post('state'),
+                'state'   => $this->input->post('state'),
                 'address' => $address,
-                'city' => $this->input->post('city'),
-            ));
+                'city'    => $this->input->post('city'),
+            ]);
 
             if ($this->db->affected_rows() > 0) {
-                echo json_encode(array(
+                echo json_encode([
                     'message' => _l('all_data_synced_successfully'),
-                ));
+                ]);
             } else {
-                echo json_encode(array(
+                echo json_encode([
                     'message' => _l('sync_proposals_up_to_date'),
-                ));
+                ]);
             }
         }
     }
@@ -154,7 +169,7 @@ class Proposals extends Admin_controller
         } else {
             $data['proposal'] = $this->proposals_model->get($id);
 
-            if (!$data['proposal'] || !$this->user_can_view_proposal($id)) {
+            if (!$data['proposal'] || !user_can_view_proposal($id)) {
                 blank_page(_l('proposal_not_found'));
             }
 
@@ -167,32 +182,32 @@ class Proposals extends Admin_controller
         $data['taxes'] = $this->taxes_model->get();
         $this->load->model('invoice_items_model');
         $data['ajaxItems'] = false;
-        if (total_rows('tblitems') <= ajax_on_total_items()) {
-            $data['items']        = $this->invoice_items_model->get_grouped();
+        if (total_rows(db_prefix() . 'items') <= ajax_on_total_items()) {
+            $data['items'] = $this->invoice_items_model->get_grouped();
         } else {
-            $data['items'] = array();
+            $data['items']     = [];
             $data['ajaxItems'] = true;
         }
         $data['items_groups'] = $this->invoice_items_model->get_groups();
 
-        $data['statuses']   = $this->proposals_model->get_statuses();
-        $data['staff']      = $this->staff_model->get('', 1);
-        $data['currencies'] = $this->currencies_model->get();
+        $data['statuses']      = $this->proposals_model->get_statuses();
+        $data['staff']         = $this->staff_model->get('', ['active' => 1]);
+        $data['currencies']    = $this->currencies_model->get();
         $data['base_currency'] = $this->currencies_model->get_base_currency();
 
-        $data['title']      = $title;
+        $data['title'] = $title;
         $this->load->view('admin/proposals/proposal', $data);
     }
 
     public function get_template()
     {
         $name = $this->input->get('name');
-        echo $this->load->view('admin/proposals/templates/' . $name, array(), true);
+        echo $this->load->view('admin/proposals/templates/' . $name, [], true);
     }
 
     public function send_expiry_reminder($id)
     {
-        $canView = $this->user_can_view_proposal($id);
+        $canView = user_can_view_proposal($id);
         if (!$canView) {
             access_denied('proposals');
         } else {
@@ -218,15 +233,19 @@ class Proposals extends Admin_controller
     {
         if (is_admin()) {
             $this->db->where('id', $id);
-            $this->db->update('tblproposals', get_acceptance_info_array(true));
+            $this->db->update(db_prefix() . 'proposals', get_acceptance_info_array(true));
         }
 
-        redirect(admin_url('proposals/list_proposals/'.$id));
+        redirect(admin_url('proposals/list_proposals/' . $id));
     }
 
     public function pdf($id)
     {
-        $canView = $this->user_can_view_proposal($id);
+        if (!$id) {
+            redirect(admin_url('proposals'));
+        }
+
+        $canView = user_can_view_proposal($id);
         if (!$canView) {
             access_denied('proposals');
         } else {
@@ -235,13 +254,10 @@ class Proposals extends Admin_controller
             }
         }
 
-        if (!$id) {
-            redirect(admin_url('proposals'));
-        }
         $proposal = $this->proposals_model->get($id);
 
         try {
-            $pdf      = proposal_pdf($proposal);
+            $pdf = proposal_pdf($proposal);
         } catch (Exception $e) {
             $message = $e->getMessage();
             echo $message;
@@ -251,7 +267,12 @@ class Proposals extends Admin_controller
             die;
         }
 
-        $type     = 'D';
+        $type = 'D';
+
+        if ($this->input->get('output_type')) {
+            $type = $this->input->get('output_type');
+        }
+
         if ($this->input->get('print')) {
             $type = 'I';
         }
@@ -267,70 +288,52 @@ class Proposals extends Admin_controller
             die;
         }
 
-        $proposal = $this->proposals_model->get($id, array(), true);
+        $proposal = $this->proposals_model->get($id, [], true);
 
-        if (!$proposal) {
+        if (!$proposal || !user_can_view_proposal($id)) {
             echo _l('proposal_not_found');
             die;
-        } else {
-            if (!$this->user_can_view_proposal($id)) {
-                echo _l('proposal_not_found');
-                die;
-            }
         }
 
-        $template_name         = 'proposal-send-to-customer';
-        $data['template_name'] = $template_name;
+        $this->app_mail_template->set_rel_id($proposal->id);
+        $data = prepare_mail_preview_data('proposal_send_to_customer', $proposal->email);
 
-        $this->db->where('slug', $template_name);
-        $this->db->where('language', 'english');
-        $template_result = $this->db->get('tblemailtemplates')->row();
+        $merge_fields = [];
 
-        $data['template_system_name'] = $template_result->name;
-        $data['template_id'] = $template_result->emailtemplateid;
-
-        $data['template_disabled'] = false;
-        if (total_rows('tblemailtemplates', array('slug'=>$data['template_name'], 'active'=>0)) > 0) {
-            $data['template_disabled'] = true;
-        }
-
-        define('EMAIL_TEMPLATE_PROPOSAL_ID_HELP', $proposal->id);
-
-        $data['template']      = get_email_template_for_sending($template_name, $proposal->email);
-
-        $proposal_merge_fields  = get_available_merge_fields();
-        $_proposal_merge_fields = array();
-        array_push($_proposal_merge_fields, array(
-            array(
+        $merge_fields[] = [
+            [
                 'name' => 'Items Table',
-                'key' => '{proposal_items}',
-            ),
-        ));
-        foreach ($proposal_merge_fields as $key => $val) {
-            foreach ($val as $type => $f) {
-                if ($type == 'proposals') {
-                    foreach ($f as $available) {
-                        foreach ($available['available'] as $av) {
-                            if ($av == 'proposals') {
-                                array_push($_proposal_merge_fields, $f);
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                } elseif ($type == 'other') {
-                    array_push($_proposal_merge_fields, $f);
-                }
-            }
-        }
+                'key'  => '{proposal_items}',
+            ],
+        ];
+
+        $merge_fields = array_merge($merge_fields, $this->app_merge_fields->get_flat('proposals', 'other', '{email_signature}'));
+
         $data['proposal_statuses']     = $this->proposals_model->get_statuses();
-        $data['members']               = $this->staff_model->get('', 1);
-        $data['proposal_merge_fields'] = $_proposal_merge_fields;
+        $data['members']               = $this->staff_model->get('', ['active' => 1]);
+        $data['proposal_merge_fields'] = $merge_fields;
         $data['proposal']              = $proposal;
+        $data['totalNotes']            = total_rows(db_prefix() . 'notes', ['rel_id' => $id, 'rel_type' => 'proposal']);
         if ($to_return == false) {
             $this->load->view('admin/proposals/proposals_preview_template', $data);
         } else {
             return $this->load->view('admin/proposals/proposals_preview_template', $data, true);
+        }
+    }
+
+    public function add_note($rel_id)
+    {
+        if ($this->input->post() && user_can_view_proposal($rel_id)) {
+            $this->misc_model->add_note($this->input->post(), 'proposal', $rel_id);
+            echo $rel_id;
+        }
+    }
+
+    public function get_notes($id)
+    {
+        if (user_can_view_proposal($id)) {
+            $data['notes'] = $this->misc_model->get_notes($id, 'proposal');
+            $this->load->view('admin/includes/sales_notes_template', $data);
         }
     }
 
@@ -345,13 +348,13 @@ class Proposals extends Admin_controller
             if ($estimate_id) {
                 set_alert('success', _l('proposal_converted_to_estimate_success'));
                 $this->db->where('id', $id);
-                $this->db->update('tblproposals', array(
+                $this->db->update(db_prefix() . 'proposals', [
                     'estimate_id' => $estimate_id,
-                    'status' => 3,
-                ));
-                logActivity('Proposal Converted to Estimate [EstimateID: ' . $estimate_id . ', ProposalID: ' . $id . ']');
+                    'status'      => 3,
+                ]);
+                log_activity('Proposal Converted to Estimate [EstimateID: ' . $estimate_id . ', ProposalID: ' . $id . ']');
 
-                do_action('proposal_converted_to_estimate', array('proposal_id'=>$id, 'estimate_id'=>$estimate_id));
+                hooks()->do_action('proposal_converted_to_estimate', ['proposal_id' => $id, 'estimate_id' => $estimate_id]);
 
                 redirect(admin_url('estimates/estimate/' . $estimate_id));
             } else {
@@ -376,12 +379,12 @@ class Proposals extends Admin_controller
             if ($invoice_id) {
                 set_alert('success', _l('proposal_converted_to_invoice_success'));
                 $this->db->where('id', $id);
-                $this->db->update('tblproposals', array(
+                $this->db->update(db_prefix() . 'proposals', [
                     'invoice_id' => $invoice_id,
-                    'status' => 3,
-                ));
-                logActivity('Proposal Converted to Invoice [InvoiceID: ' . $invoice_id . ', ProposalID: ' . $id . ']');
-                do_action('proposal_converted_to_invoice', array('proposal_id'=>$id, 'invoice_id'=>$invoice_id));
+                    'status'     => 3,
+                ]);
+                log_activity('Proposal Converted to Invoice [InvoiceID: ' . $invoice_id . ', ProposalID: ' . $id . ']');
+                hooks()->do_action('proposal_converted_to_invoice', ['proposal_id' => $id, 'invoice_id' => $invoice_id]);
                 redirect(admin_url('invoices/invoice/' . $invoice_id));
             } else {
                 set_alert('danger', _l('proposal_converted_to_invoice_fail'));
@@ -397,81 +400,91 @@ class Proposals extends Admin_controller
     public function get_invoice_convert_data($id)
     {
         $this->load->model('payment_modes_model');
-        $data['payment_modes'] = $this->payment_modes_model->get('', array(
+        $data['payment_modes'] = $this->payment_modes_model->get('', [
             'expenses_only !=' => 1,
-        ));
+        ]);
         $this->load->model('taxes_model');
-        $data['taxes']      = $this->taxes_model->get();
-        $data['currencies'] = $this->currencies_model->get();
+        $data['taxes']         = $this->taxes_model->get();
+        $data['currencies']    = $this->currencies_model->get();
         $data['base_currency'] = $this->currencies_model->get_base_currency();
         $this->load->model('invoice_items_model');
         $data['ajaxItems'] = false;
-        if (total_rows('tblitems') <= ajax_on_total_items()) {
-            $data['items']        = $this->invoice_items_model->get_grouped();
+        if (total_rows(db_prefix() . 'items') <= ajax_on_total_items()) {
+            $data['items'] = $this->invoice_items_model->get_grouped();
         } else {
-            $data['items'] = array();
+            $data['items']     = [];
             $data['ajaxItems'] = true;
         }
         $data['items_groups'] = $this->invoice_items_model->get_groups();
 
-        $data['staff']          = $this->staff_model->get('', 1);
+        $data['staff']          = $this->staff_model->get('', ['active' => 1]);
         $data['proposal']       = $this->proposals_model->get($id);
-        $data['billable_tasks'] = array();
+        $data['billable_tasks'] = [];
         $data['add_items']      = $this->_parse_items($data['proposal']);
 
         if ($data['proposal']->rel_type == 'lead') {
             $this->db->where('leadid', $data['proposal']->rel_id);
-            $data['customer_id'] = $this->db->get('tblclients')->row()->userid;
+            $data['customer_id'] = $this->db->get(db_prefix() . 'clients')->row()->userid;
         } else {
             $data['customer_id'] = $data['proposal']->rel_id;
         }
+        $data['custom_fields_rel_transfer'] = [
+            'belongs_to' => 'proposal',
+            'rel_id'     => $id,
+        ];
         $this->load->view('admin/proposals/invoice_convert_template', $data);
     }
 
     public function get_estimate_convert_data($id)
     {
         $this->load->model('taxes_model');
-        $data['taxes']      = $this->taxes_model->get();
-        $data['currencies'] = $this->currencies_model->get();
+        $data['taxes']         = $this->taxes_model->get();
+        $data['currencies']    = $this->currencies_model->get();
         $data['base_currency'] = $this->currencies_model->get_base_currency();
         $this->load->model('invoice_items_model');
         $data['ajaxItems'] = false;
-        if (total_rows('tblitems') <= ajax_on_total_items()) {
-            $data['items']        = $this->invoice_items_model->get_grouped();
+        if (total_rows(db_prefix() . 'items') <= ajax_on_total_items()) {
+            $data['items'] = $this->invoice_items_model->get_grouped();
         } else {
-            $data['items'] = array();
+            $data['items']     = [];
             $data['ajaxItems'] = true;
         }
         $data['items_groups'] = $this->invoice_items_model->get_groups();
 
-        $data['staff']     = $this->staff_model->get('', 1);
+        $data['staff']     = $this->staff_model->get('', ['active' => 1]);
         $data['proposal']  = $this->proposals_model->get($id);
         $data['add_items'] = $this->_parse_items($data['proposal']);
 
         $this->load->model('estimates_model');
-        $data['estimate_statuses']  = $this->estimates_model->get_statuses();
+        $data['estimate_statuses'] = $this->estimates_model->get_statuses();
         if ($data['proposal']->rel_type == 'lead') {
             $this->db->where('leadid', $data['proposal']->rel_id);
-            $data['customer_id'] = $this->db->get('tblclients')->row()->userid;
+            $data['customer_id'] = $this->db->get(db_prefix() . 'clients')->row()->userid;
         } else {
             $data['customer_id'] = $data['proposal']->rel_id;
         }
+
+        $data['custom_fields_rel_transfer'] = [
+            'belongs_to' => 'proposal',
+            'rel_id'     => $id,
+        ];
+
         $this->load->view('admin/proposals/estimate_convert_template', $data);
     }
 
     private function _parse_items($proposal)
     {
-        $items = array();
+        $items = [];
         foreach ($proposal->items as $item) {
-            $taxnames = array();
+            $taxnames = [];
             $taxes    = get_proposal_item_taxes($item['id']);
             foreach ($taxes as $tax) {
                 array_push($taxnames, $tax['taxname']);
             }
-            $item['taxname'] = $taxnames;
+            $item['taxname']        = $taxnames;
             $item['parent_item_id'] = $item['id'];
-            $item['id']      = 0;
-            $items[]         = $item;
+            $item['id']             = 0;
+            $items[]                = $item;
         }
 
         return $items;
@@ -480,7 +493,7 @@ class Proposals extends Admin_controller
     /* Send proposal to email */
     public function send_to_email($id)
     {
-        $canView = $this->user_can_view_proposal($id);
+        $canView = user_can_view_proposal($id);
         if (!$canView) {
             access_denied('proposals');
         } else {
@@ -490,7 +503,21 @@ class Proposals extends Admin_controller
         }
 
         if ($this->input->post()) {
-            $success = $this->proposals_model->send_proposal_to_email($id, 'proposal-send-to-customer', $this->input->post('attach_pdf'), $this->input->post('cc'));
+            try {
+                $success = $this->proposals_model->send_proposal_to_email(
+                    $id,
+                    $this->input->post('attach_pdf'),
+                    $this->input->post('cc')
+                );
+            } catch (Exception $e) {
+                $message = $e->getMessage();
+                echo $message;
+                if (strpos($message, 'Unable to get the size of the image') !== false) {
+                    show_pdf_unable_to_get_image_size_error();
+                }
+                die;
+            }
+
             if ($success) {
                 set_alert('success', _l('proposal_sent_to_email_success'));
             } else {
@@ -565,19 +592,19 @@ class Proposals extends Admin_controller
     public function add_proposal_comment()
     {
         if ($this->input->post()) {
-            echo json_encode(array(
+            echo json_encode([
                 'success' => $this->proposals_model->add_comment($this->input->post()),
-            ));
+            ]);
         }
     }
 
     public function edit_comment($id)
     {
         if ($this->input->post()) {
-            echo json_encode(array(
+            echo json_encode([
                 'success' => $this->proposals_model->edit_comment($this->input->post(), $id),
                 'message' => _l('comment_updated_successfully'),
-            ));
+            ]);
         }
     }
 
@@ -590,21 +617,21 @@ class Proposals extends Admin_controller
     public function remove_comment($id)
     {
         $this->db->where('id', $id);
-        $comment = $this->db->get('tblproposalcomments')->row();
+        $comment = $this->db->get(db_prefix() . 'proposal_comments')->row();
         if ($comment) {
             if ($comment->staffid != get_staff_user_id() && !is_admin()) {
-                echo json_encode(array(
+                echo json_encode([
                     'success' => false,
-                ));
+                ]);
                 die;
             }
-            echo json_encode(array(
+            echo json_encode([
                 'success' => $this->proposals_model->remove_comment($id),
-            ));
+            ]);
         } else {
-            echo json_encode(array(
+            echo json_encode([
                 'success' => false,
-            ));
+            ]);
         }
     }
 
@@ -612,29 +639,27 @@ class Proposals extends Admin_controller
     {
         if (!has_permission('proposals', '', 'edit') && !has_permission('proposals', '', 'create')) {
             header('HTTP/1.0 400 Bad error');
-            echo json_encode(array(
+            echo json_encode([
                 'success' => false,
                 'message' => _l('access_denied'),
-            ));
+            ]);
             die;
         }
         $success = false;
         $message = '';
 
         $this->db->where('id', $this->input->post('proposal_id'));
-        $this->db->update('tblproposals', array(
-            'content' => $this->input->post('content', false),
-        ));
+        $this->db->update(db_prefix() . 'proposals', [
+            'content' => html_purify($this->input->post('content', false)),
+        ]);
 
-        if ($this->db->affected_rows() > 0) {
-            $success = true;
-            $message = _l('updated_successfully', _l('proposal'));
-        }
+        $success = $this->db->affected_rows() > 0;
+        $message = _l('updated_successfully', _l('proposal'));
 
-        echo json_encode(array(
+        echo json_encode([
             'success' => $success,
             'message' => $message,
-        ));
+        ]);
     }
 
     // Pipeline
@@ -645,9 +670,9 @@ class Proposals extends Admin_controller
         } else {
             $set = 'false';
         }
-        $this->session->set_userdata(array(
+        $this->session->set_userdata([
             'proposals_pipeline' => $set,
-        ));
+        ]);
         if ($manual == false) {
             redirect(admin_url('proposals'));
         }
@@ -682,16 +707,19 @@ class Proposals extends Admin_controller
         $status = $this->input->get('status');
         $page   = $this->input->get('page');
 
-        $proposals = $this->proposals_model->do_kanban_query($status, $this->input->get('search'), $page, array(
-            'sort_by' => $this->input->get('sort_by'),
-            'sort' => $this->input->get('sort'),
-        ));
+        $proposals = (new ProposalsPipeline($status))
+        ->search($this->input->get('search'))
+        ->sortBy(
+            $this->input->get('sort_by'),
+            $this->input->get('sort')
+        )
+        ->page($page)->get();
 
         foreach ($proposals as $proposal) {
-            $this->load->view('admin/proposals/pipeline/_kanban_card', array(
+            $this->load->view('admin/proposals/pipeline/_kanban_card', [
                 'proposal' => $proposal,
-                'status' => $status,
-            ));
+                'status'   => $status,
+            ]);
         }
     }
 
@@ -710,22 +738,17 @@ class Proposals extends Admin_controller
         return false;
     }
 
-    private function user_can_view_proposal($id)
+    public function get_due_date()
     {
-        if (has_permission('proposals', '', 'view')) {
-            return true;
+        if ($this->input->post()) {
+            $date    = $this->input->post('date');
+            $duedate = '';
+            if (get_option('proposal_due_after') != 0) {
+                $date    = to_sql_date($date);
+                $d       = date('Y-m-d', strtotime('+' . get_option('proposal_due_after') . ' DAY', strtotime($date)));
+                $duedate = _d($d);
+                echo $duedate;
+            }
         }
-
-        $this->db->select('id,addedfrom,assigned');
-        $this->db->from('tblproposals');
-        $this->db->where('id', $id);
-        $proposal = $this->db->get()->row();
-
-        if((has_permission('proposals','','view_own') && $proposal->addedfrom == get_staff_user_id())
-            || ($proposal->assigned == get_staff_user_id() && get_option('allow_staff_view_proposals_assigned') == 1)) {
-            return true;
-        }
-
-        return false;
     }
 }

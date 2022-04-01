@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <ul class="nav nav-tabs no-margin" role="tablist">
 
     <li role="presentation" class="active project_tab_overview">
@@ -36,13 +37,19 @@
 
     <?php if($project->settings->view_gantt == 1 && $project->settings->available_features['project_gantt'] == 1){ ?>
     <li role="presentation" class="project_tab_gantt">
-        <a data-group="project_gantt" href="<?php echo site_url('clients/project/'.$project->id.'?group=project_gantt'); ?>" role="tab"><i class="fa fa-line-chart" aria-hidden="true"></i> <?php echo _l('project_gant'); ?></a>
+        <a data-group="project_gantt" href="<?php echo site_url('clients/project/'.$project->id.'?group=project_gantt'); ?>" role="tab"><i class="fa fa-align-left" aria-hidden="true"></i> <?php echo _l('project_gant'); ?></a>
     </li>
     <?php } ?>
 
     <?php if(has_contact_permission('support') && $project->settings->available_features['project_tickets'] == 1){ ?>
     <li role="presentation" class="project_tab_tickets">
         <a data-group="project_tickets" href="<?php echo site_url('clients/project/'.$project->id.'?group=project_tickets'); ?>" role="tab"><i class="fa fa-life-ring" aria-hidden="true"></i> <?php echo _l('project_tickets'); ?></a>
+    </li>
+    <?php } ?>
+
+    <?php if(has_contact_permission('contracts') && $project->settings->available_features['project_contracts'] == 1){ ?>
+    <li role="presentation" class="project_tab_contracts">
+        <a data-group="project_contracts" href="<?php echo site_url('clients/project/'.$project->id.'?group=project_contracts'); ?>" role="tab"><i class="fa fa-life-ring" aria-hidden="true"></i> <?php echo _l('contracts'); ?></a>
     </li>
     <?php } ?>
 

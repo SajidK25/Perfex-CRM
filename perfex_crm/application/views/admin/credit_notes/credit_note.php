@@ -1,3 +1,4 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <div id="wrapper">
  <div class="content">
@@ -21,7 +22,7 @@
         <div class="f_client_id">
          <div class="form-group select-placeholder">
           <label for="clientid" class="control-label"><?php echo _l('client'); ?></label>
-          <select id="clientid" name="clientid" data-live-search="true" data-width="100%" class="ajax-search" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
+          <select id="clientid" name="clientid" data-live-search="true" data-width="100%" class="ajax-search<?php if(isset($credit_note) && empty($credit_note->clientid)){echo ' customer-removed';} ?>" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
             <?php $selected = (isset($credit_note) ? $credit_note->clientid : '');
             if($selected == ''){
              $selected = (isset($customer_id) ? $customer_id: '');
@@ -191,11 +192,13 @@
        <div class="row">
         <div class="col-md-6">
          <?php
-         $s_attrs = array('disabled'=>true,'data-show-subtext'=>true);
-         $s_attrs = do_action('credit_note_currency_disabled',$s_attrs);
+
+         $credit_note_currency_attr = array('disabled'=>true,'data-show-subtext'=>true);
+         $credit_note_currency_attr = apply_filters_deprecated('credit_note_currency_disabled', [$credit_note_currency_attr], '2.3.0', 'credit_note_currency_attributes');
+
          foreach($currencies as $currency){
           if($currency['isdefault'] == 1){
-           $s_attrs['data-base'] = $currency['id'];
+           $credit_note_currency_attr['data-base'] = $currency['id'];
          }
          if(isset($credit_note)){
            if($currency['id'] == $credit_note->currency){
@@ -207,8 +210,9 @@
           }
         }
       }
+      $credit_note_currency_attr = hooks()->apply_filters('credit_note_currency_attributes',$credit_note_currency_attr);
       ?>
-      <?php echo render_select('currency',$currencies,array('id','name','symbol'),'currency',$selected,$s_attrs); ?>
+      <?php echo render_select('currency', $currencies, array('id','name','symbol'), 'currency', $selected, $credit_note_currency_attr); ?>
     </div>
     <div class="col-md-6">
      <div class="form-group select-placeholder">
@@ -234,24 +238,9 @@
 </div>
 <div class="panel-body mtop10">
   <div class="row">
-   <div class="col-md-4">
-    <div class="form-group mbot25 items-wrapper select-placeholder">
-     <select name="item_select" class="selectpicker no-margin<?php if($ajaxItems == true){echo ' ajax-search';} ?>" data-width="100%" id="item_select" data-none-selected-text="<?php echo _l('add_item'); ?>" data-live-search="true">
-      <option value=""></option>
-      <?php foreach($items as $group_id=>$_items){ ?>
-      <optgroup data-group-id="<?php echo $group_id; ?>" label="<?php echo $_items[0]['group_name']; ?>">
-       <?php foreach($_items as $item){ ?>
-       <option value="<?php echo $item['id']; ?>" data-subtext="<?php echo strip_tags(mb_substr($item['long_description'],0,200)).'...'; ?>">(<?php echo _format_number($item['rate']); ; ?>) <?php echo $item['description']; ?></option>
-       <?php } ?>
-     </optgroup>
-     <?php } ?>
-     <?php if(has_permission('items','','create')){ ?>
-     <option data-divider="true" class="newitem-divider"></option>
-     <option value="newitem" class="newitem" data-content="<span class='text-info'><?php echo _l('new_invoice_item'); ?></span>"></option>
-     <?php } ?>
-   </select>
- </div>
-</div>
+  <div class="col-md-4">
+      <?php $this->load->view('admin/invoice_items/item_select'); ?>
+  </div>
 <div class="col-md-8 text-right show_quantity_as_wrapper">
   <div class="mtop10">
    <span><?php echo _l('show_quantity_as'); ?> </span>
@@ -271,7 +260,7 @@
 </div>
 </div>
 <div class="table-responsive s_table">
- <table class="table credite-note-items-table items table-main-credit-note-edit no-mtop">
+ <table class="table credite-note-items-table items table-main-credit-note-edit has-calculations no-mtop">
   <thead>
    <tr>
     <th></th>
@@ -363,7 +352,7 @@
     }
     $table_row .= form_hidden('' . $items_indicator . '[' . $i . '][itemid]', $item['id']);
     $amount = $item['rate'] * $item['qty'];
-    $amount = _format_number($amount);
+    $amount = app_format_number($amount);
                               // order input
     $table_row .= '<input type="hidden" class="order" name="' . $items_indicator . '[' . $i . '][order]">';
     $table_row .= '</td>';
@@ -499,7 +488,7 @@
  $(function(){
    validate_credit_note_form();
        // Init accountacy currency symbol
-       init_currency_symbol();
+       init_currency();
        init_ajax_project_search_by_customer_id();
        // Maybe items ajax search
        init_ajax_search('items','#item_select.ajax-search',undefined,admin_url+'items/search');
